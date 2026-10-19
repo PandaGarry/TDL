@@ -2,12 +2,18 @@ extends Node
 ## Headless-тесты каркаса. Запуск:
 ## godot --headless --path . res://tests/test_runner.tscn
 
+const TEST_SAVE_PATH := "user://saltvigil_test_save.json"
+
 var failures := 0
 var checks := 0
 
 
 func _ready() -> void:
 	print("Saltvigil · каркас · тесты")
+	# Тесты не должны трогать сохранение игрока.
+	SaveSystem.save_path = TEST_SAVE_PATH
+	SaveSystem.delete_save()
+
 	_test_database()
 	_test_data_integrity()
 	_test_new_game()
@@ -20,7 +26,11 @@ func _ready() -> void:
 	_test_game_over()
 	_test_demo_completion()
 	_test_hollow()
+	_test_action_guards()
+	_test_corrupt_save_fallback()
 
+	SaveSystem.delete_save()
+	SaveSystem.save_path = "user://saltvigil_save.json"
 	print("Проверок: %d · провалов: %d" % [checks, failures])
 	if failures == 0:
 		print("ALL TESTS PASSED")
@@ -183,6 +193,7 @@ func _test_demo_completion() -> void:
 		GameState.advance_watch()
 	expect(GameState.demo_over, "третья ночь завершает демо")
 	expect(not GameState.running, "после демо игра не идёт")
+	expect(not GameState.can_act(), "после демо действия заблокированы")
 
 
 func _test_hollow() -> void:
@@ -196,3 +207,40 @@ func _test_hollow() -> void:
 	expect(int(GameState.flags.get("hollows", 0)) == 1, "счётчик Полов равен 1")
 	expect(GameState.get_active_followers().size() == 2, "в культе осталось два человека")
 	expect(not GameState.is_game_over, "игра продолжается, пока есть кому помнить")
+
+
+func _test_action_guards() -> void:
+	print("\n[Action guards]")
+	GameState.new_game()
+	GameState.start()
+	expect(GameState.can_act(), "в живой партии действия доступны")
+	GameState.light = 1.0
+	GameState.advance_watch()
+	expect(GameState.is_game_over, "партия завершена")
+	expect(not GameState.can_act(), "после поражения действия заблокированы")
+	expect(not GameState.feed_wood(), "нельзя кормить Уголёк после поражения")
+	expect(not GameState.burn_memory("mira", "mira_mother"), "нельзя сжигать память после поражения")
+	expect(not GameState.read_memory("mira", "mira_salt"), "нельзя читать память после поражения")
+	expect(not bool(GameState.build("greenhouse", 0).get("ok", true)), "нельзя строить после поражения")
+	expect(not SaveSystem.save_game(), "мёртвое состояние не сохраняется")
+
+
+func _test_corrupt_save_fallback() -> void:
+	print("\n[Corrupt save fallback]")
+	GameState.new_game()
+	GameState.start()
+	GameState.day = 2
+	GameState.light = 77.0
+	expect(SaveSystem.save_game(), "первое сохранение записано")
+	expect(SaveSystem.save_game(), "второе сохранение создало резервную копию")
+
+	var file := FileAccess.open(SaveSystem.save_path, FileAccess.WRITE)
+	expect(file != null, "файл сохранения открыт для порчи")
+	if file != null:
+		file.store_string("{ broken json")
+		file.close()
+
+	GameState.new_game()
+	expect(SaveSystem.load_game(), "повреждённый файл заменён резервной копией")
+	expect(GameState.day == 2, "день восстановлен из копии")
+	expect(is_equal_approx(GameState.light, 77.0), "свет восстановлен из копии")

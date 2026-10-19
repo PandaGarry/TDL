@@ -8,7 +8,10 @@ signal quit_requested
 const Palette = preload("res://src/core/palette.gd")
 const UiKit = preload("res://src/ui/ui_kit.gd")
 
+const AMBIENT_REDRAW_INTERVAL := 1.0 / 30.0
+
 var _time := 0.0
+var _redraw_accum := 0.0
 var _continue_button: Button
 
 
@@ -29,6 +32,10 @@ func _on_viewport_resized() -> void:
 
 func _process(delta: float) -> void:
 	_time += delta
+	_redraw_accum += delta
+	if _redraw_accum < AMBIENT_REDRAW_INTERVAL:
+		return
+	_redraw_accum = 0.0
 	queue_redraw()
 
 
@@ -86,7 +93,7 @@ func _build() -> void:
 	quit_button.pressed.connect(func() -> void: quit_requested.emit())
 	column.add_child(quit_button)
 
-	var footer := UiKit.label("прототип каркаса · v0.1 · Godot 4", 13, Palette.MUTED)
+	var footer := UiKit.label("прототип каркаса · v0.1.1 · Godot 4", 13, Palette.MUTED)
 	footer.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	footer.offset_left = 24.0
 	footer.offset_top = -40.0

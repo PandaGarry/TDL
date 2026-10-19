@@ -34,6 +34,9 @@ func _on_continue() -> void:
 	if SaveSystem.load_game():
 		GameState.start()
 		_show_game()
+	else:
+		SaveSystem.delete_save()
+		_show_menu()
 
 
 func _show_game() -> void:

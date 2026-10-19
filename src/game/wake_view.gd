@@ -14,12 +14,14 @@ const DECK_RADIUS := Vector2(440.0, 270.0)
 const SLOT_RADIUS := Vector2(320.0, 160.0)
 const FOLLOWER_X := [-150.0, 0.0, 150.0]
 const FOLLOWER_Y := 225.0
+const AMBIENT_REDRAW_INTERVAL := 1.0 / 30.0
 
 var build_mode := false
 var pending_building_id := ""
 var time := 0.0
 var hover_slot := -1
 var hover_follower := ""
+var _redraw_accum := 0.0
 
 
 func _ready() -> void:
@@ -36,6 +38,10 @@ func _on_light_changed(_value: float, _maximum: float) -> void:
 
 func _process(delta: float) -> void:
 	time += delta
+	_redraw_accum += delta
+	if _redraw_accum < AMBIENT_REDRAW_INTERVAL:
+		return
+	_redraw_accum = 0.0
 	queue_redraw()
 
 

@@ -4,8 +4,12 @@ extends RefCounted
 
 const Palette = preload("res://src/core/palette.gd")
 
+static var _theme: Theme
+
 
 static func make_theme() -> Theme:
+	if _theme != null:
+		return _theme
 	var theme := Theme.new()
 	theme.default_font_size = 16
 
@@ -45,6 +49,7 @@ static func make_theme() -> Theme:
 	theme.set_color("font_color", "RichTextLabel", Palette.TEXT)
 	theme.set_font_size("normal_font_size", "RichTextLabel", 15)
 
+	_theme = theme
 	return theme
 
 

@@ -104,6 +104,11 @@ func set_paused(value: bool) -> void:
 	EventBus.pause_changed.emit(paused)
 
 
+func can_act() -> bool:
+	## Действия с памятью и ресурсами доступны только в живой партии.
+	return not is_game_over and not demo_over
+
+
 func toggle_pause() -> void:
 	set_paused(not paused)
 
@@ -211,6 +216,8 @@ func get_memory_for(follower_id: String, memory_id: String) -> Dictionary:
 
 
 func burn_memory(follower_id: String, memory_id: String) -> bool:
+	if not can_act():
+		return false
 	var follower = find_follower(follower_id)
 	if follower == null or not follower.is_active():
 		return false
@@ -239,6 +246,8 @@ func burn_memory(follower_id: String, memory_id: String) -> bool:
 
 
 func keep_memory(follower_id: String, memory_id: String) -> bool:
+	if not can_act():
+		return false
 	var follower = find_follower(follower_id)
 	if follower == null or not follower.is_active():
 		return false
@@ -266,6 +275,8 @@ func keep_memory(follower_id: String, memory_id: String) -> bool:
 
 
 func read_memory(follower_id: String, memory_id: String) -> bool:
+	if not can_act():
+		return false
 	var follower = find_follower(follower_id)
 	if follower == null or not follower.is_active():
 		return false
@@ -286,6 +297,8 @@ func read_memory(follower_id: String, memory_id: String) -> bool:
 
 
 func feed_wood() -> bool:
+	if not can_act():
+		return false
 	var cost := float(_cfg("wood_feed_cost", 1.0))
 	if float(resources.get("wood", 0.0)) < cost:
 		EventBus.toast_requested.emit("Дерево закончилось. Осталась память.")
@@ -299,7 +312,7 @@ func feed_wood() -> bool:
 
 
 func miracle() -> bool:
-	if not running:
+	if not running or not can_act():
 		return false
 	var cost := int(_cfg("miracle_journal_cost", 1))
 	if journal_pages < cost:
@@ -320,7 +333,7 @@ func miracle() -> bool:
 	EventBus.journal_changed.emit(journal_pages, lost_entries.size())
 	EventBus.light_changed.emit(light, ember_max())
 	EventBus.faith_changed.emit(faith)
-	EventBus.toast_requested.emit("Чудо Уголька · +%d света · −1 страница" % int(_cfg("miracle_light", 30.0)))
+	EventBus.toast_requested.emit("Чудо Уголька · +%d света · −%d стр." % [int(_cfg("miracle_light", 30.0)), cost])
 
 	if journal_pages <= 0:
 		_game_over("Ты забыл всё, что делало тебя Хранителем. Уголёк горит, но это уже не ты.")
@@ -329,6 +342,8 @@ func miracle() -> bool:
 
 
 func build(building_id: String, slot: int) -> Dictionary:
+	if not can_act():
+		return {"ok": false, "message": "Вахта окончена."}
 	var data := Database.get_building(building_id)
 	if data.is_empty():
 		return {"ok": false, "message": "Неизвестное здание."}
@@ -425,9 +440,13 @@ func _make_hollow(follower) -> void:
 	follower.hollow = true
 	flags["hollows"] = int(flags.get("hollows", 0)) + 1
 	faith = maxf(0.0, faith - float(_cfg("hollow_faith_penalty", 10.0)))
-	_add_log("%s стал(а) Полом. Тело всё ещё ходит, но это уже не тот человек." % follower.display_name)
+	if follower.id == "iskra":
+		_add_log("Искра вернулась в тишину. Мел остался лежать на палубе.")
+		EventBus.toast_requested.emit("Искра замолчала")
+	else:
+		_add_log("%s стал(а) Полом. Тело всё ещё ходит, но это уже не тот человек." % follower.display_name)
+		EventBus.toast_requested.emit("%s стал(а) Полом" % follower.display_name)
 	EventBus.faith_changed.emit(faith)
-	EventBus.toast_requested.emit("%s стал(а) Полом" % follower.display_name)
 	EventBus.followers_changed.emit()
 	EventBus.follower_changed.emit(follower.id)
 
@@ -552,27 +571,86 @@ func to_dict() -> Dictionary:
 	}
 
 
+## Загружает состояние терпимо к повреждённым и старым данным:
+## неизвестные поля игнорируются, числа зажимаются в допустимые диапазоны.
 func from_dict(data: Dictionary) -> void:
 	config = Database.config
-	day = int(data.get("day", 1))
-	watch = int(data.get("watch", 0))
-	light = float(data.get("light", 45.0))
-	faith = float(data.get("faith", 50.0))
-	resources = data.get("resources", {}).duplicate(true)
-	buildings = data.get("buildings", []).duplicate(true)
-	journal_pages = int(data.get("journal_pages", 8))
-	journal_entries = data.get("journal_entries", []).duplicate(true)
-	lost_entries = data.get("lost_entries", []).duplicate(true)
-	flags = data.get("flags", {}).duplicate(true)
+	day = clampi(int(data.get("day", 1)), 1, int(_cfg("nights_to_survive", 3)))
+	watch = clampi(int(data.get("watch", 0)), 0, _watches())
+	light = clampf(float(data.get("light", 45.0)), 0.0, ember_max())
+	faith = clampf(float(data.get("faith", 50.0)), 0.0, 100.0)
 	demo_over = bool(data.get("demo_over", false))
 	is_game_over = bool(data.get("is_game_over", false))
 	ending_reason = str(data.get("ending_reason", ""))
-	log_history = data.get("log_history", []).duplicate()
+
+	resources = _sanitize_resources(data.get("resources", {}))
+	buildings = _sanitize_buildings(data.get("buildings", []))
+	journal_entries = _sanitize_entries(data.get("journal_entries", []))
+	lost_entries = _sanitize_entries(data.get("lost_entries", []))
+	journal_pages = clampi(int(data.get("journal_pages", 8)), 0, journal_entries.size())
+	var saved_flags: Variant = data.get("flags", {})
+	flags = saved_flags.duplicate(true) if saved_flags is Dictionary else {}
+	log_history = _sanitize_log(data.get("log_history", []))
 	running = false
 	paused = false
 
 	followers.clear()
-	for entry in data.get("followers", []):
-		var follower = FollowerScript.new()
-		follower.from_dict(entry)
-		followers.append(follower)
+	var saved_followers: Variant = data.get("followers", [])
+	if saved_followers is Array:
+		for entry in saved_followers:
+			if not (entry is Dictionary):
+				continue
+			var follower = FollowerScript.new()
+			follower.from_dict(entry)
+			followers.append(follower)
+
+
+func _sanitize_resources(raw: Variant) -> Dictionary:
+	var result: Dictionary = {}
+	for item_id in Database.items.keys():
+		var value := 0.0
+		if raw is Dictionary:
+			value = float(raw.get(item_id, 0.0))
+		result[item_id] = clampf(value, 0.0, 9999.0)
+	return result
+
+
+func _sanitize_buildings(raw: Variant) -> Array:
+	var result: Array = []
+	if not (raw is Array):
+		return result
+	var used_slots := {}
+	var slot_limit := int(_cfg("build_slots", 8))
+	for entry in raw:
+		if not (entry is Dictionary):
+			continue
+		var building_id := str(entry.get("id", ""))
+		var slot := int(entry.get("slot", -1))
+		if Database.get_building(building_id).is_empty():
+			continue
+		if slot < 0 or slot >= slot_limit or used_slots.has(slot):
+			continue
+		used_slots[slot] = true
+		result.append({"id": building_id, "slot": slot})
+	return result
+
+
+func _sanitize_entries(raw: Variant) -> Array:
+	var result: Array = []
+	if not (raw is Array):
+		return result
+	for entry in raw:
+		if entry is Dictionary:
+			result.append(entry.duplicate(true))
+	return result
+
+
+func _sanitize_log(raw: Variant) -> Array:
+	var result: Array = []
+	if not (raw is Array):
+		return result
+	for line in raw:
+		result.append(str(line))
+	if result.size() > 200:
+		result = result.slice(result.size() - 200, result.size())
+	return result

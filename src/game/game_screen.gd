@@ -383,26 +383,28 @@ func _refresh_buttons() -> void:
 	if feed_button == null:
 		return
 	var wood_cost := float(Database.config.get("wood_feed_cost", 1.0))
+	var can_act := GameState.running and GameState.can_act()
 	feed_button.text = "Дерево · +%d света" % int(Database.config.get("wood_feed_light", 3.0))
-	feed_button.disabled = float(GameState.resources.get("wood", 0.0)) < wood_cost
-	miracle_button.disabled = GameState.journal_pages <= 0 or not GameState.running
-	build_button.disabled = not GameState.has_free_slot()
-	journal_button.disabled = false
+	feed_button.disabled = not can_act or float(GameState.resources.get("wood", 0.0)) < wood_cost
+	miracle_button.disabled = not can_act or GameState.journal_pages <= 0
+	build_button.disabled = not can_act or not GameState.has_free_slot()
+	journal_button.disabled = not GameState.can_act()
+	pause_button.disabled = not GameState.running
 	pause_button.text = "Продолжить" if GameState.paused else "Пауза"
-	save_button.disabled = false
+	save_button.disabled = not can_act
 
 
 func _sync_timer() -> void:
 	if watch_timer == null:
 		return
-	var build_pending: bool = wake_view != null and wake_view.build_mode
-	var should_run := GameState.running and not GameState.paused and _modal == null and not build_pending
-	if should_run:
+	if not GameState.running:
+		watch_timer.stop()
+	else:
+		var build_pending: bool = wake_view != null and wake_view.build_mode
+		var should_run := not GameState.paused and _modal == null and not build_pending
 		if watch_timer.is_stopped():
 			watch_timer.start()
-	else:
-		if not watch_timer.is_stopped():
-			watch_timer.stop()
+		watch_timer.paused = not should_run
 	if pause_overlay != null:
 		pause_overlay.visible = GameState.paused and _modal == null
 
@@ -432,9 +434,9 @@ func _on_save_pressed() -> void:
 
 
 func _exit_to_menu() -> void:
-	if GameState.is_game_over:
+	if GameState.demo_over:
 		SaveSystem.delete_save()
-	elif not GameState.demo_over:
+	elif GameState.running:
 		SaveSystem.save_game()
 	exit_requested.emit()
 
@@ -443,7 +445,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not event.is_action_pressed("ui_cancel"):
 		return
 	if _modal != null:
-		_close_modal()
+		# Финальные окна (рассвет, поражение, финал демо) нельзя закрыть Esc:
+		# иначе игрок остаётся на мёртвом экране без кнопки продолжения.
+		if GameState.running and GameState.can_act():
+			_close_modal()
 	elif wake_view.build_mode:
 		wake_view.cancel_build_mode()
 	elif GameState.running:
@@ -453,6 +458,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _open_modal(content: Control) -> void:
 	_close_modal()
+	get_viewport().gui_release_focus()
 	var overlay := ColorRect.new()
 	overlay.color = Color(0.0, 0.0, 0.0, 0.68)
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -863,7 +869,7 @@ func _open_summary_modal(summary: Dictionary) -> void:
 	column.add_child(UiKit.wrapped_label(_summary_text(summary), 15, Palette.TEXT))
 	column.add_child(UiKit.spacer(12))
 
-	var next_button := UiKit.gold_button("Следующая вахта", 17)
+	var next_button := UiKit.gold_button("Следующая ночь", 17)
 	next_button.custom_minimum_size = Vector2(320, 48)
 	next_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	next_button.pressed.connect(_start_next_night)
