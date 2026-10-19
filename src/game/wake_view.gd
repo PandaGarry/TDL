@@ -274,7 +274,7 @@ func _draw_followers() -> void:
 		_draw_text_centered(caption, center + Vector2(0, TOKEN_RADIUS + 20.0), 13, Palette.TEXT, 150.0)
 
 		if not follower.hollow:
-			var dots := follower.memory_count()
+			var dots: int = follower.memory_count()
 			var start := center + Vector2(-float(dots - 1) * 5.0, TOKEN_RADIUS + 6.0)
 			for dot in dots:
 				draw_circle(start + Vector2(dot * 10.0, 0), 2.5, Palette.AMBER)

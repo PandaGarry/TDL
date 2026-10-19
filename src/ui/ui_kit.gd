@@ -122,7 +122,7 @@ static func card(bg: Color = Palette.PANEL_LIGHT) -> PanelContainer:
 
 static func chip(text_value: String, color: Color) -> PanelContainer:
 	var node := PanelContainer.new()
-	node.add_theme_stylebox_override("panel", box(alpha(color, 0.16), color, 1, 10))
+	node.add_theme_stylebox_override("panel", box(Palette.alpha(color, 0.16), color, 1, 10))
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 8)
 	margin.add_theme_constant_override("margin_right", 8)
