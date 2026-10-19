@@ -3,6 +3,8 @@ extends Node
 ## godot --headless --path . res://tests/test_runner.tscn
 
 const TEST_SAVE_PATH := "user://saltvigil_test_save.json"
+const GameScreenScript = preload("res://src/game/game_screen.gd")
+const MainMenuScript = preload("res://src/ui/main_menu.gd")
 
 var failures := 0
 var checks := 0
@@ -32,6 +34,7 @@ func _ready() -> void:
 	_test_hollow()
 	_test_action_guards()
 	_test_corrupt_save_fallback()
+	await _test_ui_smoke()
 
 	SaveSystem.delete_save()
 	SaveSystem.save_path = "user://saltvigil_save.json"
@@ -317,6 +320,23 @@ func _test_action_guards() -> void:
 	expect(not GameState.read_memory("mira", "mira_salt"), "нельзя читать память после поражения")
 	expect(not bool(GameState.build("greenhouse", 0).get("ok", true)), "нельзя строить после поражения")
 	expect(not SaveSystem.save_game(), "мёртвое состояние не сохраняется")
+
+
+func _test_ui_smoke() -> void:
+	print("\n[UI smoke]")
+	# Скрипты экранов компилируются и собираются в headless-режиме.
+	# Это ловит ошибки типов, которые не видны gdlint.
+	GameState.new_game()
+	GameState.start()
+	var screen := GameScreenScript.new()
+	add_child(screen)
+	var menu := MainMenuScript.new()
+	add_child(menu)
+	await get_tree().process_frame
+	expect(screen.get_child_count() > 0, "игровой экран собирается")
+	expect(menu.get_child_count() > 0, "главное меню собирается")
+	screen.queue_free()
+	menu.queue_free()
 
 
 func _test_corrupt_save_fallback() -> void:
