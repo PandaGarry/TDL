@@ -5,10 +5,14 @@
   "seconds_per_watch": 10.0,
   "starting_light": 45.0,
   "ember_max_light": 100.0,
-  "light_decay": [6.0, 7.0, 8.0],
+  "light_decay": [
+    7.0,
+    8.0,
+    9.0
+  ],
   "starting_resources": {
     "wood": 8.0,
-    "wax": 4.0,
+    "wax": 2.0,
     "food": 12.0,
     "salt": 4.0,
     "ash": 0.0
@@ -38,5 +42,8 @@
   "dawn_faith_bonus": 2.0,
   "dawn_hope_bonus": 6.0,
   "dawn_warmth_bonus": 6.0,
-  "build_slots": 8
+  "build_slots": 8,
+  "doctrine_choices": 2,
+  "wood_feed_per_watch": 1,
+  "burn_memory_hope_penalty": 3.0
 }

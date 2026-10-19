@@ -5,8 +5,13 @@
     "short": "Теплица",
     "description": "Стекло, водоросли и немного тепла. Кормит культ между вахтами.",
     "color": "#65A06B",
-    "cost": {"wood": 4.0, "salt": 1.0},
-    "production": {"food": 2.0},
+    "cost": {
+      "wood": 4.0,
+      "salt": 1.0
+    },
+    "production": {
+      "food": 2.0
+    },
     "hope_per_watch": 0.0
   },
   {
@@ -15,8 +20,13 @@
     "short": "Мастерская",
     "description": "Здесь чинят лодки и режут обломки на доски.",
     "color": "#B08A5A",
-    "cost": {"wood": 4.0, "wax": 1.0},
-    "production": {"wood": 2.0},
+    "cost": {
+      "wood": 4.0,
+      "wax": 1.0
+    },
+    "production": {
+      "wood": 2.0
+    },
     "hope_per_watch": 0.0
   },
   {
@@ -25,8 +35,29 @@
     "short": "Солеварня",
     "description": "Выпаривает морскую воду в соль — единственную валюту Тишины.",
     "color": "#D8D2C2",
-    "cost": {"wood": 3.0, "salt": 2.0},
-    "production": {"salt": 1.0},
+    "cost": {
+      "wood": 3.0,
+      "salt": 2.0
+    },
+    "production": {
+      "salt": 1.0
+    },
+    "hope_per_watch": 0.0
+  },
+  {
+    "id": "candle_house",
+    "name": "Свечной дом",
+    "short": "Свечи",
+    "description": "Пепел сожжённых памятей идёт в воск. Так Уэйк сохраняет то, что ещё можно сохранить.",
+    "color": "#C9A66B",
+    "cost": {
+      "wood": 2.0,
+      "ash": 1.0,
+      "salt": 1.0
+    },
+    "production": {
+      "wax": 0.5
+    },
     "hope_per_watch": 0.0
   },
   {
@@ -35,7 +66,10 @@
     "short": "Хранилище",
     "description": "Полки с бутылками, книгами и чужими голосами. Пока они здесь, людям есть зачем жить.",
     "color": "#6FA8A0",
-    "cost": {"wood": 6.0, "wax": 2.0},
+    "cost": {
+      "wood": 4.0,
+      "ash": 1.0
+    },
     "production": {},
     "hope_per_watch": 1.0
   }

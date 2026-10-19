@@ -13,6 +13,7 @@ var followers: Array = []
 var memories: Dictionary = {}
 var journal: Array = []
 var doctrines: Array = []
+var events: Array = []
 var loaded := false
 var errors: Array = []
 
@@ -34,6 +35,7 @@ func load_all() -> bool:
 	memories = _index_by_id("memories.json", "id", [])
 	journal = _read_json("journal.json", [])
 	doctrines = _read_json("doctrines.json", [])
+	events = _read_json("events.json", [])
 
 	if config.is_empty():
 		errors.append("config.json не загружен или пуст")
@@ -43,6 +45,10 @@ func load_all() -> bool:
 		errors.append("memories.json не загружен или пуст")
 	if buildings.is_empty():
 		errors.append("buildings.json не загружен или пуст")
+	if doctrines.is_empty():
+		errors.append("doctrines.json не загружен или пуст")
+	if events.is_empty():
+		errors.append("events.json не загружен или пуст")
 
 	for message in errors:
 		push_error("Database: " + message)
@@ -77,6 +83,28 @@ func get_follower_data(follower_id: String) -> Dictionary:
 func get_journal_entry(entry_id: String) -> Dictionary:
 	for entry in journal:
 		if entry.get("id", "") == entry_id:
+			return entry
+	return {}
+
+
+func get_doctrine(doctrine_id: String) -> Dictionary:
+	for entry in doctrines:
+		if entry.get("id", "") == doctrine_id:
+			return entry
+	return {}
+
+
+func active_doctrines() -> Array:
+	var result: Array = []
+	for entry in doctrines:
+		if str(entry.get("status", "")) == "active":
+			result.append(entry)
+	return result
+
+
+func get_event(event_id: String) -> Dictionary:
+	for entry in events:
+		if entry.get("id", "") == event_id:
 			return entry
 	return {}
 

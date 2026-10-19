@@ -21,10 +21,14 @@ func _ready() -> void:
 	_test_memory_keep_and_read()
 	_test_feed_and_build()
 	_test_miracle()
+	_test_laws()
+	_test_events()
+	_test_event_conditions()
 	_test_night_cycle()
 	_test_save_and_resume()
 	_test_game_over()
 	_test_demo_completion()
+	_test_save_laws()
 	_test_hollow()
 	_test_action_guards()
 	_test_corrupt_save_fallback()
@@ -85,9 +89,11 @@ func _test_memory_burn() -> void:
 	GameState.new_game()
 	var mira = GameState.find_follower("mira")
 	var before := GameState.light
+	var hope_before: float = mira.hope
 	var burned := GameState.burn_memory("mira", "mira_mother")
 	expect(burned, "память сожжена")
 	expect(GameState.light > before, "свет вырос")
+	expect(is_equal_approx(mira.hope, hope_before - 3.0), "культ теряет 3 надежды")
 	expect(not mira.has_memory("mira_mother"), "память исчезла у Миры")
 	expect(int(GameState.flags.get("burned", 0)) == 1, "счётчик сожжённых равен 1")
 	expect(float(GameState.resources.get("ash", 0.0)) >= 1.0, "появился пепел")
@@ -119,6 +125,11 @@ func _test_feed_and_build() -> void:
 	expect(GameState.feed_wood(), "дрова сожжены")
 	expect(is_equal_approx(float(GameState.resources.get("wood", 0.0)), 4.0), "дерево уменьшилось")
 	expect(is_equal_approx(GameState.light, 43.0), "свет вырос на 3")
+	expect(not GameState.feed_wood(), "второе подношение в ту же вахту запрещено")
+	expect(not GameState.can_feed(), "кнопка дерева гаснет до следующей вахты")
+	GameState.start()
+	GameState.advance_watch()
+	expect(GameState.can_feed(), "в новой вахте подношение снова доступно")
 
 	GameState.resources["wood"] = 30.0
 	GameState.resources["salt"] = 30.0
@@ -141,6 +152,85 @@ func _test_miracle() -> void:
 	expect(GameState.journal_pages == pages_before - 1, "страница сожжена")
 	expect(is_equal_approx(GameState.light, 40.0), "свет вырос на 30")
 	expect(GameState.lost_entries.size() == 1, "одна страница потеряна навсегда")
+
+
+func _test_laws() -> void:
+	print("\n[Laws]")
+	GameState.new_game()
+	GameState.start()
+	expect(not GameState.should_choose_law(), "в начале ночи закон не выбирается")
+	expect(not GameState.choose_law("ash_law"), "до рассвета закон принять нельзя")
+
+	GameState.light = 100.0
+	for _step in 6:
+		GameState.advance_watch()
+	expect(GameState.should_choose_law(), "на рассвете первого дня доступен закон")
+	expect(GameState.choose_law("ash_law"), "Закон Пепла принят")
+	expect(GameState.laws == ["ash_law"], "закон записан в состояние")
+	expect(is_equal_approx(GameState.burn_light_for({"burn_light": 20.0}), 25.0), "Пепел даёт +25% света")
+	expect(is_equal_approx(GameState.keep_memory_cost(), 3.0), "Пепел делает сохранение дороже")
+	expect(not GameState.should_choose_law(), "второй закон в первый рассвет недоступен")
+	expect(not GameState.choose_law("silence_law"), "второй закон не принимается")
+
+	GameState.start_next_night()
+	GameState.light = 100.0
+	for _step in 6:
+		GameState.advance_watch()
+	expect(GameState.should_choose_law(), "на втором рассвете доступен второй закон")
+	expect(GameState.choose_law("silence_law"), "Закон Тишины принят")
+	expect(GameState.laws.size() == 2, "два закона в силе")
+	expect(GameState.miracle_cost() == 2, "Тишина удорожает чудо")
+	expect(not GameState.choose_law("keeper_law"), "третий закон не принимается")
+
+
+func _test_events() -> void:
+	print("\n[Events]")
+	GameState.new_game()
+	GameState.day = 2
+	GameState.start()
+	GameState.light = 90.0
+	GameState.resources["food"] = 4.0
+	GameState.advance_watch()
+	expect(str(GameState.pending_event.get("id", "")) == "empty_kitchen", "голодная ночь вызывает событие")
+	expect(not GameState.resolve_event("unknown"), "неизвестный вариант отклонён")
+	var krylo_before: float = GameState.find_follower("krylo").hope
+	var food_before := float(GameState.resources.get("food", 0.0))
+	expect(GameState.resolve_event("workers"), "вариант события применён")
+	expect(is_equal_approx(float(GameState.resources.get("food", 0.0)), maxf(0.0, food_before - 3.0)), "еда списана по эффекту")
+	expect(is_equal_approx(float(GameState.find_follower("krylo").hope), krylo_before - 6.0), "надежда Крыла упала")
+	expect(bool(GameState.flags.get("event_empty_kitchen", false)), "событие отмечено в флагах")
+	expect(GameState.pending_event.is_empty(), "событие закрыто")
+
+
+func _test_event_conditions() -> void:
+	print("\n[Event conditions]")
+	GameState.new_game()
+	GameState.day = 2
+	GameState.start()
+	GameState.light = 90.0
+	GameState.resources["food"] = 40.0
+	GameState.advance_watch()
+	expect(GameState.pending_event.is_empty(), "условие события не выполнено — тишина")
+	GameState.advance_watch()
+	GameState.advance_watch()
+	expect(str(GameState.pending_event.get("id", "")) == "iskra_rail", "событие с Искрой сработало")
+	var iskra_before: float = GameState.find_follower("iskra").hope
+	expect(GameState.resolve_event("chalk"), "вариант с мелом принят")
+	expect(bool(GameState.flags.get("chalk_taken", false)), "флаг выбора записан")
+	expect(is_equal_approx(float(GameState.find_follower("iskra").hope), iskra_before - 5.0), "надежда Искры упала")
+
+
+func _test_save_laws() -> void:
+	print("\n[Save laws]")
+	# Законы переживают сохранение и не дублируются при загрузке.
+	GameState.new_game()
+	GameState.laws = ["ash_law", "silence_law"]
+	GameState.flags["event_empty_kitchen"] = true
+	expect(SaveSystem.save_game(), "состояние с законами сохранено")
+	GameState.new_game()
+	expect(SaveSystem.load_game(), "состояние с законами загружено")
+	expect(GameState.laws.size() == 2, "оба закона восстановлены")
+	expect(bool(GameState.flags.get("event_empty_kitchen", false)), "флаг события восстановлен")
 
 
 func _test_night_cycle() -> void:
@@ -168,6 +258,10 @@ func _test_save_and_resume() -> void:
 	expect(GameState.day == saved_day, "день восстановлен")
 	expect(is_equal_approx(GameState.light, saved_light), "свет восстановлен")
 	GameState.start()
+	expect(GameState.day == saved_day, "рассвет не проглатывается при загрузке")
+	expect(GameState.should_choose_law(), "на рассвете ждёт выбор закона")
+	expect(GameState.choose_law("keeper_law"), "закон принят после загрузки")
+	GameState.start_next_night()
 	expect(GameState.day == saved_day + 1, "после рассвета загружается следующая ночь")
 	expect(GameState.running, "игра продолжается")
 

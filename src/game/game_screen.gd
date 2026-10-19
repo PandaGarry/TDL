@@ -19,6 +19,8 @@ var light_bar: ProgressBar
 var faith_bar: ProgressBar
 var follower_box: VBoxContainer
 var cult_stats_label: Label
+var law_label: Label
+var hint_label: Label
 var log_label: RichTextLabel
 var pause_overlay: Control
 var pause_button: Button
@@ -29,8 +31,13 @@ var build_button: Button
 var save_button: Button
 
 var _modal: Control
+var _modal_locked := false
 var _pending_building_id := ""
 var _log_lines: Array = []
+var _hint_tween: Tween
+var _tutorial_step := 0
+var _toast_queue: Array = []
+var _toast_busy := false
 
 
 func _ready() -> void:
@@ -45,11 +52,17 @@ func _ready() -> void:
 	_build_cult_panel()
 	_build_log_panel()
 	_build_bottom_bar()
+	_build_hint()
 	_build_pause_overlay()
 	_build_timer()
 	_connect_events()
 	_refresh_all()
 	_sync_timer()
+	if GameState.should_choose_law():
+		# Загрузка с рассветного чекпоинта: сначала закон.
+		call_deferred("_open_summary_modal", GameState.get_summary())
+	else:
+		_show_hint("Дерево — это свет. Нажми «Дерево», чтобы поддержать Уголёк.", 8.0)
 
 
 func _build_world() -> void:
@@ -128,6 +141,8 @@ func _build_cult_panel() -> void:
 	column.add_child(follower_box)
 
 	column.add_child(UiKit.separator())
+	law_label = UiKit.label("Законы: нет", 12, Palette.HOPE)
+	column.add_child(law_label)
 	cult_stats_label = UiKit.label("", 12, Palette.MUTED)
 	column.add_child(cult_stats_label)
 
@@ -210,6 +225,18 @@ func _build_bottom_bar() -> void:
 	row.add_child(menu_button)
 
 
+func _build_hint() -> void:
+	hint_label = UiKit.label("", 16, Palette.AMBER)
+	hint_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	hint_label.offset_left = 24.0
+	hint_label.offset_right = -24.0
+	hint_label.offset_top = -138.0
+	hint_label.offset_bottom = -104.0
+	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint_label.visible = false
+	add_child(hint_label)
+
+
 func _build_pause_overlay() -> void:
 	pause_overlay = Control.new()
 	pause_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -255,6 +282,9 @@ func _connect_events() -> void:
 	EventBus.night_ended.connect(_on_night_ended)
 	EventBus.demo_completed.connect(_on_demo_completed)
 	EventBus.game_over.connect(_on_game_over)
+	EventBus.laws_changed.connect(_on_laws_changed)
+	EventBus.event_triggered.connect(_on_event_triggered)
+	EventBus.memory_action.connect(_on_memory_action)
 
 
 func _refresh_all() -> void:
@@ -263,6 +293,7 @@ func _refresh_all() -> void:
 	_on_resources_changed(GameState.resources)
 	_on_day_changed(GameState.day, GameState.watch, int(Database.config.get("watches_per_night", 6)), GameState.phase_title())
 	_on_journal_changed(GameState.journal_pages, GameState.lost_entries.size())
+	_on_laws_changed()
 	_rebuild_followers()
 	_rebuild_log()
 	_refresh_buttons()
@@ -291,7 +322,7 @@ func _on_resources_changed(values: Dictionary) -> void:
 	var parts: Array = []
 	for item_id in Database.item_order:
 		var item := Database.get_item(str(item_id))
-		parts.append("%s %d" % [item.get("name", item_id), int(values.get(item_id, 0.0))])
+		parts.append("%s %s" % [item.get("name", item_id), _format_amount(float(values.get(item_id, 0.0)))])
 	resources_label.text = " · ".join(PackedStringArray(parts))
 	_refresh_buttons()
 
@@ -303,6 +334,7 @@ func _on_day_changed(day: int, watch: int, total_watches: int, phase: String) ->
 	day_label.text = "Ночь %d из %d" % [day, total_nights]
 	var current_watch := mini(watch + 1, total_watches)
 	watch_label.text = "Вахта %d/%d · %s" % [current_watch, total_watches, phase]
+	_refresh_buttons()
 
 
 func _on_followers_changed() -> void:
@@ -382,16 +414,44 @@ func _on_pause_changed(_is_paused: bool) -> void:
 func _refresh_buttons() -> void:
 	if feed_button == null:
 		return
-	var wood_cost := float(Database.config.get("wood_feed_cost", 1.0))
 	var can_act := GameState.running and GameState.can_act()
 	feed_button.text = "Дерево · +%d света" % int(Database.config.get("wood_feed_light", 3.0))
-	feed_button.disabled = not can_act or float(GameState.resources.get("wood", 0.0)) < wood_cost
-	miracle_button.disabled = not can_act or GameState.journal_pages <= 0
+	feed_button.disabled = not can_act or not GameState.can_feed()
+	feed_button.tooltip_text = "Уголёк принимает одно подношение за вахту. Дерево: %s" % _format_amount(
+		float(GameState.resources.get("wood", 0.0))
+	)
+	miracle_button.disabled = not can_act or GameState.journal_pages < GameState.miracle_cost()
 	build_button.disabled = not can_act or not GameState.has_free_slot()
 	journal_button.disabled = not GameState.can_act()
 	pause_button.disabled = not GameState.running
 	pause_button.text = "Продолжить" if GameState.paused else "Пауза"
 	save_button.disabled = not can_act
+
+
+func _on_laws_changed() -> void:
+	if law_label == null:
+		return
+	law_label.text = "Законы: " + GameState.law_names_short()
+
+
+func _on_memory_action(_follower_id: String, _memory_id: String, _action: String) -> void:
+	if _tutorial_step <= 1:
+		_tutorial_step = 2
+		_show_hint("Память — топливо. Сжечь, сохранить или прочесть — решай.", 7.0)
+
+
+func _show_hint(text_value: String, duration: float = 6.0) -> void:
+	if hint_label == null:
+		return
+	if _hint_tween != null and _hint_tween.is_valid():
+		_hint_tween.kill()
+	hint_label.text = text_value
+	hint_label.visible = true
+	hint_label.modulate.a = 1.0
+	_hint_tween = create_tween()
+	_hint_tween.tween_interval(duration)
+	_hint_tween.tween_property(hint_label, "modulate:a", 0.0, 0.4)
+	_hint_tween.tween_callback(func() -> void: hint_label.visible = false)
 
 
 func _sync_timer() -> void:
@@ -421,7 +481,9 @@ func _toggle_pause() -> void:
 
 
 func _on_feed_pressed() -> void:
-	GameState.feed_wood()
+	if GameState.feed_wood() and _tutorial_step == 0:
+		_tutorial_step = 1
+		_show_hint("Теперь открой память: нажми на токен Миры на палубе.", 7.0)
 
 
 func _on_miracle_pressed() -> void:
@@ -445,9 +507,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not event.is_action_pressed("ui_cancel"):
 		return
 	if _modal != null:
-		# Финальные окна (рассвет, поражение, финал демо) нельзя закрыть Esc:
-		# иначе игрок остаётся на мёртвом экране без кнопки продолжения.
-		if GameState.running and GameState.can_act():
+		# Финальные окна и события нельзя закрыть Esc: игрок останется
+		# на мёртвом экране или потеряет обязательный выбор.
+		if GameState.running and GameState.can_act() and not _modal_locked:
 			_close_modal()
 	elif wake_view.build_mode:
 		wake_view.cancel_build_mode()
@@ -456,8 +518,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
-func _open_modal(content: Control) -> void:
+func _open_modal(content: Control, locked: bool = false) -> void:
 	_close_modal()
+	_modal_locked = locked
 	get_viewport().gui_release_focus()
 	var overlay := ColorRect.new()
 	overlay.color = Color(0.0, 0.0, 0.0, 0.68)
@@ -478,6 +541,7 @@ func _close_modal() -> void:
 		return
 	_modal.queue_free()
 	_modal = null
+	_modal_locked = false
 	_sync_timer()
 
 
@@ -582,11 +646,11 @@ func _build_memory_card(follower, memory_id: String, preserved: bool) -> Control
 
 	var burn_button := UiKit.danger_button("Сжечь", 13)
 	burn_button.custom_minimum_size = Vector2(110, 34)
-	burn_button.tooltip_text = "Свет +%d. %s" % [int(memory.get("burn_light", 18.0)), str(memory.get("burn", ""))]
+	burn_button.tooltip_text = "Свет +%d. %s" % [int(GameState.burn_light_for(memory)), str(memory.get("burn", ""))]
 	burn_button.pressed.connect(_open_confirm_burn.bind(str(follower.id), memory_id))
 	actions.add_child(burn_button)
 
-	var keep_cost := int(Database.config.get("keep_memory_wax_cost", 2.0))
+	var keep_cost := int(GameState.keep_memory_cost())
 	var keep_button := UiKit.button("Сохранить · %d воска" % keep_cost, 13)
 	keep_button.custom_minimum_size = Vector2(180, 34)
 	keep_button.tooltip_text = "Надежда +%d. Память останется в Хранилище." % int(memory.get("keep_hope", 6.0))
@@ -632,7 +696,7 @@ func _open_confirm_burn(follower_id: String, memory_id: String) -> void:
 	column.add_child(UiKit.wrapped_label("«%s»" % str(memory.get("title", "?")), 18, Palette.AMBER))
 	column.add_child(UiKit.wrapped_label(str(memory.get("burn", "")), 15, Palette.TEXT))
 	column.add_child(UiKit.wrapped_label(
-		"Уголёк получит +%d света. Это нельзя отменить." % int(memory.get("burn_light", 18.0)),
+		"Уголёк получит +%d света. Это нельзя отменить." % int(GameState.burn_light_for(memory)),
 		15,
 		Palette.MUTED
 	))
@@ -747,10 +811,19 @@ func _build_building_card(building_id: String) -> Control:
 	return card
 
 
+func _format_amount(value: float) -> String:
+	if is_equal_approx(value, roundf(value)):
+		return str(int(roundf(value)))
+	return "%.1f" % value
+
+
 func _format_cost(cost: Dictionary) -> String:
 	var parts: Array = []
 	for item_id in cost.keys():
-		parts.append("%s %d" % [Database.get_item(str(item_id)).get("name", item_id), int(cost[item_id])])
+		parts.append("%s %s" % [
+			Database.get_item(str(item_id)).get("name", item_id),
+			_format_amount(float(cost[item_id]))
+		])
 	return " · ".join(PackedStringArray(parts))
 
 
@@ -758,7 +831,10 @@ func _format_production(data: Dictionary) -> String:
 	var parts: Array = []
 	var production: Dictionary = data.get("production", {})
 	for item_id in production.keys():
-		parts.append("%s +%d за вахту" % [Database.get_item(str(item_id)).get("name", item_id), int(production[item_id])])
+		parts.append("%s +%s за вахту" % [
+			Database.get_item(str(item_id)).get("name", item_id),
+			_format_amount(float(production[item_id]))
+		])
 	var hope := float(data.get("hope_per_watch", 0.0))
 	if hope > 0.0:
 		parts.append("надежда +%d за вахту" % int(hope))
@@ -779,9 +855,13 @@ func _on_slot_clicked(slot: int) -> void:
 	var result: Dictionary = GameState.build(_pending_building_id, slot)
 	EventBus.toast_requested.emit(str(result.get("message", "")))
 	if bool(result.get("ok", false)):
+		var built_name := str(Database.get_building(_pending_building_id).get("name", "Здание"))
 		_pending_building_id = ""
 		wake_view.set_build_mode(false)
 		_sync_timer()
+		if _tutorial_step <= 2:
+			_tutorial_step = 3
+			_show_hint("«%s» работает каждую вахту. Стройка — не роскошь, а топливо." % built_name, 7.0)
 
 
 func _on_build_cancelled() -> void:
@@ -807,9 +887,10 @@ func _open_journal_modal() -> void:
 	header.add_child(close_button)
 
 	column.add_child(UiKit.wrapped_label(
-		"Страниц осталось: %d. Потеряно: %d. Каждое чудо Уголька сжигает одну страницу — и один кусок того, кем ты был." % [
+		"Страниц осталось: %d. Потеряно: %d. Каждое чудо Уголька сжигает %d стр. — и кусок того, кем ты был." % [
 			GameState.journal_pages,
-			GameState.lost_entries.size()
+			GameState.lost_entries.size(),
+			GameState.miracle_cost()
 		],
 		14,
 		Palette.TEXT
@@ -835,8 +916,11 @@ func _open_journal_modal() -> void:
 		for entry in GameState.lost_entries:
 			list.add_child(UiKit.wrapped_label("× %s" % str(entry.get("text", "")), 13, Palette.MUTED))
 
-	var miracle := UiKit.gold_button("Сжечь страницу ради чуда (+%d света)" % int(Database.config.get("miracle_light", 30.0)), 14)
-	miracle.disabled = GameState.journal_pages <= 0
+	var miracle := UiKit.gold_button("Сжечь %d стр. ради чуда (+%d света)" % [
+		GameState.miracle_cost(),
+		int(Database.config.get("miracle_light", 30.0))
+	], 14)
+	miracle.disabled = GameState.journal_pages < GameState.miracle_cost()
 	miracle.pressed.connect(_journal_miracle)
 	column.add_child(miracle)
 
@@ -867,15 +951,95 @@ func _open_summary_modal(summary: Dictionary) -> void:
 	column.add_child(UiKit.wrapped_label("Уэйк дожил до утра. Свет ещё горит, но следующая ночь будет темнее.", 15, Palette.TEXT))
 	column.add_child(UiKit.separator())
 	column.add_child(UiKit.wrapped_label(_summary_text(summary), 15, Palette.TEXT))
-	column.add_child(UiKit.spacer(12))
 
-	var next_button := UiKit.gold_button("Следующая ночь", 17)
-	next_button.custom_minimum_size = Vector2(320, 48)
-	next_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	next_button.pressed.connect(_start_next_night)
-	column.add_child(next_button)
+	if GameState.should_choose_law():
+		column.add_child(UiKit.spacer(10))
+		column.add_child(UiKit.label("Уэйк ждёт закон", 20, Palette.HOPE))
+		column.add_child(UiKit.wrapped_label(
+			"Один раз. Навсегда. Закон меняет цену каждого решения.",
+			14,
+			Palette.MUTED
+		))
+		for doctrine in Database.active_doctrines():
+			column.add_child(_build_law_card(doctrine))
+	else:
+		column.add_child(UiKit.spacer(10))
+		column.add_child(UiKit.wrapped_label("Закон Уэйка: %s" % GameState.law_names(), 14, Palette.HOPE))
+		var next_button := UiKit.gold_button("Следующая ночь", 17)
+		next_button.custom_minimum_size = Vector2(320, 48)
+		next_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		next_button.pressed.connect(_start_next_night)
+		column.add_child(next_button)
 
-	_open_modal(panel)
+	_open_modal(panel, true)
+
+
+func _build_law_card(doctrine: Dictionary) -> Control:
+	var card := UiKit.card()
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	card.add_child(row)
+
+	var info := VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info.add_theme_constant_override("separation", 3)
+	row.add_child(info)
+	info.add_child(UiKit.label(str(doctrine.get("name", "?")), 18, Palette.AMBER))
+	info.add_child(UiKit.wrapped_label(str(doctrine.get("description", "")), 13, Palette.MUTED))
+	info.add_child(UiKit.wrapped_label(str(doctrine.get("effect", "")), 13, Palette.HOPE))
+
+	var take := UiKit.gold_button("Принять", 14)
+	take.custom_minimum_size = Vector2(120, 44)
+	take.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	take.pressed.connect(_choose_law.bind(str(doctrine.get("id", ""))))
+	row.add_child(take)
+	return card
+
+
+func _choose_law(law_id: String) -> void:
+	if GameState.choose_law(law_id):
+		_close_modal()
+		call_deferred("_open_summary_modal", GameState.get_summary())
+
+
+func _on_event_triggered(event: Dictionary) -> void:
+	call_deferred("_open_event_modal", event)
+
+
+func _open_event_modal(event: Dictionary) -> void:
+	var panel := UiKit.panel(Palette.PANEL, 14)
+	panel.custom_minimum_size = Vector2(720, 460)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 12)
+	panel.add_child(column)
+
+	column.add_child(UiKit.label(str(event.get("title", "Событие")), 30, Palette.AMBER))
+	column.add_child(UiKit.wrapped_label(str(event.get("text", "")), 16, Palette.TEXT))
+	column.add_child(UiKit.separator())
+
+	var choices: Variant = event.get("choices", [])
+	if choices is Array:
+		for entry in choices:
+			if entry is Dictionary:
+				column.add_child(_build_event_choice(entry))
+
+	_open_modal(panel, true)
+
+
+func _build_event_choice(choice: Dictionary) -> Control:
+	var button := UiKit.button(str(choice.get("label", "?")), 15)
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.custom_minimum_size = Vector2(0, 46)
+	button.pressed.connect(_resolve_event.bind(str(choice.get("id", ""))))
+	return button
+
+
+func _resolve_event(choice_id: String) -> void:
+	if GameState.resolve_event(choice_id):
+		_close_modal()
+		if GameState.is_game_over:
+			return
+		_sync_timer()
 
 
 func _start_next_night() -> void:
@@ -918,7 +1082,7 @@ func _open_demo_modal(summary: Dictionary) -> void:
 	menu.pressed.connect(_exit_to_menu)
 	column.add_child(menu)
 
-	_open_modal(panel)
+	_open_modal(panel, true)
 
 
 func _on_game_over(reason: String) -> void:
@@ -950,7 +1114,7 @@ func _open_game_over_modal(reason: String) -> void:
 	menu.pressed.connect(_exit_to_menu)
 	column.add_child(menu)
 
-	_open_modal(panel)
+	_open_modal(panel, true)
 
 
 func _restart() -> void:
@@ -965,7 +1129,8 @@ func _summary_text(summary: Dictionary) -> String:
 		+ "Сохранено в Хранилище: %d\n"
 		+ "Прочитано: %d\n"
 		+ "Полов: %d · ушло людей: %d\n"
-		+ "Чудес: %d · страниц осталось: %d"
+		+ "Чудес: %d · страниц осталось: %d\n"
+		+ "Законы: %s"
 	) % [
 		int(summary.get("light", 0.0)),
 		int(summary.get("faith", 0.0)),
@@ -975,11 +1140,28 @@ func _summary_text(summary: Dictionary) -> String:
 		int(summary.get("hollows", 0)),
 		int(summary.get("left", 0)),
 		int(summary.get("miracles", 0)),
-		int(summary.get("pages", 0))
+		int(summary.get("pages", 0)),
+		GameState.law_names()
 	]
 
 
 func _on_toast(text_value: String) -> void:
+	## Тосты идут очередью: два события не должны накладываться друг на друга.
+	if not _toast_queue.is_empty() and str(_toast_queue.back()) == text_value:
+		return
+	_toast_queue.append(text_value)
+	if _toast_queue.size() > 8:
+		_toast_queue.pop_front()
+	if not _toast_busy:
+		_show_next_toast()
+
+
+func _show_next_toast() -> void:
+	if _toast_queue.is_empty():
+		_toast_busy = false
+		return
+	_toast_busy = true
+	var text_value := str(_toast_queue.pop_front())
 	var label := UiKit.label(text_value, 18, Palette.AMBER)
 	label.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	label.offset_top = 104.0
@@ -988,6 +1170,11 @@ func _on_toast(text_value: String) -> void:
 	add_child(label)
 
 	var tween := create_tween()
-	tween.tween_interval(1.7)
-	tween.tween_property(label, "modulate:a", 0.0, 0.5)
-	tween.tween_callback(func() -> void: label.queue_free())
+	tween.tween_interval(1.6)
+	tween.tween_property(label, "modulate:a", 0.0, 0.4)
+	tween.tween_callback(func() -> void: _finish_toast(label))
+
+
+func _finish_toast(label: Label) -> void:
+	label.queue_free()
+	_show_next_toast()

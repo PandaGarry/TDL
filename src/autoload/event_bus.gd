@@ -17,3 +17,6 @@ signal night_ended(summary: Dictionary)
 signal demo_completed(summary: Dictionary)
 signal game_over(reason: String)
 signal memory_action(follower_id: String, memory_id: String, action: String)
+signal laws_changed
+signal event_triggered(event: Dictionary)
+signal event_resolved(event_id: String, choice_id: String)

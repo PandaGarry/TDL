@@ -93,7 +93,7 @@ func _build() -> void:
 	quit_button.pressed.connect(func() -> void: quit_requested.emit())
 	column.add_child(quit_button)
 
-	var footer := UiKit.label("прототип каркаса · v0.1.1 · Godot 4", 13, Palette.MUTED)
+	var footer := UiKit.label("M1 preview · v0.2.0 · Godot 4.7", 13, Palette.MUTED)
 	footer.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	footer.offset_left = 24.0
 	footer.offset_top = -40.0
@@ -118,8 +118,8 @@ func _draw() -> void:
 
 	var glow_center := Vector2(canvas.x * 0.5, horizon)
 	for radius in [300.0, 220.0, 150.0, 90.0, 48.0]:
-		var alpha := 0.012 + (300.0 - radius) / 300.0 * 0.03
-		draw_circle(glow_center, radius, Palette.alpha(Palette.EMBER, alpha))
+		var alpha: float = 0.012 + (300.0 - float(radius)) / 300.0 * 0.03
+		draw_circle(glow_center, float(radius), Palette.alpha(Palette.EMBER, alpha))
 
 	for index in 12:
 		var y := horizon + 30.0 + index * 26.0

@@ -7,9 +7,9 @@ config_version=5
 
 config/name="Saltvigil"
 config/description="Солнце мертво. Веди плавучий культ по костям мёртвого бога."
-config/version="0.1.1"
+config/version="0.2.0"
 run/main_scene="res://scenes/boot.tscn"
-config/features=PackedStringArray("4.4", "GL Compatibility")
+config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [autoload]
