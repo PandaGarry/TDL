@@ -1,0 +1,39 @@
+; Engine configuration file.
+; Saltvigil — прототип каркаса.
+
+config_version=5
+
+[application]
+
+config/name="Saltvigil"
+config/description="Солнце мертво. Веди плавучий культ по костям мёртвого бога."
+config/version="0.1.0"
+run/main_scene="res://scenes/boot.tscn"
+config/features=PackedStringArray("4.4", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[autoload]
+
+EventBus="*res://src/autoload/event_bus.gd"
+Database="*res://src/autoload/database.gd"
+GameState="*res://src/autoload/game_state.gd"
+SaveSystem="*res://src/autoload/save_system.gd"
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
+window/size/window_width_override=1600
+window/size/window_height_override=900
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+
+[gui]
+
+theme/default_font_multichannel_signed_distance_field=true
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.027, 0.078, 0.09, 1)

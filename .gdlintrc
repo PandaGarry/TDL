@@ -1,0 +1,19 @@
+class-definitions-order:
+- tools
+- classnames
+- extends
+- docstrings
+- signals
+- enums
+- consts
+- staticvars
+- exports
+- pubvars
+- prvvars
+- onreadypubvars
+- onreadyprvvars
+- others
+max-file-lines: 2500
+max-line-length: 140
+max-public-methods: 60
+max-returns: 12

@@ -1,0 +1,198 @@
+extends Node
+## Headless-тесты каркаса. Запуск:
+## godot --headless --path . res://tests/test_runner.tscn
+
+var failures := 0
+var checks := 0
+
+
+func _ready() -> void:
+	print("Saltvigil · каркас · тесты")
+	_test_database()
+	_test_data_integrity()
+	_test_new_game()
+	_test_memory_burn()
+	_test_memory_keep_and_read()
+	_test_feed_and_build()
+	_test_miracle()
+	_test_night_cycle()
+	_test_save_and_resume()
+	_test_game_over()
+	_test_demo_completion()
+	_test_hollow()
+
+	print("Проверок: %d · провалов: %d" % [checks, failures])
+	if failures == 0:
+		print("ALL TESTS PASSED")
+	get_tree().quit(0 if failures == 0 else 1)
+
+
+func expect(condition: bool, message: String) -> void:
+	checks += 1
+	if condition:
+		print("  ok   " + message)
+	else:
+		failures += 1
+		printerr("  FAIL " + message)
+
+
+func _test_database() -> void:
+	print("\n[Database]")
+	expect(Database.loaded, "все JSON загружены")
+	expect(Database.buildings.size() >= 4, "есть минимум 4 здания")
+	expect(Database.followers.size() == 3, "три стартовых последователя")
+	expect(Database.memories.size() >= 9, "минимум 9 воспоминаний")
+	expect(Database.journal.size() >= 8, "минимум 8 страниц журнала")
+
+
+func _test_data_integrity() -> void:
+	print("\n[Data integrity]")
+	var ok := true
+	for follower in Database.followers:
+		for memory_id in follower.get("memories", []):
+			var memory := Database.get_memory(str(memory_id))
+			if memory.is_empty():
+				ok = false
+				printerr("  нет памяти " + str(memory_id))
+			elif str(memory.get("owner", "")) != str(follower.get("id", "")):
+				ok = false
+				printerr("  владелец памяти не совпадает: " + str(memory_id))
+	expect(ok, "все памяти существуют и принадлежат своим последователям")
+
+
+func _test_new_game() -> void:
+	print("\n[New game]")
+	GameState.new_game()
+	expect(GameState.followers.size() == 3, "созданы три последователя")
+	expect(is_equal_approx(GameState.light, 45.0), "стартовый свет 45")
+	expect(GameState.journal_pages == 8, "восемь страниц журнала")
+	expect(float(GameState.resources.get("wood", 0.0)) == 8.0, "восемь дерева")
+	expect(GameState.watch == 0 and GameState.day == 1, "первая ночь, нулевая вахта")
+
+
+func _test_memory_burn() -> void:
+	print("\n[Memory burn]")
+	GameState.new_game()
+	var mira = GameState.find_follower("mira")
+	var before := GameState.light
+	var burned := GameState.burn_memory("mira", "mira_mother")
+	expect(burned, "память сожжена")
+	expect(GameState.light > before, "свет вырос")
+	expect(not mira.has_memory("mira_mother"), "память исчезла у Миры")
+	expect(int(GameState.flags.get("burned", 0)) == 1, "счётчик сожжённых равен 1")
+	expect(float(GameState.resources.get("ash", 0.0)) >= 1.0, "появился пепел")
+
+
+func _test_memory_keep_and_read() -> void:
+	print("\n[Memory keep and read]")
+	GameState.new_game()
+	GameState.resources["wax"] = 10.0
+	var mira = GameState.find_follower("mira")
+	var hope_before: float = mira.hope
+	var kept := GameState.keep_memory("mira", "mira_name")
+	expect(kept, "память сохранена")
+	expect(mira.preserved.has("mira_name"), "память лежит в Хранилище")
+	expect(is_equal_approx(float(GameState.resources.get("wax", 0.0)), 8.0), "списано два воска")
+	expect(mira.hope > hope_before, "надежда выросла")
+
+	var read := GameState.read_memory("mira", "mira_salt")
+	expect(read, "память прочитана")
+	expect(mira.was_read("mira_salt"), "отметка о прочтении стоит")
+	expect(not GameState.read_memory("mira", "mira_salt"), "повторно прочитать нельзя")
+
+
+func _test_feed_and_build() -> void:
+	print("\n[Feed and build]")
+	GameState.new_game()
+	GameState.resources["wood"] = 5.0
+	GameState.light = 40.0
+	expect(GameState.feed_wood(), "дрова сожжены")
+	expect(is_equal_approx(float(GameState.resources.get("wood", 0.0)), 4.0), "дерево уменьшилось")
+	expect(is_equal_approx(GameState.light, 43.0), "свет вырос на 3")
+
+	GameState.resources["wood"] = 30.0
+	GameState.resources["salt"] = 30.0
+	GameState.resources["wax"] = 30.0
+	var result := GameState.build("greenhouse", 0)
+	expect(bool(result.get("ok", false)), "теплица построена")
+	expect(GameState.used_slots() == 1, "занят один слот")
+	var duplicate := GameState.build("workshop", 0)
+	expect(not bool(duplicate.get("ok", true)), "нельзя построить в занятый слот")
+	expect(GameState.has_free_slot(), "свободные слоты ещё есть")
+
+
+func _test_miracle() -> void:
+	print("\n[Miracle]")
+	GameState.new_game()
+	GameState.start()
+	GameState.light = 10.0
+	var pages_before := GameState.journal_pages
+	expect(GameState.miracle(), "чудо совершено")
+	expect(GameState.journal_pages == pages_before - 1, "страница сожжена")
+	expect(is_equal_approx(GameState.light, 40.0), "свет вырос на 30")
+	expect(GameState.lost_entries.size() == 1, "одна страница потеряна навсегда")
+
+
+func _test_night_cycle() -> void:
+	print("\n[Night cycle]")
+	GameState.new_game()
+	GameState.start()
+	GameState.light = 100.0
+	for _step in 6:
+		GameState.advance_watch()
+	expect(GameState.watch == 6, "прошло шесть вахт")
+	expect(not GameState.running, "ночь закончилась")
+	expect(not GameState.demo_over, "демо ещё не закончено")
+	expect(not GameState.is_game_over, "игра не проиграна")
+
+
+func _test_save_and_resume() -> void:
+	print("\n[Save and resume]")
+	SaveSystem.save_game()
+	var saved_day := GameState.day
+	var saved_light := GameState.light
+	expect(SaveSystem.has_save(), "файл сохранения создан")
+	GameState.new_game()
+	expect(is_equal_approx(GameState.light, 45.0), "новая игра сбрасывает свет")
+	expect(SaveSystem.load_game(), "сохранение загружено")
+	expect(GameState.day == saved_day, "день восстановлен")
+	expect(is_equal_approx(GameState.light, saved_light), "свет восстановлен")
+	GameState.start()
+	expect(GameState.day == saved_day + 1, "после рассвета загружается следующая ночь")
+	expect(GameState.running, "игра продолжается")
+
+
+func _test_game_over() -> void:
+	print("\n[Game over]")
+	GameState.new_game()
+	GameState.start()
+	GameState.light = 1.0
+	GameState.advance_watch()
+	expect(GameState.is_game_over, "свет на нуле завершает игру")
+	expect(not GameState.ending_reason.is_empty(), "причина поражения записана")
+	expect(not GameState.running, "таймер остановлен")
+
+
+func _test_demo_completion() -> void:
+	print("\n[Demo completion]")
+	GameState.new_game()
+	GameState.day = 3
+	GameState.start()
+	GameState.light = 100.0
+	for _step in 6:
+		GameState.advance_watch()
+	expect(GameState.demo_over, "третья ночь завершает демо")
+	expect(not GameState.running, "после демо игра не идёт")
+
+
+func _test_hollow() -> void:
+	print("\n[Hollow]")
+	GameState.new_game()
+	var mira = GameState.find_follower("mira")
+	GameState.burn_memory("mira", "mira_mother")
+	GameState.burn_memory("mira", "mira_name")
+	GameState.burn_memory("mira", "mira_salt")
+	expect(mira.hollow, "Мира стала Полом после третьей памяти")
+	expect(int(GameState.flags.get("hollows", 0)) == 1, "счётчик Полов равен 1")
+	expect(GameState.get_active_followers().size() == 2, "в культе осталось два человека")
+	expect(not GameState.is_game_over, "игра продолжается, пока есть кому помнить")
