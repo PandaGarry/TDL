@@ -698,7 +698,12 @@ func start_next_night() -> void:
 	fed_this_watch = 0
 	day += 1
 	watch = 0
-	light = minf(ember_max(), light + float(_cfg("dawn_light_bonus", 5.0)))
+	# Уголёк разгорается к утру: даже после худшей ночи есть с чего начать.
+	light = clampf(
+		light + float(_cfg("dawn_light_bonus", 5.0)),
+		float(_cfg("dawn_light_floor", 20.0)),
+		ember_max()
+	)
 	faith = minf(100.0, faith + float(_cfg("dawn_faith_bonus", 2.0)))
 	for follower in followers:
 		if follower.is_active():

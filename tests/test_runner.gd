@@ -24,6 +24,7 @@ func _ready() -> void:
 	_test_feed_and_build()
 	_test_miracle()
 	_test_laws()
+	_test_dawn_floor()
 	_test_events()
 	_test_event_conditions()
 	_test_night_cycle()
@@ -184,6 +185,19 @@ func _test_laws() -> void:
 	expect(GameState.laws.size() == 2, "два закона в силе")
 	expect(GameState.miracle_cost() == 2, "Тишина удорожает чудо")
 	expect(not GameState.choose_law("keeper_law"), "третий закон не принимается")
+
+
+func _test_dawn_floor() -> void:
+	print("\n[Dawn floor]")
+	GameState.new_game()
+	GameState.start()
+	GameState.light = 100.0
+	for _step in 6:
+		GameState.advance_watch()
+	GameState.light = 3.0
+	GameState.start_next_night()
+	expect(GameState.light >= 20.0, "рассвет поднимает свет до минимума")
+	expect(GameState.day == 2, "наступает вторая ночь")
 
 
 func _test_events() -> void:

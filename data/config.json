@@ -45,5 +45,6 @@
   "build_slots": 8,
   "doctrine_choices": 2,
   "wood_feed_per_watch": 1,
-  "burn_memory_hope_penalty": 3.0
+  "burn_memory_hope_penalty": 3.0,
+  "dawn_light_floor": 20.0
 }
