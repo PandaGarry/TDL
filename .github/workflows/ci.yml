@@ -33,4 +33,17 @@ jobs:
       - name: Import project
         run: ./godot --headless --path . --import
       - name: Run tests
-        run: ./godot --headless --path . res://tests/test_runner.tscn
+        run: |
+          set +e
+          ./godot --headless --path . res://tests/test_runner.tscn 2>&1 | tee test_output.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            # Логи GitHub недоступны из песочницы — выносим ошибку в аннотации.
+            head -12 test_output.log | while IFS= read -r line; do
+              echo "::error title=godot-head::${line//%/%25}"
+            done
+            tail -12 test_output.log | while IFS= read -r line; do
+              echo "::error title=godot-tail::${line//%/%25}"
+            done
+          fi
+          exit "$status"
