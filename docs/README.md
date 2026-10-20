@@ -6,21 +6,25 @@
 
 ## С чего начать
 
-1. [`design/seed_core_concept.md`](design/seed_core_concept.md) — разбор
-   главной гипотезы H1 «Зерно миров»: потенциал, уникальность, риски и
-   границы первого продукта. **Текущая точка обсуждения.**
-2. [`lore/open_questions.md`](lore/open_questions.md) — ответы автора по
+1. [`design/core_generation_and_consequences.md`](design/core_generation_and_consequences.md) —
+   раунд 3: Core как ядро разработки, No Man’s Sky vs Starfield, разломы
+   без магии и золотая середина необратимости. **Текущая точка обсуждения.**
+2. [`design/home_world_and_core_concept.md`](design/home_world_and_core_concept.md) — разбор
+   гипотезы H1 о родном мире на общем игровом ядре: потенциал, риски и
+   границы первого продукта.
+3. [`lore/open_questions.md`](lore/open_questions.md) — ответы автора по
    раундам исследования и оставшиеся вопросы.
-3. [`design/gdd.md`](design/gdd.md) — игровой дизайн-документ; заполняется
+4. [`design/gdd.md`](design/gdd.md) — игровой дизайн-документ; заполняется
    после утверждения концепта.
-4. [`lore/world_bible.md`](lore/world_bible.md) — библия мира.
+5. [`lore/world_bible.md`](lore/world_bible.md) — библия мира.
 
 ## Дизайн (`design/`)
 
 | Документ | О чём |
 |---|---|
 | [`gdd.md`](design/gdd.md) | Главный дизайн-документ: питч, жанр, кор-цикл, механики, прогрессия, scope |
-| [`seed_core_concept.md`](design/seed_core_concept.md) | Гипотеза H1: конечный живой дом, портальные экспедиции, перенос персонажа и последствия между мирами |
+| [`home_world_and_core_concept.md`](design/home_world_and_core_concept.md) | Гипотеза H1: конечный живой дом, экспедиции через разломы, общее игровое ядро и последствия между мирами |
+| [`core_generation_and_consequences.md`](design/core_generation_and_consequences.md) | Раунд 3: Core по аналогии с The Seed, процедурная генерация, No Man’s Sky/Starfield, смерть, вымирание и восстановимость |
 
 ## Лор (`lore/`)
 
