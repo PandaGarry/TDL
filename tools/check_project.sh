@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Проверка проекта настоящим Godot 4.7:
 #   1) импорт проекта редактором (--import),
-#   2) parse-check всех наших GDScript-файлов (--check-only),
+#   2) компиляция всех наших GDScript в контексте проекта
+#      (сцена tests/smoke/project_validation.tscn),
 #   3) smoke-запуск главной сцены на несколько кадров (--quit-after).
 #
 # Использование:
@@ -47,13 +48,15 @@ echo "Godot binary: $GODOT_BIN"
 #    глобальные классы, затем завершается.
 run_step "import" 300 "$GODOT_BIN" --headless --path . --import
 
-# 2) Parse-check собственных скриптов (папку addons/ не трогаем: плагины
-#    пока выключены, их скрипты движок проверяет сам при импорте).
-script_index=0
-while IFS= read -r -d '' file; do
-	script_index=$((script_index + 1))
-	run_step "script_${script_index}" 120 "$GODOT_BIN" --headless --path . --check-only --script "res://${file}"
-done < <(find scripts -name '*.gd' -type f -print0 | sort -z)
+# 2) Компиляция всех собственных скриптов в реальном контексте проекта.
+#    ВАЖНО: `--check-only --script <file>` для этого НЕ подходит — файл
+#    запускается вне обычного прогона игры, и имена автозагрузок
+#    (EventBus, SaveSystem, GameManager...) компилятор не находит, хотя в
+#    игре всё валидно (проверено настоящим Godot 4.7.2, см. историю CI).
+#    Поэтому запускаем валидационную сцену как обычную сцену проекта:
+#    автозагрузки активны, а сцена загружает каждый .gd из scripts/
+#    через ResourceLoader, заставляя движок скомпилировать его по-настоящему.
+run_step "validate_scripts" 180 "$GODOT_BIN" --headless --path . --scene "res://tests/smoke/project_validation.tscn" --quit-after 30
 
 # 3) Smoke-запуск: главная сцена должна прожить 30 итераций без ошибок
 #    скриптов (меню, автозагрузки, загрузка ресурсов).
@@ -65,7 +68,7 @@ echo "Поиск фатальных маркеров ошибок в логах.
 # отдельно ищем ошибки скриптов и загрузки ресурсов в текстах логов.
 # Обычные ERROR системы CI не валят: в headless CI без GPU допустимы
 # предупреждения драйверов; скриптовые же ошибки не допустимы.
-if grep -RniE 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load resource' "$LOG_DIR" ; then
+if grep -RniE 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load resource|PROJECT_VALIDATION_FAILED' "$LOG_DIR" ; then
 	echo "!! В логах найдены ошибки скриптов или загрузки ресурсов (см. выше)."
 	FAILED=1
 fi
@@ -80,11 +83,11 @@ if [ "$FAILED" -ne 0 ]; then
 			echo
 			echo "Первые совпадения ошибок скриптов/ресурсов:"
 			echo '```'
-			grep -RniE 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load resource|ERROR:' "$LOG_DIR" | head -80 || true
+			grep -RniE 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load resource|PROJECT_VALIDATION_FAILED|ERROR:' "$LOG_DIR" | head -80 || true
 			echo '```'
 		} >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
-		grep -RniE 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load resource|ERROR:' "$LOG_DIR" | head -40 | while IFS= read -r line; do
+		grep -RniE 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load resource|PROJECT_VALIDATION_FAILED|ERROR:' "$LOG_DIR" | head -40 | while IFS= read -r line; do
 			clean_line="$(printf '%s' "$line" | sed -e 's/%/%25/g' -e 's/\r/%0D/g')"
 			echo "::error title=Godot validation::${clean_line}"
 		done
