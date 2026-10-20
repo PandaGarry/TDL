@@ -1,0 +1,38 @@
+# Godot 4 — generated files
+.godot/
+*.tmp
+
+# Godot exports / builds
+build/
+export/
+*.exe
+*.pck
+*.dmg
+*.zip
+*.apk
+*.aab
+
+# Import system (Godot 4 хранит кэш импорта в .godot/imported;
+# файлы .import рядом с ассетами коммитить НУЖНО — они не игнорируются)
+
+# IDE / editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs / crash dumps
+*.log
+logs/
+
+# Локальные секреты и оверрайды настроек (не коммитить)
+override.cfg
+.env
+.env.*
+!.env.example
