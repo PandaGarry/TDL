@@ -71,6 +71,32 @@ if grep -RniE 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load res
 fi
 
 if [ "$FAILED" -ne 0 ]; then
+	# В GitHub Actions дублируем ключевые строки логов в аннотации и summary:
+	# полные логи/артефакты не всегда доступны внешним инструментам, а первые
+	# строки ошибок нужны для быстрой диагностики. Локально это не включается.
+	if [ "${GITHUB_ACTIONS:-false}" = "true" ]; then
+		{
+			echo "## Godot validation — FAILED"
+			echo
+			echo "Первые совпадения ошибок скриптов/ресурсов:"
+			echo '```'
+			grep -RniE 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load resource|ERROR:' "$LOG_DIR" | head -80 || true
+			echo '```'
+		} >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+
+		grep -RniE 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load resource|ERROR:' "$LOG_DIR" | head -40 | while IFS= read -r line; do
+			clean_line="$(printf '%s' "$line" | sed -e 's/%/%25/g' -e 's/\r/%0D/g')"
+			echo "::error title=Godot validation::${clean_line}"
+		done
+
+		for log in "$LOG_DIR"/*.log; do
+			[ -f "$log" ] || continue
+			tail -n 5 "$log" | while IFS= read -r line; do
+				clean_line="$(printf '%s' "$line" | sed -e 's/%/%25/g' -e 's/\r/%0D/g')"
+				echo "::warning title=Godot log tail ${log}::${clean_line}"
+			done
+		done
+	fi
 	echo "ИТОГ: FAILED (логи: $LOG_DIR)"
 	exit 1
 fi
