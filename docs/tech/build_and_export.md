@@ -10,6 +10,31 @@
 2. Editor -> Manage Export Templates -> Download and Install
    (шаблоны должны совпадать с версией редактора один-в-один).
 
+## Автопроверка проекта настоящим Godot (CI)
+
+При каждом пуше GitHub Actions (`.github/workflows/godot-validate.yml`)
+на чистом Linux-раннере:
+
+1. скачивает официальный **Godot 4.7.2-stable** и сверяет SHA512;
+2. `godot --headless --path . --import` — импорт проекта редактором;
+3. запускает `tests/smoke/project_validation.tscn` — сцена загружает все
+   скрипты из `scripts/` через ResourceLoader и заставляет движок
+   скомпилировать их в реальном контексте проекта (с автозагрузками).
+   Отдельный `--check-only --script` для файлов проекта не используем:
+   вне обычного прогона компилятор не видит имена автозагрузок и даёт
+   ложные «Identifier not found» на валидном коде;
+4. делает smoke-запуск главной сцены (`--quit-after 30`) и ищет в логах
+   `SCRIPT ERROR` / ошибки загрузки. Логи сохраняются артефактом Actions.
+
+Первый зелёный прогон: run `39494636584`, 2026-10-20. Локально тот же набор
+проверок: `tools/check_project.sh [путь_к_godot]`.
+
+Зачем CI, а не движок внутри рабочей песочницы Arena: бинарные релизы GitHub
+отдаются через `release-assets.githubusercontent.com`, недоступный из
+песочницы по allowlist сети. Подробности и обоснование —
+`docs/production/decisions.md`. Для разработки на своей машине ставь Godot
+как обычно (см. выше) — ограничение только у песочницы.
+
 ## Экспорт
 
 1. Project -> Export -> Add preset (Windows Desktop / Linux / macOS / Web — по списку платформ из GDD).
