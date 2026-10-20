@@ -1,0 +1,76 @@
+name: Godot 4.7 validation
+
+# Проверка проекта настоящим движком Godot на чистом Linux-раннере:
+# импорт, parse-check GDScript, smoke-запуск. См. tools/check_project.sh.
+
+on:
+  push:
+    branches:
+      - main
+      - "arena/**"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: godot-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_RELEASE: "4.7.2-stable"
+  GODOT_ZIP: "Godot_v4.7.2-stable_linux.x86_64.zip"
+
+jobs:
+  validate:
+    name: Импорт и smoke-тест
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Скачать репозиторий
+        uses: actions/checkout@v4
+
+      - name: Восстановить Godot из кэша
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/tdl-godot
+          key: godot-${{ env.GODOT_RELEASE }}-linux-x86_64
+
+      - name: Скачать и проверить Godot (официальный релиз)
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.cache/tdl-godot
+          cd ~/.cache/tdl-godot
+
+          base_url="https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}"
+          curl -fL -o "${GODOT_ZIP}" "${base_url}/${GODOT_ZIP}"
+          curl -fL -o SHA512-SUMS.txt "${base_url}/Godot_v4.7.2-stable_SHA512-SUMS.txt"
+
+          grep " ${GODOT_ZIP}$" SHA512-SUMS.txt > godot.sha512
+          sha512sum --check godot.sha512
+
+          unzip -o "${GODOT_ZIP}"
+          mv "Godot_v4.7.2-stable_linux.x86_64" godot
+          chmod +x godot
+          rm -f "${GODOT_ZIP}" SHA512-SUMS.txt godot.sha512
+
+      - name: Версия Godot
+        run: ~/.cache/tdl-godot/godot --version
+
+      - name: Проверить проект (импорт + скрипты + smoke)
+        shell: bash
+        run: bash tools/check_project.sh ~/.cache/tdl-godot/godot
+
+      - name: Загрузить логи проверки
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-validation-logs
+          path: build/ci-logs/*.log
+          if-no-files-found: warn
+          retention-days: 14
