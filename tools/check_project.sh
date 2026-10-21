@@ -107,7 +107,7 @@ if [ "$FAILED" -ne 0 ]; then
 			echo '```'
 		} >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
-		grep -RniE -A1 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load resource|PROJECT_VALIDATION_FAILED|CORE_FOUNDATION_TESTS_FAILED|PERSISTENCE_TESTS_FAILED|SESSION_TESTS_FAILED|PRESENTATION_TESTS_FAILED|ERROR:' "$LOG_DIR" | head -40 | while IFS= read -r line; do
+		grep -RniE -A1 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load resource|PROJECT_VALIDATION_FAILED|CORE_FOUNDATION_TESTS_FAILED|PERSISTENCE_TESTS_FAILED|SESSION_TESTS_FAILED|PRESENTATION_TESTS_FAILED' "$LOG_DIR" | head -40 | while IFS= read -r line; do
 			clean_line="$(printf '%s' "$line" | sed -e 's/%/%25/g' -e 's/\r/%0D/g')"
 			echo "::error title=Godot validation::${clean_line}"
 		done

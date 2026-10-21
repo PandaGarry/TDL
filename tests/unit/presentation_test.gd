@@ -296,7 +296,18 @@ func _test_networked_two_stage_presentation() -> void:
 	var client_start: Dictionary = _client_session.start_client("127.0.0.1", port, "guest", "Guest")
 	_check(bool(client_start.get("ok", false)), "network client starts for presentation test")
 	var joined: bool = await _wait_until(Callable(self, "_is_network_pair_ready"), 5000)
-	_check(joined, "client stage receives welcome snapshot")
+	_check(
+		joined,
+		(
+			"client stage receives welcome snapshot (host=%s client=%s h_ev=%s c_ev=%s)"
+			% [
+				str(_host_session.session_status()),
+				str(_client_session.session_status()),
+				str(_host_session.take_local_events()),
+				str(_client_session.take_local_events()),
+			]
+		)
+	)
 	if not joined:
 		_cleanup_network_nodes(host_stage, client_stage)
 		return
