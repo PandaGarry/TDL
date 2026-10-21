@@ -169,7 +169,7 @@ static func draw_chunk_landscape(
 	var phase := String(light.get("phase", "morning"))
 
 	if chunk_clean_tex != null:
-		canvas.draw_texture_rect(field_rect, chunk_clean_tex, false, ambient)
+		canvas.draw_texture_rect(chunk_clean_tex, field_rect, false, ambient)
 		if chunk_silted_tex != null:
 			var silt_blend := clampf((avg_silt - 0.24) / 0.42, 0.0, 1.0)
 			if kevalu_wild:
@@ -178,13 +178,13 @@ static func draw_chunk_landscape(
 				silt_blend = maxf(silt_blend, 0.55)
 			if silt_blend > 0.02:
 				canvas.draw_texture_rect(
-					field_rect, chunk_silted_tex, false, Color(1.0, 1.0, 1.0, silt_blend)
+					chunk_silted_tex, field_rect, false, Color(1.0, 1.0, 1.0, silt_blend)
 				)
 		return
 
 	var meadow_tex := load_canvas_texture("tex_meadow_moss_and_snow", include_normals)
 	if meadow_tex != null:
-		canvas.draw_texture_rect(field_rect, meadow_tex, true, ambient)
+		canvas.draw_texture_rect(meadow_tex, field_rect, true, ambient)
 	else:
 		canvas.draw_rect(field_rect, Color(0.22, 0.28, 0.19, 1.0) * ambient, true)
 
