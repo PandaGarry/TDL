@@ -31,6 +31,78 @@
         "flammable": true,
         "renewable": true
       }
+    },
+    {
+      "id": "core:material/murela_catch",
+      "kind": "material",
+      "name_key": "material.murela_catch.name",
+      "tags": [
+        "food",
+        "fish",
+        "perishable"
+      ],
+      "visual_profile": "core:visual/material_murela_catch",
+      "references": [
+        "core:species/murela"
+      ],
+      "properties": {
+        "nutrition_value": 2,
+        "renewable": true
+      }
+    },
+    {
+      "id": "core:material/talune_grain",
+      "kind": "material",
+      "name_key": "material.talune_grain.name",
+      "tags": [
+        "food",
+        "seed",
+        "storable"
+      ],
+      "visual_profile": "core:visual/material_talune_grain",
+      "references": [
+        "core:species/talune"
+      ],
+      "properties": {
+        "nutrition_value": 3,
+        "renewable": true
+      }
+    },
+    {
+      "id": "core:material/selave_bundle",
+      "kind": "material",
+      "name_key": "material.selave_bundle.name",
+      "tags": [
+        "fiber",
+        "medicine_base",
+        "wetland"
+      ],
+      "visual_profile": "core:visual/material_selave_bundle",
+      "references": [
+        "core:species/selave"
+      ],
+      "properties": {
+        "flammable": false,
+        "renewable": true
+      }
+    },
+    {
+      "id": "core:material/kevalu_propagule",
+      "kind": "material",
+      "name_key": "material.kevalu_propagule.name",
+      "tags": [
+        "sample",
+        "quarantine_required",
+        "alien_specimen"
+      ],
+      "visual_profile": "core:visual/material_kevalu_propagule",
+      "references": [
+        "core:species/kevalu"
+      ],
+      "properties": {
+        "requires_quarantine": true,
+        "renewable": true
+      }
     }
   ]
 }

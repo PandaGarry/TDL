@@ -35,6 +35,32 @@
         "default_contents_count": 3,
         "solid": true
       }
+    },
+    {
+      "id": "core:object/eco_basin_node",
+      "kind": "object",
+      "name_key": "object.eco_basin_node.name",
+      "tags": [
+        "ecology",
+        "basin_node",
+        "p1_slice"
+      ],
+      "visual_profile": "core:visual/object_eco_basin_node",
+      "references": [
+        "core:species/navelu",
+        "core:species/selave",
+        "core:species/murela",
+        "core:species/tivane",
+        "core:species/talune",
+        "core:species/heruna",
+        "core:species/karune",
+        "core:species/torava",
+        "core:species/orive",
+        "core:species/kevalu"
+      ],
+      "properties": {
+        "solid": false
+      }
     }
   ]
 }

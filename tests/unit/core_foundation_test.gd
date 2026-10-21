@@ -23,6 +23,7 @@ func _run_tests() -> void:
 	_test_fact_log()
 	_test_state_hash()
 	_test_definition_registry()
+	_test_sevara_eco_chain()
 
 	if _failures.is_empty():
 		print("CORE_FOUNDATION_TESTS_OK checks=%d" % _checks)
@@ -330,13 +331,24 @@ func _test_definition_registry() -> void:
 		bool(report.get("ok", false)),
 		"core definition package loads: %s" % str(report.get("errors", []))
 	)
-	_check_equal(int(report.get("definition_count", -1)), 7, "core package definition count")
+	_check_equal(int(report.get("definition_count", -1)), 19, "core package definition count")
 	_check_equal(registry.package_id(), "core", "registry package ID")
 	_check_equal(registry.manifest_hash().length(), 64, "registry manifest hash length")
 	_check_equal(
 		registry.ids_of_kind("species"),
-		["core:species/murela", "core:species/navelu", "core:species/selave"],
-		"registry species IDs"
+		[
+			"core:species/heruna",
+			"core:species/karune",
+			"core:species/kevalu",
+			"core:species/murela",
+			"core:species/navelu",
+			"core:species/orive",
+			"core:species/selave",
+			"core:species/talune",
+			"core:species/tivane",
+			"core:species/torava",
+		],
+		"registry holds all 10 canonical Sevara species IDs"
 	)
 
 	var navelu := registry.get_definition("core:species/navelu")
@@ -419,6 +431,92 @@ func _test_definition_registry() -> void:
 
 	var missing_report := DefinitionRegistry.new().load_package("res://data/core/missing.json")
 	_check(not bool(missing_report.get("ok", true)), "missing manifest is a report, not a crash")
+
+
+func _test_sevara_eco_chain() -> void:
+	var registry := DefinitionRegistry.new()
+	var load_report := registry.load_package("res://data/core/manifest.json")
+	_check(bool(load_report.get("ok", false)), "core package loads for P1-A ecology test")
+	var pin := {
+		"package_id": "core",
+		"version": "0.1.0",
+		"manifest_hash": registry.manifest_hash(),
+	}
+
+	var restored_world := WorldState.new()
+	_check(restored_world.setup_campaign("p1a_restored", 2026, [pin]), "restored_world setup")
+	_check(bool(SevaraEcoChain.ensure_basin_nodes(restored_world).get("ok", false)), "init nodes")
+	var restore_dam := SevaraEcoChain.apply_intervention(
+		restored_world, SevaraEcoChain.INTERVENTION_RESTORE_NAVELU_DAM
+	)
+	_check(bool(restore_dam.get("ok", false)), "restore_navelu_dam intervention succeeds")
+	var quarantine := SevaraEcoChain.apply_intervention(
+		restored_world, SevaraEcoChain.INTERVENTION_PLANT_KEVALU_QUARANTINE
+	)
+	_check(bool(quarantine.get("ok", false)), "plant_kevalu_quarantine intervention succeeds")
+
+	var degraded_world := WorldState.new()
+	_check(degraded_world.setup_campaign("p1a_degraded", 2026, [pin]), "degraded_world setup")
+	_check(bool(SevaraEcoChain.ensure_basin_nodes(degraded_world).get("ok", false)), "init nodes")
+	_check(
+		bool(
+			(
+				SevaraEcoChain
+				. apply_intervention(degraded_world, SevaraEcoChain.INTERVENTION_CLEAR_NAVELU_DAM)
+				. get("ok", false)
+			)
+		),
+		"clear_navelu_dam intervention succeeds"
+	)
+	_check(
+		bool(
+			(
+				SevaraEcoChain
+				. apply_intervention(
+					degraded_world, SevaraEcoChain.INTERVENTION_RELEASE_KEVALU_WILD
+				)
+				. get("ok", false)
+			)
+		),
+		"release_kevalu_wild intervention succeeds"
+	)
+
+	for _hour in range(12):
+		restored_world.clock().advance_minutes(60)
+		SevaraEcoChain.step_hour(restored_world)
+		degraded_world.clock().advance_minutes(60)
+		SevaraEcoChain.step_hour(degraded_world)
+
+	var good_summary := SevaraEcoChain.basin_summary(restored_world)
+	var bad_summary := SevaraEcoChain.basin_summary(degraded_world)
+	var good_channel: Dictionary = good_summary[SevaraEcoChain.NODE_NIVAREL_CHANNEL]
+	var bad_channel: Dictionary = bad_summary[SevaraEcoChain.NODE_NIVAREL_CHANNEL]
+	var good_wetland: Dictionary = good_summary[SevaraEcoChain.NODE_MULANE_WETLAND]
+	var bad_wetland: Dictionary = bad_summary[SevaraEcoChain.NODE_MULANE_WETLAND]
+
+	_check(
+		(
+			float(good_wetland.get("murela_juveniles", 0.0))
+			> float(bad_wetland.get("murela_juveniles", 1.0))
+		),
+		"restored Navelu dams + Selave yield healthier Murela juveniles than cleared dams"
+	)
+	_check(
+		float(good_channel.get("tivane_sync", 0.0)) > float(bad_channel.get("tivane_sync", 1.0)),
+		"uncontained wild Kevalu degrades Tivane pollinator sync compared to quarantine"
+	)
+	_check(
+		(
+			float(good_channel.get("kevalu_quarantine_knowledge", 0.0)) > 0.0
+			and is_equal_approx(float(good_channel.get("kevalu_wild_biomass", 1.0)), 0.0)
+		),
+		"quarantined Kevalu builds botanical knowledge without wild channel contamination"
+	)
+	_check_equal(
+		degraded_world.fact_log().facts_of_kind("eco_kevalu_spread").size(),
+		1,
+		"uncontained Kevalu logs eco_kevalu_spread causal fact"
+	)
 
 
 func _action_has_keycode(action_name: StringName, expected_keycode: Key) -> bool:
