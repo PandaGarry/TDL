@@ -186,7 +186,6 @@ static func draw_chunk_landscape(
 	if pebble_tex != null:
 		canvas.draw_texture_rect(channel_rect, pebble_tex, true, ambient)
 
-	var avg_silt := float(basin_summary.get("average_silt_load", 0.28))
 	var water_color := Color(0.18, 0.36, 0.42, 0.62).lerp(
 		Color(0.46, 0.31, 0.20, 0.84), clampf(avg_silt * 1.15, 0.0, 1.0)
 	)
