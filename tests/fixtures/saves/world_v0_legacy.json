@@ -1,0 +1,31 @@
+{
+	"format": "tdl.world_save",
+	"schema_version": 0,
+	"campaign_id": "spring_valley_legacy",
+	"genesis_seed": "9876543210123",
+	"total_minutes": 3000,
+	"entities": [
+		{
+			"id": 7,
+			"definition_id": "core:species/navelu",
+			"components": {
+				"position": {
+					"tile_x": 42,
+					"tile_y": 17
+				},
+				"vitality": {
+					"health": 0.75
+				}
+			}
+		},
+		{
+			"id": 2,
+			"definition_id": "core:material/torava_wood",
+			"components": {
+				"stack": {
+					"count": 3
+				}
+			}
+		}
+	]
+}
