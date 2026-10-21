@@ -6,25 +6,29 @@
 
 ## С чего начать
 
-1. [`design/core_generation_and_consequences.md`](design/core_generation_and_consequences.md) —
-   раунд 3: Core как ядро разработки, No Man’s Sky vs Starfield, разломы
-   без магии и золотая середина необратимости. **Текущая точка обсуждения.**
-2. [`design/home_world_and_core_concept.md`](design/home_world_and_core_concept.md) — разбор
-   гипотезы H1 о родном мире на общем игровом ядре: потенциал, риски и
-   границы первого продукта.
-3. [`lore/open_questions.md`](lore/open_questions.md) — ответы автора по
-   раундам исследования и оставшиеся вопросы.
-4. [`design/gdd.md`](design/gdd.md) — игровой дизайн-документ; заполняется
-   после утверждения концепта.
-5. [`lore/world_bible.md`](lore/world_bible.md) — библия мира.
+1. [`production/decisions.md`](production/decisions.md) — подробный журнал
+   одобренных решений. Для стратегических оснований H1 это источник
+   истины: что принято, почему, что отвергнуто и где граница одобрения.
+2. [`design/core_generation_and_consequences.md`](design/core_generation_and_consequences.md) —
+   Core как ядро разработки, No Man’s Sky vs Starfield, якорные разломы,
+   наследие и золотая середина необратимости; основания одобрены, детали
+   ещё обсуждаются.
+3. [`design/home_world_and_core_concept.md`](design/home_world_and_core_concept.md) — разбор
+   выбранного направления H1 о родном мире на общем игровом ядре:
+   потенциал, риски и предлагаемые границы первого продукта.
+4. [`lore/open_questions.md`](lore/open_questions.md) — ответы автора по
+   раундам исследования, протокол одобрений и оставшиеся вопросы.
+5. [`design/gdd.md`](design/gdd.md) — игровой дизайн-документ; пока шаблон,
+   заполняется только одобренными деталями после следующих раундов.
+6. [`lore/world_bible.md`](lore/world_bible.md) — библия мира.
 
 ## Дизайн (`design/`)
 
 | Документ | О чём |
 |---|---|
 | [`gdd.md`](design/gdd.md) | Главный дизайн-документ: питч, жанр, кор-цикл, механики, прогрессия, scope |
-| [`home_world_and_core_concept.md`](design/home_world_and_core_concept.md) | Гипотеза H1: конечный живой дом, экспедиции через разломы, общее игровое ядро и последствия между мирами |
-| [`core_generation_and_consequences.md`](design/core_generation_and_consequences.md) | Раунд 3: Core по аналогии с The Seed, процедурная генерация, No Man’s Sky/Starfield, смерть, вымирание и восстановимость |
+| [`home_world_and_core_concept.md`](design/home_world_and_core_concept.md) | Выбранное направление H1: конечный живой дом, экспедиции через якорные разломы, общее игровое ядро и последствия между мирами |
+| [`core_generation_and_consequences.md`](design/core_generation_and_consequences.md) | Раунды 3–4: Core по аналогии с The Seed, процедурная генерация, No Man’s Sky/Starfield, одобренные наследие, смерть, вымирание и восстановимость |
 
 ## Лор (`lore/`)
 
