@@ -582,11 +582,13 @@ func _delete_slot(slot_id: String) -> void:
 
 
 func _test_p1_ecology_and_body_vitals_session() -> void:
-	var session := _create_session()
+	var session := _make_session("P1BSession")
 	var start := session.start_new_offline("p1b_session", 31415, "host", "Host")
 	_check(bool(start.get("ok", false)), "P1-B offline session starts")
 	var enable := session.enable_sevara_p1_slice()
 	_check(bool(enable.get("ok", false)), "enable_sevara_p1_slice initializes nodes and vitals")
+	var step_report := session.advance_simulation_minutes(60)
+	_check(bool(step_report.get("ok", false)), "P1-B scheduled ecology and vitals step 1 hour")
 
 	var rules_patch := session.configure_world_rules(
 		{"skill_xp_multiplier": 2.0, "survival_pressure_multiplier": 2.0}

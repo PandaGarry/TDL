@@ -357,12 +357,12 @@ func enable_sevara_p1_slice() -> Dictionary:
 	)
 
 
-func _step_p1_ecology_hour(world: WorldState, _minute: int) -> void:
-	SevaraEcoChain.step_hour(world)
+func _step_p1_ecology_hour(world: WorldState, _context: Dictionary) -> bool:
+	return bool(SevaraEcoChain.step_hour(world).get("ok", false))
 
 
-func _step_p1_body_vitals_hour(world: WorldState, _minute: int) -> void:
-	BodyVitals.step_hour(world)
+func _step_p1_body_vitals_hour(world: WorldState, _context: Dictionary) -> bool:
+	return bool(BodyVitals.step_hour(world).get("ok", false))
 
 
 func configure_world_rules(patch: Dictionary) -> Dictionary:
