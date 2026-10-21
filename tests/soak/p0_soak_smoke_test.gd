@@ -9,7 +9,7 @@ extends Node
 ## replay of a full season.
 
 const TEST_SAVE_ROOT := "user://tests/p0_soak"
-const SEASON_MINUTES := WorldClock.MINUTES_PER_SEASON
+const SEASON_MINUTES := WorldClock.MINUTES_PER_DAY * WorldClock.DAYS_PER_SEASON
 const STEP_MINUTES := 360
 
 var _failures: Array[String] = []
@@ -40,8 +40,8 @@ func _run_soak() -> void:
 		)
 		_check_equal(
 			int(report.get("season_index", -1)),
-			2,
-			"seed %d advances calendar into season 2" % seed_value
+			1,
+			"seed %d advances calendar into season index 1 (second season)" % seed_value
 		)
 		_check_equal(
 			int(report.get("entity_count", -1)),

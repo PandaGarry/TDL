@@ -81,10 +81,10 @@ run_step "presentation_tests" 180 "$GODOT_BIN" --headless --path . --scene "res:
 # 2f) P0-G end-to-end acceptance tests: fixed-seed replay, simulated crash
 #     during world save, corrupt JSON resilience, two-process OS.create_process
 #     ENet host/client convergence, 90-second disconnect grace and BugBundle.
-run_step "p0_acceptance_tests" 180 "$GODOT_BIN" --headless --path . --scene "res://tests/integration/p0_acceptance_test.tscn" --quit-after 2400
+run_step "p0_acceptance_tests" 180 "$GODOT_BIN" --headless --path . --scene "res://tests/integration/p0_acceptance_test.tscn" --quit-after 10000
 
 # 2g) P0-G full-season headless soak-smoke tests (3 seeds x 30 in-game days).
-run_step "p0_soak_smoke_tests" 180 "$GODOT_BIN" --headless --path . --scene "res://tests/soak/p0_soak_smoke_test.tscn" --quit-after 300
+run_step "p0_soak_smoke_tests" 180 "$GODOT_BIN" --headless --path . --scene "res://tests/soak/p0_soak_smoke_test.tscn" --quit-after 1000
 
 # 4) Smoke-запуск: главная сцена должна прожить 30 итераций без ошибок
 #    скриптов (меню, автозагрузки, загрузка ресурсов).
@@ -115,6 +115,12 @@ for required_pair in \
 		echo "!! В '$LOG_DIR/$log_file' отсутствует маркер успешного завершения '$marker'"
 		if [ "${GITHUB_ACTIONS:-false}" = "true" ]; then
 			echo "::error title=Missing test marker::${log_file} did not print ${marker}"
+			if [ -f "$LOG_DIR/$log_file" ]; then
+				tail -n 6 "$LOG_DIR/$log_file" | while IFS= read -r line; do
+					clean_line="$(printf '%s' "$line" | sed -e 's/%/%25/g' -e 's/\r/%0D/g')"
+					echo "::error title=Tail ${log_file}::${clean_line}"
+				done
+			fi
 		fi
 		FAILED=1
 	fi

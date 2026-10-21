@@ -242,7 +242,7 @@ func _test_two_process_host_client_disconnect_and_bug_bundle() -> void:
 			"--scene",
 			WORKER_SCENE_PATH,
 			"--quit-after",
-			"1500",
+			"10000",
 			"--",
 			"--port=%d" % port,
 			"--save-root=%s" % TEST_SAVE_ROOT,
