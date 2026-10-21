@@ -136,10 +136,7 @@ func enable_p1_slice() -> Dictionary:
 
 
 func cycle_texture_quality_preset() -> String:
-	var presets: Array = SettingsManager.SUPPORTED_TEXTURE_QUALITIES
-	var idx: int = presets.find(SettingsManager.texture_quality)
-	var next_preset := String(presets[(idx + 1) % presets.size()])
-	SettingsManager.set_texture_quality(next_preset)
+	var next_preset: String = SettingsManager.cycle_texture_quality()
 	refresh_presentation()
 	return next_preset
 

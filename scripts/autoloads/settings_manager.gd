@@ -17,6 +17,12 @@ const TEXTURE_QUALITY_GREYBOX := "greybox"
 const TEXTURE_QUALITY_LOW := "low"
 const TEXTURE_QUALITY_MEDIUM := "medium"
 const TEXTURE_QUALITY_HIGH := "high"
+const SUPPORTED_TEXTURE_QUALITIES := [
+	TEXTURE_QUALITY_GREYBOX,
+	TEXTURE_QUALITY_LOW,
+	TEXTURE_QUALITY_MEDIUM,
+	TEXTURE_QUALITY_HIGH,
+]
 
 const MIN_FOLIAGE_DENSITY := 0.0
 const MAX_FOLIAGE_DENSITY := 1.0
@@ -180,6 +186,15 @@ func set_texture_quality(preset: String) -> bool:
 	texture_quality = cleaned
 	_on_changed(true)
 	return true
+
+
+func cycle_texture_quality() -> String:
+	var idx := SUPPORTED_TEXTURE_QUALITIES.find(texture_quality)
+	var next_preset := String(
+		SUPPORTED_TEXTURE_QUALITIES[(idx + 1) % SUPPORTED_TEXTURE_QUALITIES.size()]
+	)
+	set_texture_quality(next_preset)
+	return next_preset
 
 
 func set_foliage_density(value: float) -> void:
