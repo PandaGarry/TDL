@@ -39,7 +39,6 @@ func _capture_main_menu(abs_dir: String) -> void:
 	await _wait_frames(4)
 	_save_viewport_png(abs_dir.path_join("01_godot_main_menu.png"))
 	menu.free()
-	await _wait_frames(2)
 
 
 func _capture_stage_states(abs_dir: String) -> void:
@@ -62,9 +61,9 @@ func _capture_stage_states(abs_dir: String) -> void:
 	stage.refresh_presentation()
 	stage.debug_overlay().visible = false
 	stage.camera().position = stage.chunk_view().field_center_world()
-	stage.camera().zoom = Vector2(1.18, 1.18)
+	stage.camera().zoom = Vector2(1.0, 1.0)
 
-	await _wait_frames(5)
+	await _wait_frames(4)
 	_save_viewport_png(abs_dir.path_join("02_godot_stage_p1_morning_clean.png"))
 
 	stage.session().submit_local_intent(
@@ -80,17 +79,17 @@ func _capture_stage_states(abs_dir: String) -> void:
 	stage.refresh_presentation()
 	stage.debug_overlay().visible = true
 	stage.camera().position = stage.chunk_view().field_center_world()
-	stage.camera().zoom = Vector2(1.18, 1.18)
+	stage.camera().zoom = Vector2(1.0, 1.0)
 
-	await _wait_frames(5)
+	await _wait_frames(4)
 	_save_viewport_png(abs_dir.path_join("03_godot_stage_p1_dusk_silted_debug.png"))
 
 	SettingsManager.set_texture_quality(SettingsManager.TEXTURE_QUALITY_GREYBOX)
 	stage.refresh_presentation()
 	stage.camera().position = stage.chunk_view().field_center_world()
-	stage.camera().zoom = Vector2(1.18, 1.18)
+	stage.camera().zoom = Vector2(1.0, 1.0)
 
-	await _wait_frames(5)
+	await _wait_frames(4)
 	_save_viewport_png(abs_dir.path_join("04_godot_stage_greybox_comparison.png"))
 
 	SettingsManager.set_texture_quality(SettingsManager.TEXTURE_QUALITY_HIGH)
@@ -100,7 +99,7 @@ func _capture_stage_states(abs_dir: String) -> void:
 func _wait_frames(count: int) -> void:
 	for _i in range(count):
 		await get_tree().process_frame
-	await RenderingServer.frame_post_draw
+	RenderingServer.force_draw(false)
 
 
 func _save_viewport_png(output_path: String) -> void:

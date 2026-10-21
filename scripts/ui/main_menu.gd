@@ -20,6 +20,7 @@ const CAMPAIGN_SAVE_ROOT := "user://saves/campaigns"
 
 func _ready() -> void:
 	UiLocaleCatalog.ensure_registered()
+	_install_backdrop_texture()
 	_apply_localized_texts()
 	_new_game_button.pressed.connect(_on_new_game_pressed)
 	_continue_button.pressed.connect(_on_continue_pressed)
@@ -29,6 +30,22 @@ func _ready() -> void:
 
 	_continue_button.disabled = not _has_campaign_save()
 	_new_game_button.grab_focus()
+
+
+func _install_backdrop_texture() -> void:
+	var bg_tex := SevaraVisualTheme.load_canvas_texture("chunk_nivara_silted_dusk", false)
+	if bg_tex == null:
+		return
+	var backdrop := TextureRect.new()
+	backdrop.name = "SevaraBackdrop"
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	backdrop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	backdrop.modulate = Color(0.28, 0.30, 0.32, 0.92)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	backdrop.texture = bg_tex
+	add_child(backdrop)
+	move_child(backdrop, 1)
 
 
 func _exit_tree() -> void:
