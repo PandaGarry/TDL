@@ -39,6 +39,11 @@ func _test_world_state_contract() -> void:
 		"duplicate content packages rejected"
 	)
 	_check(not invalid_world.is_initialized(), "failed setup leaves world uninitialized")
+	_check(
+		not invalid_world.setup_campaign("empty_packages", TEST_SEED, []),
+		"fresh campaign requires content package pins"
+	)
+	_check(not invalid_world.is_initialized(), "empty package setup leaves world uninitialized")
 
 	var world := _make_world("spring_valley_contract", 1500)
 	_check(world.is_initialized(), "world initializes")
@@ -98,6 +103,19 @@ func _test_world_state_contract() -> void:
 	bad_snapshot = _duplicate_dictionary(snapshot)
 	bad_snapshot["unknown_field"] = true
 	_check(not WorldState.new().restore_state(bad_snapshot), "unknown world field rejected")
+
+	bad_snapshot = _duplicate_dictionary(snapshot)
+	bad_snapshot["campaign_id"] = true
+	_check(not WorldState.new().restore_state(bad_snapshot), "non-string campaign id rejected")
+
+	bad_snapshot = _duplicate_dictionary(snapshot)
+	var bad_packages: Array = bad_snapshot.get("content_packages", [])
+	if not bad_packages.is_empty():
+		var first_package := _duplicate_dictionary(bad_packages[0])
+		first_package["version"] = true
+		bad_packages[0] = first_package
+		bad_snapshot["content_packages"] = bad_packages
+	_check(not WorldState.new().restore_state(bad_snapshot), "non-string package version rejected")
 
 	bad_snapshot = _duplicate_dictionary(snapshot)
 	var bad_rng := _duplicate_dictionary(bad_snapshot.get("rng", {}))
@@ -231,8 +249,26 @@ func _test_legacy_migration() -> void:
 		"duplicate legacy entity id rejected"
 	)
 
+	var bad_legacy_campaign := _duplicate_dictionary(legacy_document)
+	bad_legacy_campaign["campaign_id"] = true
+	_check(
+		not bool(WorldStateCodec.decode(bad_legacy_campaign).get("ok", true)),
+		"non-string legacy campaign id rejected"
+	)
+
 
 func _test_save_store_rotation_and_recovery() -> void:
+	_check_equal(
+		SaveStore.new("user://").root_dir(),
+		SaveStore.DEFAULT_ROOT_DIR,
+		"bare user root is not a save store root"
+	)
+	_check_equal(
+		SaveStore.new("user://tests/../escape").root_dir(),
+		SaveStore.DEFAULT_ROOT_DIR,
+		"traversal save root rejected"
+	)
+
 	var store := SaveStore.new(TEST_ROOT_DIR, 2)
 	var slot_id := "generic_store"
 	store.delete_slot(slot_id)
@@ -273,6 +309,12 @@ func _test_save_store_rotation_and_recovery() -> void:
 
 	_check(store.delete_slot(slot_id), "generic test slot deletes")
 	_check(not store.has_document(slot_id, "sample"), "deleted generic document is gone")
+	var missing_document := store.load_document(slot_id, "sample")
+	_check(not bool(missing_document.get("ok", true)), "missing generic document fails cleanly")
+	_check(
+		not bool(missing_document.get("recovered", true)),
+		"missing generic document reports recovered=false"
+	)
 
 
 func _test_world_codec_store_recovery() -> void:
@@ -311,6 +353,16 @@ func _test_world_codec_store_recovery() -> void:
 	var backup_world := after_truncation.get("world") as WorldState
 	if backup_world != null:
 		_check_equal(backup_world.clock().total_minutes(), 200, "backup world minute")
+
+	# Simulate the crash window after current rotated to backup1 but
+	# before the verified temp file was renamed into place.
+	_check(DirAccess.remove_absolute(current_path) == OK, "missing current fixture")
+	var after_missing_current := WorldStateCodec.load_from_store(store, slot_id)
+	_check(bool(after_missing_current.get("ok", false)), "missing current falls back to backup")
+	_check(bool(after_missing_current.get("recovered", false)), "missing current reports recovery")
+	var missing_current_world := after_missing_current.get("world") as WorldState
+	if missing_current_world != null:
+		_check_equal(missing_current_world.clock().total_minutes(), 200, "missing-current backup")
 
 	var checksum_slot := "world_checksum_recovery"
 	store.delete_slot(checksum_slot)

@@ -193,9 +193,14 @@ func load_document(
 ) -> Dictionary:
 	var candidate_paths := get_candidate_paths(slot_id, document_name)
 	if candidate_paths.is_empty():
-		return _failure(
-			"No save candidates for slot '%s', document '%s'" % [slot_id, document_name]
-		)
+		return {
+			"ok": false,
+			"path": "",
+			"document": {},
+			"recovered": false,
+			"errors":
+			["No save candidates for slot '%s', document '%s'" % [slot_id, document_name]],
+		}
 
 	var errors: Array[String] = []
 	var current_path := get_document_path(slot_id, document_name)
@@ -380,4 +385,18 @@ static func _normalize_root_dir(value: String) -> String:
 		return DEFAULT_ROOT_DIR
 	while result.length() > 1 and result.ends_with("/") and not result.ends_with("://"):
 		result = result.substr(0, result.length() - 1)
-	return result
+	# delete_slot() is recursive, so the store root itself must never be a
+	# bare filesystem/user root or contain traversal segments. A bad root
+	# is a programmer error; falling back is safer than deleting broadly.
+	return result if _is_safe_root_dir(result) else DEFAULT_ROOT_DIR
+
+
+static func _is_safe_root_dir(value: String) -> bool:
+	if value in ["/", "user://", "res://", ".", ".."]:
+		return false
+	if value.length() == 2 and value.substr(1, 1) == ":":
+		return false
+	for segment in value.split("/"):
+		if segment == "..":
+			return false
+	return true

@@ -31,7 +31,7 @@ func _init() -> void:
 
 ## Initializes a fresh campaign. Invalid input leaves the current state
 ## untouched instead of partially resetting it.
-func setup_campaign(campaign_id: String, genesis_seed: int, content_packages: Array = []) -> bool:
+func setup_campaign(campaign_id: String, genesis_seed: int, content_packages: Array) -> bool:
 	if not StableId.is_valid_segment(campaign_id):
 		push_warning("WorldState.setup_campaign: invalid campaign_id '%s'" % campaign_id)
 		return false
@@ -40,10 +40,17 @@ func setup_campaign(campaign_id: String, genesis_seed: int, content_packages: Ar
 	if not bool(package_result["ok"]):
 		push_warning("WorldState.setup_campaign: invalid content packages")
 		return false
+	var validated_packages := _copy_package_array(package_result["value"])
+	if validated_packages.is_empty():
+		# A fresh campaign must pin the content it was created against.
+		# Restored legacy payloads may still have an empty pin list; the
+		# session layer decides how to reconcile those in P0-E.
+		push_warning("WorldState.setup_campaign: at least one content package is required")
+		return false
 
 	_campaign_id = campaign_id
 	_genesis_seed = genesis_seed
-	_content_packages = _copy_package_array(package_result["value"])
+	_content_packages = validated_packages
 	_clock.setup(0)
 	_rng.setup(genesis_seed)
 	_fact_log.clear()
@@ -287,7 +294,7 @@ static func _snapshot_envelope_is_valid(snapshot: Dictionary) -> bool:
 
 
 static func _parse_snapshot_identity(snapshot: Dictionary) -> Dictionary:
-	var campaign_id := String(snapshot.get("campaign_id", ""))
+	var campaign_id := _string_value(snapshot.get("campaign_id", ""))
 	var parsed_genesis_seed := _parse_i64(snapshot.get("genesis_seed", null))
 	var package_result := _validated_content_packages(snapshot.get("content_packages", null))
 	var valid := (
@@ -342,12 +349,12 @@ static func _validated_content_packages(raw_packages: Variant) -> Dictionary:
 		if not _has_only_keys(package, ["package_id", "version", "manifest_hash"]):
 			return {"ok": false, "value": []}
 
-		var package_id := String(package.get("package_id", ""))
-		var version := String(package.get("version", ""))
-		var manifest_hash := String(package.get("manifest_hash", ""))
+		var package_id := _string_value(package.get("package_id", ""))
+		var version := _string_value(package.get("version", "")).strip_edges()
+		var manifest_hash := _string_value(package.get("manifest_hash", ""))
 		if (
 			not StableId.is_valid_segment(package_id)
-			or version.strip_edges().is_empty()
+			or version.is_empty()
 			or not _is_sha256_hex(manifest_hash)
 			or by_id.has(package_id)
 		):
@@ -417,7 +424,7 @@ static func _validated_entities(raw_entities: Variant) -> Dictionary:
 		if not _has_only_keys(entity, ["definition_id", "components"]):
 			return {"ok": false, "value": {}, "highest_entity_id": 0}
 
-		var definition_id := String(entity.get("definition_id", ""))
+		var definition_id := _string_value(entity.get("definition_id", ""))
 		if not StableId.is_valid(definition_id):
 			return {"ok": false, "value": {}, "highest_entity_id": 0}
 		var component_result := _validated_components(entity.get("components", null))
@@ -441,6 +448,14 @@ static func _copy_package_array(raw_packages: Variant) -> Array[Dictionary]:
 		if typeof(raw_package) == TYPE_DICTIONARY:
 			result.append(JsonValue.duplicate_safe(raw_package) as Dictionary)
 	return result
+
+
+static func _string_value(value: Variant) -> String:
+	# Schema strings must not be silently coerced from bool/number values:
+	# `String(true)` would otherwise become the valid segment "true".
+	if typeof(value) == TYPE_STRING or typeof(value) == TYPE_STRING_NAME:
+		return String(value)
+	return ""
 
 
 static func _has_only_keys(dictionary: Dictionary, expected_keys: Array) -> bool:

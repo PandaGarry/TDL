@@ -23,6 +23,13 @@ static func encode(
 		return _encode_failure("Cannot encode an uninitialized WorldState")
 
 	var payload := world.snapshot_state()
+	if _integer_value(payload.get("schema_version", -1)) != CURRENT_SCHEMA_VERSION:
+		# Envelope and payload are both v1 in P0-D. If WorldState ever
+		# bumps its payload schema, this codec must gain an explicit
+		# migration instead of silently mislabelling the file.
+		return _encode_failure(
+			"WorldState payload schema is not supported by codec v%d" % CURRENT_SCHEMA_VERSION
+		)
 	var validation_world := WorldState.new()
 	if not validation_world.restore_state(payload):
 		return _encode_failure("WorldState payload failed its own validation")
@@ -75,7 +82,7 @@ static func decode(document: Dictionary) -> Dictionary:
 		)
 	if schema_version != CURRENT_SCHEMA_VERSION:
 		return _decode_failure("Unsupported world save schema %d" % schema_version, schema_version)
-	if String(document.get("format", "")) != FORMAT:
+	if _string_value(document.get("format", "")) != FORMAT:
 		return _decode_failure("World document format must be '%s'" % FORMAT, schema_version)
 	if not _has_only_keys(
 		document,
@@ -92,8 +99,8 @@ static func decode(document: Dictionary) -> Dictionary:
 			"World document envelope has missing or unknown fields", schema_version
 		)
 
-	var game_version: Variant = document["game_version"]
-	if typeof(game_version) != TYPE_STRING or String(game_version).strip_edges().is_empty():
+	var game_version := _string_value(document["game_version"])
+	if game_version.strip_edges().is_empty():
 		return _decode_failure(
 			"World document game_version must be a non-empty string", schema_version
 		)
@@ -105,7 +112,7 @@ static func decode(document: Dictionary) -> Dictionary:
 		return _decode_failure("World document payload must be an object", schema_version)
 	var payload: Dictionary = payload_value
 
-	var expected_hash := String(document.get("payload_sha256", ""))
+	var expected_hash := _string_value(document.get("payload_sha256", ""))
 	if not _is_sha256_hex(expected_hash):
 		return _decode_failure("World document payload_sha256 is malformed", schema_version)
 	if _payload_hash(payload) != expected_hash:
@@ -209,11 +216,11 @@ static func _world_from_payload(
 ## `{campaign_id, genesis_seed, total_minutes, entities: [...]}`.
 ## v1 adds package pins, named RNG streams, facts and the entity map.
 static func _migrate_v0_to_v1(document: Dictionary) -> Dictionary:
-	var format_value := String(document.get("format", FORMAT))
+	var format_value := _string_value(document.get("format", FORMAT))
 	if format_value != FORMAT:
 		return {"ok": false, "error": "Legacy world document has wrong format"}
 
-	var campaign_id := String(document.get("campaign_id", ""))
+	var campaign_id := _string_value(document.get("campaign_id", ""))
 	if not StableId.is_valid_segment(campaign_id):
 		return {"ok": false, "error": "Legacy world document has invalid campaign_id"}
 
@@ -246,7 +253,7 @@ static func _migrate_v0_to_v1(document: Dictionary) -> Dictionary:
 		if entity_id < 1 or entities.has(entity_key):
 			return {"ok": false, "error": "Legacy world entity id is invalid or duplicated"}
 		entities[entity_key] = {
-			"definition_id": String(entity.get("definition_id", "")),
+			"definition_id": _string_value(entity.get("definition_id", "")),
 			"components": JsonValue.duplicate_safe(entity.get("components", {})),
 		}
 		highest_entity_id = maxi(highest_entity_id, entity_id)
@@ -336,6 +343,12 @@ static func _load_failure(message: String) -> Dictionary:
 		"migrated": false,
 		"errors": [message],
 	}
+
+
+static func _string_value(value: Variant) -> String:
+	if typeof(value) == TYPE_STRING or typeof(value) == TYPE_STRING_NAME:
+		return String(value)
+	return ""
 
 
 static func _has_only_keys(dictionary: Dictionary, expected_keys: Array) -> bool:
