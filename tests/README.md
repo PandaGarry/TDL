@@ -18,13 +18,31 @@ WorldState snapshot/restore без частичного commit, реальный
 `tests/fixtures/saves/world_v0_legacy.json`, ротацию backup, stale temp,
 fallback при битом JSON/checksum и отсутствующий слот.
 
-`tests/unit/session_test.tscn` — runner P0-E. Он проверяет
+`tests/unit/session_test.tscn` — runner P0-E + P1-B/C/D. Он проверяет
 `SessionProtocol`, детерминированный `SimulationScheduler` с бюджетом и
 защитой от прямого сдвига часов, соло-сессию через хостовый конвейер
 намерений, отказ при несовпадении package pins, явную сверку legacy-мира
-без pins и реальную пару ENet localhost host/client с двумя телами,
-одним изменяемым ящиком припасов, отказом подделанного намерения,
-отключением и повторным подключением гостя.
+без pins, пару ENet localhost host/client, а также полный цикл **P1** в
+сессии (`enable_sevara_p1_slice`, `eco_intervention`, `body_care`,
+`field_action`, 8 якорных NPC, карантинное обещание Мавены, 5 ступеней
+гипотез, хронику Селимы и сохранение/перезагрузку P1-сессии с
+автоматическим восстановлением почасовых систем).
+
+`tests/unit/presentation_test.tscn` — runner P0-F + P1-E. Проверяет RU/EN
+каталог `UiLocaleCatalog`, настройки `SettingsManager` (включая пресеты
+текстур `greybox/low/medium/high`, плотность листвы, шейдеры и неизменность
+`domain_state_hash()` при переключении графики), метрики сетки,
+`GreyboxChunkView`, `GreyboxStage` и `GreyboxDebugOverlay`.
+
+`tests/integration/p0_acceptance_test.tscn` (с воркером
+`tests/integration/enet_client_worker.tscn`) — двухпроцессный (`OS.create_process`)
+приёмочный раннер P0-G: детерминизм по сиду, crash-safe recovery сейва,
+устойчивость к битому JSON, ENet между двумя процессами ОС, 90-секундное
+аварийное окно отключения (`sheltered: true`), обновление `WorldRules` на
+хосте и экспорт/валидацию `BugBundleExporter`.
+
+`tests/soak/p0_soak_smoke_test.tscn` — сезонный soak-smoke раннер P0-G
+(3 сида × 43,200 игровых минут + проверка детерминизма повторного прогона).
 
 Запуск: `tools/check_project.sh [godot]`, автоматически — GitHub Actions
 при каждом пуше (`.github/workflows/godot-validate.yml`, Godot 4.7.2).

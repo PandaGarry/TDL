@@ -117,6 +117,33 @@ static func npcs_summary(world: WorldState) -> Array[Dictionary]:
 	return result
 
 
+static func validate_world_npcs(world: WorldState) -> Array[String]:
+	var errors: Array[String] = []
+	if world == null or not world.is_initialized():
+		return errors
+	var specs := _default_npc_specs()
+	var seen_ids: Dictionary = {}
+	for entity_id in world.entity_ids():
+		var entity := world.get_entity(entity_id)
+		if String(entity.get("definition_id", "")) != ANCHOR_NPC_DEFINITION_ID:
+			continue
+		var comp := world.get_entity_component(entity_id, NPC_COMPONENT)
+		if comp.is_empty():
+			errors.append("anchor_npc entity %d is missing npc_state component" % entity_id)
+			continue
+		var npc_id := String(comp.get("npc_id", ""))
+		if not specs.has(npc_id):
+			errors.append("anchor_npc entity %d has unknown npc_id '%s'" % [entity_id, npc_id])
+			continue
+		if seen_ids.has(npc_id):
+			errors.append("duplicate anchor_npc for npc_id '%s'" % npc_id)
+		seen_ids[npc_id] = entity_id
+		var trust := float(comp.get("trust", -1.0))
+		if not is_finite(trust) or trust < 0.0 or trust > 100.0:
+			errors.append("anchor_npc '%s' has out-of-range trust" % npc_id)
+	return errors
+
+
 static func _apply_ruvet_midday_logging(world: WorldState, ruvet_state: Dictionary) -> void:
 	var promise_state := String(ruvet_state.get("promise_state", "none"))
 	var active_promise := String(ruvet_state.get("active_promise", PROMISE_NONE))

@@ -725,7 +725,30 @@ func _test_p1_ecology_and_body_vitals_session() -> void:
 	_check_equal(hyps.size(), 5, "all 5 canonical revelation hypotheses unlocked in field journal")
 	var chronicle := FieldJournalAndChronicle.build_settlement_chronicle(session.world_state())
 	_check(chronicle.size() >= 6, "Selima settlement chronicle records major P1 facts and promises")
+
+	var p1_slot := "p1_full_save_slot"
+	var save_p1 := session.save_world(p1_slot)
+	_check(bool(save_p1.get("ok", false)), "P1 session saves cleanly to SaveStore")
+	var pre_load_hash := session.domain_state_hash()
 	_destroy_session(session)
+
+	var reloaded_p1 := _make_session("ReloadedP1Session")
+	var load_p1 := reloaded_p1.load_and_start_offline(p1_slot, "host", "Host")
+	_check(bool(load_p1.get("ok", false)), "reloaded P1 session starts from saved slot")
+	_check_equal(
+		reloaded_p1.domain_state_hash(),
+		pre_load_hash,
+		"reloaded P1 session preserves exact domain_state_hash"
+	)
+	var step_after_reload := reloaded_p1.advance_simulation_minutes(60)
+	_check(bool(step_after_reload.get("ok", false)), "reloaded P1 session advances 1 hour")
+	_check_equal(
+		int(step_after_reload.get("system_calls", 0)),
+		3,
+		"reloaded P1 session automatically re-registers all 3 P1 hourly systems"
+	)
+	_destroy_session(reloaded_p1)
+	_delete_slot(p1_slot)
 
 
 func _check(condition: bool, message: String) -> void:

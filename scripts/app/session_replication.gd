@@ -80,6 +80,9 @@ static func accept_hello(
 			"reason": "session_full",
 		}
 	var body_entity_id := int(spawn_report.get("body_entity_id", -1))
+	if not SevaraEcoChain.find_basin_nodes(world).is_empty():
+		BodyVitals.ensure_body_components(world, body_entity_id)
+		FieldJournalAndChronicle.ensure_journal(world, body_entity_id)
 	var existing_record := participants.record(participant_id)
 	var already_connected := (
 		bool(existing_record.get("connected", false))

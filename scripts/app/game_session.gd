@@ -349,9 +349,7 @@ func enable_sevara_p1_slice() -> Dictionary:
 	var body_count := BodyVitals.ensure_all_bodies(_world)
 	for record in GreyboxWorld.body_records(_world):
 		FieldJournalAndChronicle.ensure_journal(_world, int(record.get("body_entity_id", -1)))
-	register_system("p1_sevara_ecology_hour", 60, Callable(self, "_step_p1_ecology_hour"), 100)
-	register_system("p1_body_vitals_hour", 60, Callable(self, "_step_p1_body_vitals_hour"), 110)
-	register_system("p1_anchor_npcs_hour", 60, Callable(self, "_step_p1_npcs_hour"), 120)
+	_register_p1_systems()
 	_world_dirty = true
 	_broadcast_snapshot(true)
 	return _success(
@@ -362,6 +360,12 @@ func enable_sevara_p1_slice() -> Dictionary:
 			"basin_summary": SevaraEcoChain.basin_summary(_world),
 		}
 	)
+
+
+func _register_p1_systems() -> void:
+	register_system("p1_sevara_ecology_hour", 60, Callable(self, "_step_p1_ecology_hour"), 100)
+	register_system("p1_body_vitals_hour", 60, Callable(self, "_step_p1_body_vitals_hour"), 110)
+	register_system("p1_anchor_npcs_hour", 60, Callable(self, "_step_p1_npcs_hour"), 120)
 
 
 func _step_p1_ecology_hour(world: WorldState, _context: Dictionary) -> bool:
@@ -527,6 +531,11 @@ func _start_prepared_host(
 		int(spawn_report.get("body_entity_id", -1)),
 		true
 	)
+	if not SevaraEcoChain.find_basin_nodes(_world).is_empty():
+		BodyVitals.ensure_all_bodies(_world)
+		for record in GreyboxWorld.body_records(_world):
+			FieldJournalAndChronicle.ensure_journal(_world, int(record.get("body_entity_id", -1)))
+		_register_p1_systems()
 	_scheduler.reset_for_minute(_current_tick())
 	_last_snapshot_minute = _current_tick()
 	_sync_runtime_from_world_rules()
@@ -901,6 +910,7 @@ func _reset_session_state() -> void:
 	_unbind_and_close_transport()
 	_registry = DefinitionRegistry.new()
 	_world = WorldState.new()
+	_scheduler = SimulationScheduler.new()
 	_role = Role.INACTIVE
 	_running = false
 	_network_host = false

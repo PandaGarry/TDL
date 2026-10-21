@@ -134,6 +134,8 @@ static func validated_snapshot_world(
 			var definition_errors := GreyboxWorld.validate_world_definitions(
 				restored, active_registry
 			)
+			definition_errors.append_array(SevaraEcoChain.validate_world_nodes(restored))
+			definition_errors.append_array(SevaraP1Npcs.validate_world_npcs(restored))
 			actual_hash = StateHash.sha256_hex(restored.snapshot_state())
 			if not _pins_equal(restored.content_packages(), expected_content_packages):
 				error = "snapshot content package pins do not match the client registry"
