@@ -101,7 +101,8 @@ func _run_single_season_soak(seed_value: int, slot_id: String) -> Dictionary:
 	session.save_backup_count = 2
 	add_child(session)
 
-	var start: Dictionary = session.start_new_offline(slot_id, seed_value, "host", "Host")
+	var campaign_id := "soak_campaign_%d" % seed_value
+	var start: Dictionary = session.start_new_offline(campaign_id, seed_value, "host", "Host")
 	if not bool(start.get("ok", false)):
 		session.free()
 		return {"ok": false}
