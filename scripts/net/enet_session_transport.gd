@@ -110,6 +110,7 @@ func _create_api() -> bool:
 	if created == null:
 		return false
 	_api = created
+	_api.root_path = NodePath("/root")
 	_api.server_relay = false
 	_api.peer_connected.connect(_on_api_peer_connected)
 	_api.peer_disconnected.connect(_on_api_peer_disconnected)

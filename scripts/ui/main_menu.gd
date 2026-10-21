@@ -47,7 +47,12 @@ func _apply_localized_texts() -> void:
 
 func _has_campaign_save() -> bool:
 	var store := SaveStore.new(CAMPAIGN_SAVE_ROOT, 5)
-	return store.has_slot(GreyboxStage.DEFAULT_SLOT_ID) or SaveSystem.has_save(0)
+	var has_world_candidates := not (
+		store
+		. get_candidate_paths(GreyboxStage.DEFAULT_SLOT_ID, WorldStateCodec.DOCUMENT_NAME)
+		. is_empty()
+	)
+	return has_world_candidates or SaveSystem.has_save(0)
 
 
 func _on_new_game_pressed() -> void:
@@ -58,7 +63,12 @@ func _on_new_game_pressed() -> void:
 
 func _on_continue_pressed() -> void:
 	var store := SaveStore.new(CAMPAIGN_SAVE_ROOT, 5)
-	if store.has_slot(GreyboxStage.DEFAULT_SLOT_ID):
+	var has_world_candidates := not (
+		store
+		. get_candidate_paths(GreyboxStage.DEFAULT_SLOT_ID, WorldStateCodec.DOCUMENT_NAME)
+		. is_empty()
+	)
+	if has_world_candidates:
 		GreyboxStage.next_launch_load_slot_id = GreyboxStage.DEFAULT_SLOT_ID
 		GameManager.start_game()
 		SceneLoader.change_scene_immediate(GREYBOX_STAGE_SCENE_PATH)

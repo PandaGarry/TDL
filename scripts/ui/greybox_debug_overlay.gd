@@ -61,9 +61,9 @@ static func build_snapshot(
 	var local_chunk := (
 		GreyboxGridMetrics.chunk_for_tile(local_tile) if local_tile.x >= 0 else Vector2i(-1, -1)
 	)
-	var recent_facts: Array[Dictionary] = (
-		world.fact_log().last_facts(maxi(recent_fact_limit, 1)) if world_ready else []
-	)
+	var recent_facts: Array[Dictionary] = []
+	if world_ready:
+		recent_facts = world.fact_log().last_facts(maxi(recent_fact_limit, 1))
 
 	return {
 		"running": bool(status.get("running", false)),
