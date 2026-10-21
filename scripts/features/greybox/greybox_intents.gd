@@ -42,6 +42,10 @@ static func apply_intent(
 				width_tiles,
 				height_tiles
 			)
+		SessionProtocol.INTENT_ECO_INTERVENTION:
+			return _apply_eco_intervention(world, body_entity_id, typed_payload)
+		SessionProtocol.INTENT_BODY_CARE:
+			return _apply_body_care(world, body_entity_id, typed_payload)
 	return _failure("unsupported_intent", "intent type is not supported")
 
 
@@ -299,6 +303,82 @@ static func _append_current_fact(
 	return world.fact_log().append_fact(
 		kind, world.clock().total_minutes(), payload, actor_id, subject_id
 	)
+
+
+static func _apply_eco_intervention(
+	world: WorldState, body_entity_id: int, payload: Dictionary
+) -> Dictionary:
+	if not GreyboxWorld.has_only_keys(payload, ["intervention"]):
+		return _failure("invalid_payload", "eco_intervention payload requires 'intervention'")
+	var kind := GreyboxWorld.string_value(payload.get("intervention", null))
+	if kind.is_empty():
+		return _failure("invalid_payload", "intervention must be a non-empty string")
+	var report := SevaraEcoChain.apply_intervention(world, kind, body_entity_id)
+	if not bool(report.get("ok", false)):
+		return _failure(
+			"eco_intervention_failed", String(report.get("error", "intervention failed"))
+		)
+
+	var yielded: Dictionary = report.get("yielded_items", {})
+	if not yielded.is_empty() and world.has_entity(body_entity_id):
+		var inv := world.get_entity_component(body_entity_id, GreyboxWorld.INVENTORY_COMPONENT)
+		var next_inv := inv.duplicate(true)
+		for raw_item_id in yielded.keys():
+			var item_id := String(raw_item_id)
+			var cur := int(GreyboxWorld.integral_value(next_inv.get(item_id, 0)).get("value", 0))
+			next_inv[item_id] = cur + int(yielded[raw_item_id])
+		world.set_entity_component(body_entity_id, GreyboxWorld.INVENTORY_COMPONENT, next_inv)
+
+	BodyVitals.ensure_body_components(world, body_entity_id)
+	var domain := _practice_domain_for_intervention(kind)
+	if not domain.is_empty():
+		BodyVitals.award_practice(world, body_entity_id, domain, 2.5)
+	var vitals := world.get_entity_component(body_entity_id, BodyVitals.VITALS_COMPONENT)
+	if not vitals.is_empty():
+		vitals["stamina"] = (
+			roundf(maxf(float(vitals.get("stamina", 0.90)) - 0.06, 0.0) * 10000.0) / 10000.0
+		)
+		vitals["wetness"] = (
+			roundf(clampf(float(vitals.get("wetness", 0.10)) + 0.12, 0.0, 1.0) * 10000.0) / 10000.0
+		)
+		world.set_entity_component(body_entity_id, BodyVitals.VITALS_COMPONENT, vitals)
+
+	return {"ok": true, "fact": report.get("fact", {}), "reason": "", "error": ""}
+
+
+static func _apply_body_care(
+	world: WorldState, body_entity_id: int, payload: Dictionary
+) -> Dictionary:
+	var action := GreyboxWorld.string_value(payload.get("action", null))
+	var item_id := GreyboxWorld.string_value(payload.get("item_id", ""))
+	if action.is_empty():
+		return _failure("invalid_payload", "body_care payload requires 'action'")
+	var report := BodyVitals.apply_body_care(world, body_entity_id, action, item_id)
+	if not bool(report.get("ok", false)):
+		return _failure(
+			String(report.get("reason", "body_care_failed")),
+			String(report.get("error", "body care failed"))
+		)
+	return {"ok": true, "fact": report.get("fact", {}), "reason": "", "error": ""}
+
+
+static func _practice_domain_for_intervention(kind: String) -> String:
+	if (
+		kind == SevaraEcoChain.INTERVENTION_RESTORE_NAVELU_DAM
+		or kind == SevaraEcoChain.INTERVENTION_CLEAR_NAVELU_DAM
+	):
+		return BodyVitals.PRACTICE_WATERSHED
+	if kind == SevaraEcoChain.INTERVENTION_HARVEST_MURELA:
+		return BodyVitals.PRACTICE_FISHERY
+	if kind == SevaraEcoChain.INTERVENTION_HARVEST_TORAVA:
+		return BodyVitals.PRACTICE_WOODCRAFT
+	if (
+		kind == SevaraEcoChain.INTERVENTION_PLANT_KEVALU_QUARANTINE
+		or kind == SevaraEcoChain.INTERVENTION_RELEASE_KEVALU_WILD
+		or kind == SevaraEcoChain.INTERVENTION_PURGE_KEVALU_CHANNEL
+	):
+		return BodyVitals.PRACTICE_BOTANY
+	return ""
 
 
 static func _failure(reason: String, error: String) -> Dictionary:

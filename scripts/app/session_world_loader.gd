@@ -103,6 +103,7 @@ static func validate_session_world(
 	world: WorldState, active_registry: DefinitionRegistry
 ) -> Array[String]:
 	var errors := GreyboxWorld.validate_world_definitions(world, active_registry)
+	errors.append_array(SevaraEcoChain.validate_world_nodes(world))
 	var expected_pins: Array = [package_pin_for_registry(active_registry)]
 	if not pins_equal(world.content_packages(), expected_pins):
 		errors.append("world content package pins do not match the active registry")

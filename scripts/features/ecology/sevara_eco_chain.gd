@@ -133,9 +133,19 @@ static func apply_intervention(
 			channel["navelu_dams_integrity"] = _round4(
 				maxf(float(channel.get("navelu_dams_integrity", 0.25)) - 0.40, 0.0)
 			)
-			channel["navelu_population"] = _round4(
+			var next_navelu := _round4(
 				maxf(float(channel.get("navelu_population", 0.22)) - 0.15, 0.0)
 			)
+			channel["navelu_population"] = next_navelu
+			if next_navelu <= 0.02 and bool(channel.get("navelu_refugium_alive", true)):
+				channel["navelu_refugium_alive"] = false
+				world.fact_log().append_fact(
+					"eco_navelu_refugium_lost",
+					world.clock().total_minutes(),
+					{"node_id": NODE_NIVAREL_CHANNEL},
+					actor_entity_id,
+					"core:species/navelu"
+				)
 			target_subject = "core:species/navelu"
 		INTERVENTION_HARVEST_TORAVA:
 			slope["torava_canopy"] = _round4(
@@ -213,6 +223,26 @@ static func diagnose_basin(
 	slope: Dictionary, channel: Dictionary, wetland: Dictionary, meadow: Dictionary
 ) -> Array[Dictionary]:
 	var findings: Array[Dictionary] = []
+	if not bool(channel.get("navelu_refugium_alive", true)):
+		(
+			findings
+			. append(
+				{
+					"symptom": "navelu_refugium_extinct",
+					"cause": "irreversible_local_extirpation_of_navelu",
+				}
+			)
+		)
+	elif float(channel.get("navelu_population", 1.0)) <= 0.15:
+		(
+			findings
+			. append(
+				{
+					"symptom": "navelu_refugium_endangered",
+					"cause": "repeated_dam_clearing_and_habitat_loss",
+				}
+			)
+		)
 	if float(wetland.get("silt_load", 0.0)) >= 0.55:
 		(
 			findings
@@ -419,3 +449,36 @@ static func _default_node_components(seed_value: int) -> Dictionary:
 
 static func _round4(value: float) -> float:
 	return roundf(value * 10000.0) / 10000.0
+
+
+static func validate_world_nodes(world: WorldState) -> Array[String]:
+	var errors: Array[String] = []
+	if world == null or not world.is_initialized():
+		return errors
+	var seen_nodes: Dictionary = {}
+	for entity_id in world.entity_ids():
+		var entity := world.get_entity(entity_id)
+		if String(entity.get("definition_id", "")) != BASIN_NODE_DEFINITION_ID:
+			continue
+		var comp := world.get_entity_component(entity_id, ECO_NODE_COMPONENT)
+		if comp.is_empty():
+			errors.append("eco_basin_node entity %d is missing eco_node component" % entity_id)
+			continue
+		var node_id := String(comp.get("node_id", ""))
+		if not (
+			[
+				NODE_TORAMEK_SLOPE,
+				NODE_NIVAREL_CHANNEL,
+				NODE_MULANE_WETLAND,
+				NODE_HERAVO_MEADOW,
+			]
+			. has(node_id)
+		):
+			errors.append(
+				"eco_basin_node entity %d has unknown node_id '%s'" % [entity_id, node_id]
+			)
+			continue
+		if seen_nodes.has(node_id):
+			errors.append("duplicate eco_basin_node for node_id '%s'" % node_id)
+		seen_nodes[node_id] = entity_id
+	return errors

@@ -30,6 +30,7 @@ func _run_tests() -> void:
 	_test_solo_session_and_persistence()
 	_test_package_pin_rejection()
 	_test_legacy_package_reconciliation()
+	_test_p1_ecology_and_body_vitals_session()
 	await _test_enet_host_client()
 
 	if _failures.is_empty():
@@ -578,6 +579,77 @@ func _inventory_count(world: WorldState, entity_id: int, definition_id: String) 
 
 func _delete_slot(slot_id: String) -> void:
 	SaveStore.new(TEST_SAVE_ROOT, 2).delete_slot(slot_id)
+
+
+func _test_p1_ecology_and_body_vitals_session() -> void:
+	var session := _create_session()
+	var start := session.start_new_offline("p1b_session", 31415, "host", "Host")
+	_check(bool(start.get("ok", false)), "P1-B offline session starts")
+	var enable := session.enable_sevara_p1_slice()
+	_check(bool(enable.get("ok", false)), "enable_sevara_p1_slice initializes nodes and vitals")
+
+	var rules_patch := session.configure_world_rules(
+		{"skill_xp_multiplier": 2.0, "survival_pressure_multiplier": 2.0}
+	)
+	_check(bool(rules_patch.get("ok", false)), "P1-B WorldRules xp/survival multipliers applied")
+
+	var body_id := GreyboxWorld.find_body(session.world_state(), "host")
+	var harvest_fish := _submit_and_process(
+		session,
+		SessionProtocol.INTENT_ECO_INTERVENTION,
+		{"intervention": SevaraEcoChain.INTERVENTION_HARVEST_MURELA}
+	)
+	_check(bool(harvest_fish.get("ok", false)), "harvest_murela eco_intervention intent succeeds")
+	_check(
+		_inventory_count(session.world_state(), body_id, "core:material/murela_catch") >= 2,
+		"harvest_murela adds murela_catch to body inventory"
+	)
+	var practice := session.world_state().get_entity_component(
+		body_id, BodyVitals.PRACTICE_COMPONENT
+	)
+	_check(
+		is_equal_approx(float(practice.get(BodyVitals.PRACTICE_FISHERY, 0.0)), 5.0),
+		"fishery practice gains 2.5 * 2.0 (skill_xp_multiplier) = 5.0"
+	)
+
+	var clear_1 := _submit_and_process(
+		session,
+		SessionProtocol.INTENT_ECO_INTERVENTION,
+		{"intervention": SevaraEcoChain.INTERVENTION_CLEAR_NAVELU_DAM}
+	)
+	_check(bool(clear_1.get("ok", false)), "first clear_navelu_dam reduces Navelu to endangered")
+	var clear_2 := _submit_and_process(
+		session,
+		SessionProtocol.INTENT_ECO_INTERVENTION,
+		{"intervention": SevaraEcoChain.INTERVENTION_CLEAR_NAVELU_DAM}
+	)
+	_check(bool(clear_2.get("ok", false)), "second clear_navelu_dam extirpates Navelu refugium")
+	_check_equal(
+		session.world_state().fact_log().facts_of_kind("eco_navelu_refugium_lost").size(),
+		1,
+		"FactLog records irreversible eco_navelu_refugium_lost"
+	)
+	var restore_after_extinct := _submit_and_process(
+		session,
+		SessionProtocol.INTENT_ECO_INTERVENTION,
+		{"intervention": SevaraEcoChain.INTERVENTION_RESTORE_NAVELU_DAM}
+	)
+	_check(
+		not bool(restore_after_extinct.get("ok", true)),
+		"restore_navelu_dam is rejected after Navelu refugium extinction"
+	)
+
+	var eat_report := _submit_and_process(
+		session,
+		SessionProtocol.INTENT_BODY_CARE,
+		{"action": BodyVitals.ACTION_EAT_FOOD, "item_id": "core:material/murela_catch"}
+	)
+	_check(bool(eat_report.get("ok", false)), "eat_food body_care intent consumes murela_catch")
+	var rest_report := _submit_and_process(
+		session, SessionProtocol.INTENT_BODY_CARE, {"action": BodyVitals.ACTION_REST_AND_WARM}
+	)
+	_check(bool(rest_report.get("ok", false)), "rest_and_warm body_care intent succeeds")
+	_destroy_session(session)
 
 
 func _check(condition: bool, message: String) -> void:

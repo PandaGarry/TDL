@@ -23,6 +23,8 @@ const KIND_SERVER_STOPPING := "server_stopping"
 
 const INTENT_MOVE_BODY := "move_body"
 const INTENT_INTERACT_OBJECT := "interact_object"
+const INTENT_ECO_INTERVENTION := "eco_intervention"
+const INTENT_BODY_CARE := "body_care"
 
 const _MESSAGE_KEYS: Array[String] = ["protocol_version", "kind", "tick", "payload"]
 const _INTENT_KEYS: Array[String] = ["intent_type", "client_sequence", "payload"]
@@ -89,7 +91,15 @@ static func validate_intent(intent: Variant) -> Dictionary:
 		return _intent_failure("intent is not JSON-safe")
 
 	var intent_type := _string_value(typed_intent.get("intent_type", null))
-	if intent_type != INTENT_MOVE_BODY and intent_type != INTENT_INTERACT_OBJECT:
+	if not (
+		[
+			INTENT_MOVE_BODY,
+			INTENT_INTERACT_OBJECT,
+			INTENT_ECO_INTERVENTION,
+			INTENT_BODY_CARE,
+		]
+		. has(intent_type)
+	):
 		return _intent_failure("unknown intent type")
 	var sequence := _integral_value(typed_intent.get("client_sequence", null))
 	if not bool(sequence.get("ok", false)) or int(sequence.get("value", 0)) < 1:

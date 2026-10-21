@@ -95,43 +95,7 @@ func start_new_offline(
 	participant_id: String = "host",
 	display_name: String = "Host"
 ) -> Dictionary:
-	if _running:
-		return _failure(["a game session is already running"])
-	return _finish_prepared_host_start(
-		SessionWorldLoader.prepare_new_world(
-			content_manifest_path,
-			campaign_id,
-			genesis_seed,
-			greybox_width_tiles,
-			greybox_height_tiles
-		),
-		participant_id,
-		display_name,
-		false,
-		0,
-		{"fresh_campaign": true}
-	)
-
-
-func _finish_prepared_host_start(
-	prepared: Dictionary,
-	participant_id: String,
-	display_name: String,
-	network_host: bool,
-	port: int,
-	metadata: Dictionary
-) -> Dictionary:
-	if not bool(prepared.get("ok", false)):
-		return prepared
-	return _start_prepared_host(
-		prepared.get("world") as WorldState,
-		prepared.get("registry") as DefinitionRegistry,
-		participant_id,
-		display_name,
-		network_host,
-		port,
-		metadata
-	)
+	return _start_new_campaign(campaign_id, genesis_seed, false, 0, participant_id, display_name)
 
 
 func start_new_host(
@@ -141,45 +105,13 @@ func start_new_host(
 	participant_id: String = "host",
 	display_name: String = "Host"
 ) -> Dictionary:
-	if _running:
-		return _failure(["a game session is already running"])
-	return _finish_prepared_host_start(
-		SessionWorldLoader.prepare_new_world(
-			content_manifest_path,
-			campaign_id,
-			genesis_seed,
-			greybox_width_tiles,
-			greybox_height_tiles
-		),
-		participant_id,
-		display_name,
-		true,
-		port,
-		{"fresh_campaign": true}
-	)
+	return _start_new_campaign(campaign_id, genesis_seed, true, port, participant_id, display_name)
 
 
 func load_and_start_offline(
 	slot_id: String, participant_id: String = "host", display_name: String = "Host"
 ) -> Dictionary:
-	if _running:
-		return _failure(["a game session is already running"])
-	var prepared := SessionWorldLoader.prepare_loaded_world(
-		content_manifest_path,
-		save_root_dir,
-		save_backup_count,
-		slot_id,
-		greybox_width_tiles,
-		greybox_height_tiles
-	)
-	return _finish_prepared_host_start(
-		prepared,
-		participant_id,
-		display_name,
-		false,
-		0,
-		SessionReplication.load_metadata(prepared, slot_id)
-	)
+	return _load_and_start_campaign(slot_id, false, 0, participant_id, display_name)
 
 
 func load_and_start_host(
@@ -188,6 +120,38 @@ func load_and_start_host(
 	participant_id: String = "host",
 	display_name: String = "Host"
 ) -> Dictionary:
+	return _load_and_start_campaign(slot_id, true, port, participant_id, display_name)
+
+
+func _start_new_campaign(
+	campaign_id: String,
+	genesis_seed: int,
+	network_host: bool,
+	port: int,
+	participant_id: String,
+	display_name: String
+) -> Dictionary:
+	if _running:
+		return _failure(["a game session is already running"])
+	var prepared := SessionWorldLoader.prepare_new_world(
+		content_manifest_path, campaign_id, genesis_seed, greybox_width_tiles, greybox_height_tiles
+	)
+	if not bool(prepared.get("ok", false)):
+		return prepared
+	return _start_prepared_host(
+		prepared.get("world") as WorldState,
+		prepared.get("registry") as DefinitionRegistry,
+		participant_id,
+		display_name,
+		network_host,
+		port,
+		{"fresh_campaign": true}
+	)
+
+
+func _load_and_start_campaign(
+	slot_id: String, network_host: bool, port: int, participant_id: String, display_name: String
+) -> Dictionary:
 	if _running:
 		return _failure(["a game session is already running"])
 	var prepared := SessionWorldLoader.prepare_loaded_world(
@@ -198,11 +162,14 @@ func load_and_start_host(
 		greybox_width_tiles,
 		greybox_height_tiles
 	)
-	return _finish_prepared_host_start(
-		prepared,
+	if not bool(prepared.get("ok", false)):
+		return prepared
+	return _start_prepared_host(
+		prepared.get("world") as WorldState,
+		prepared.get("registry") as DefinitionRegistry,
 		participant_id,
 		display_name,
-		true,
+		network_host,
 		port,
 		SessionReplication.load_metadata(prepared, slot_id)
 	)
@@ -364,10 +331,38 @@ func advance_disconnect_grace(seconds: float) -> Array[Dictionary]:
 	return sheltered
 
 
-func world_rules() -> Dictionary:
+func _world_rules_snapshot() -> Dictionary:
 	if _world == null or not _world.is_initialized():
 		return {}
 	return _world.world_rules().snapshot_state()
+
+
+func enable_sevara_p1_slice() -> Dictionary:
+	if not _running or not _is_host_authority():
+		return _failure(["only the authoritative host can enable the P1 ecological slice"])
+	var eco_report := SevaraEcoChain.ensure_basin_nodes(_world)
+	if not bool(eco_report.get("ok", false)):
+		return _failure([String(eco_report.get("error", "failed to initialize P1 basin nodes"))])
+	var body_count := BodyVitals.ensure_all_bodies(_world)
+	register_system("p1_sevara_ecology_hour", 60, Callable(self, "_step_p1_ecology_hour"), 100)
+	register_system("p1_body_vitals_hour", 60, Callable(self, "_step_p1_body_vitals_hour"), 110)
+	_world_dirty = true
+	_broadcast_snapshot(true)
+	return _success(
+		{
+			"basin_nodes": eco_report.get("nodes", {}),
+			"body_count": body_count,
+			"basin_summary": SevaraEcoChain.basin_summary(_world),
+		}
+	)
+
+
+func _step_p1_ecology_hour(world: WorldState, _minute: int) -> void:
+	SevaraEcoChain.step_hour(world)
+
+
+func _step_p1_body_vitals_hour(world: WorldState, _minute: int) -> void:
+	BodyVitals.step_hour(world)
 
 
 func configure_world_rules(patch: Dictionary) -> Dictionary:
@@ -439,7 +434,7 @@ func session_status() -> Dictionary:
 		"game_minute": _current_tick(),
 		"entity_count": _world.entity_ids().size() if world_initialized else 0,
 		"greybox_object_entity_id": _greybox_object_entity_id,
-		"world_rules": world_rules(),
+		"world_rules": _world_rules_snapshot(),
 		"participants": _public_participants(),
 		"disconnect_grace": _participants_state.disconnect_grace_summary(),
 		"pending_intents": _pending_intents.size(),
