@@ -61,9 +61,12 @@ Act I должен стабилизировать долину-убежище з
 часов, после чего новая беда открывает Act II. В раунде 6 автор одобрил
 гибридный путь игрока A → C → B. В раунде 7 заданы весенний старт,
 средневековая племенная эпоха и множество поселений; рабочая первая
-долина Талицы и NPC описаны в
+долина Севары и NPC описаны в
 [`docs/design/first_valley_spring_tribes.md`](docs/design/first_valley_spring_tribes.md),
 а рекомендуемая модель боя — в
 [`docs/design/personal_combat_and_leadership.md`](docs/design/personal_combat_and_leadership.md).
+В раунде 8 первая редакция имён заменена оригинальной системой Севары
+для RU/EN, а пересмотренная социальная модель наследников и культуры
+описана в [`docs/design/social_simulation_succession_and_culture.md`](docs/design/social_simulation_succession_and_culture.md).
 Источник истины по одобрениям — [`docs/production/decisions.md`](docs/production/decisions.md),
 план — в [`docs/production/roadmap.md`](docs/production/roadmap.md).

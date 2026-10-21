@@ -10,9 +10,11 @@
    одобренных решений. Для стратегических оснований H1 это источник
    истины: что принято, почему, что отвергнуто и где граница одобрения.
 2. [`design/first_valley_spring_tribes.md`](design/first_valley_spring_tribes.md) —
-   **текущая рабочая конкретизация раунда 7:** весенняя долина Талицы,
+   **текущая рабочая конкретизация раундов 7–8:** весенняя долина Севары,
    средневековые племенные поселения, вожди, 24 якорных NPC,
-   межпоселенческие отношения и динамический баланс.
+   оригинальный RU/EN-нейминг, межпоселенческие отношения и
+   динамический баланс. Социальная преемственность и культура — в
+   [`design/social_simulation_succession_and_culture.md`](design/social_simulation_succession_and_culture.md).
 3. [`design/personal_combat_and_leadership.md`](design/personal_combat_and_leadership.md) —
    рекомендуемая агентом модель боя и прокачки: личный персонаж всегда,
    лидерство и отряд как социальная прогрессия; ждёт подтверждения.
@@ -40,8 +42,9 @@
 | [`core_generation_and_consequences.md`](design/core_generation_and_consequences.md) | Раунды 3–5: Core по аналогии с The Seed, процедурная генерация, No Man’s Sky/Starfield, одобренные наследие, смерть, вымирание, каскад кризиса и Act I |
 | [`round6_core_loop_variants.md`](design/round6_core_loop_variants.md) | Раунд 6: исторические три варианта ввода игрока и игрового цикла, сравнение и путь к выбранному гибриду |
 | [`act1_hybrid_experience_concept.md`](design/act1_hybrid_experience_concept.md) | Одобренная структура A → C → B и её кандидатная режиссёрская разработка: начало, циклы, NPC, живой дом, пейзажи, лор и экспедиции |
-| [`first_valley_spring_tribes.md`](design/first_valley_spring_tribes.md) | Раунд 7: рабочая долина Талицы, весна, средневековые поселения, вожди, NPC, интриги и динамический баланс |
+| [`first_valley_spring_tribes.md`](design/first_valley_spring_tribes.md) | Раунд 7: рабочая долина Севары, весна, средневековые поселения, вожди, NPC, интриги и динамический баланс |
 | [`personal_combat_and_leadership.md`](design/personal_combat_and_leadership.md) | Рекомендуемая модель боя, прокачки, уникальных техник, отряда и племенного лидерства |
+| [`social_simulation_succession_and_culture.md`](design/social_simulation_succession_and_culture.md) | Раунд 8: характер и навыки NPC, дома, влияние, наследники, смена вождей, продолжение после смерти и развитие культуры |
 
 ## Лор (`lore/`)
 
@@ -54,6 +57,7 @@
 | [`characters.md`](lore/characters.md) | Персонажи: герой, NPC, антагонисты |
 | [`locations.md`](lore/locations.md) | Локации и регионы |
 | [`glossary.md`](lore/glossary.md) | Термины, имена, названия — единый словарь мира |
+| [`naming_and_localization.md`](lore/naming_and_localization.md) | Раунд 8: оригинальный вымышленный нейминг Севары, латинские мастер-формы, русская форма и конвейер RU/EN-локализации |
 
 ## Арт и звук (`art/`)
 

@@ -5,12 +5,15 @@
 раунде 4; причинная/физическая рамка и арка Act I одобрены в раунде 5;
 структура пути игрока A → C → B одобрена в раунде 6. В раунде 7 автор
 задал весеннюю средневековую племенную рамку, а агент по делегированию
-предложил рабочую долину Талицы и рекомендуемую модель боя.
-Подробности записаны в `docs/design/home_world_and_core_concept.md`,
+предложил рабочую долину и рекомендуемую модель боя. В раунде 8 имена
+заменены оригинальной системой Севары, а социальная преемственность
+разработана отдельно. Подробности записаны в `docs/design/home_world_and_core_concept.md`,
 `docs/design/core_generation_and_consequences.md`,
 `docs/design/act1_hybrid_experience_concept.md`,
 `docs/design/first_valley_spring_tribes.md`,
-`docs/design/personal_combat_and_leadership.md` и
+`docs/design/personal_combat_and_leadership.md`,
+`docs/design/social_simulation_succession_and_culture.md`,
+`docs/lore/naming_and_localization.md` и
 `docs/production/decisions.md`. Они не перенесены сюда как заполненный
 питч, кор-цикл и набор механик: финальные виды/имена, бой, параметры
 систем, критерии стабилизации и природа новой беды ещё не утверждены.
