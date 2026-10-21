@@ -11,8 +11,8 @@
    истины: что принято, почему, что отвергнуто и где граница одобрения.
 2. [`design/core_generation_and_consequences.md`](design/core_generation_and_consequences.md) —
    Core как ядро разработки, No Man’s Sky vs Starfield, якорные разломы,
-   наследие и золотая середина необратимости; основания одобрены, детали
-   ещё обсуждаются.
+   наследие, золотая середина необратимости, одобренный каскад кризиса и
+   арка Act I; конкретные детали ещё обсуждаются.
 3. [`design/home_world_and_core_concept.md`](design/home_world_and_core_concept.md) — разбор
    выбранного направления H1 о родном мире на общем игровом ядре:
    потенциал, риски и предлагаемые границы первого продукта.
@@ -28,7 +28,7 @@
 |---|---|
 | [`gdd.md`](design/gdd.md) | Главный дизайн-документ: питч, жанр, кор-цикл, механики, прогрессия, scope |
 | [`home_world_and_core_concept.md`](design/home_world_and_core_concept.md) | Выбранное направление H1: конечный живой дом, экспедиции через якорные разломы, общее игровое ядро и последствия между мирами |
-| [`core_generation_and_consequences.md`](design/core_generation_and_consequences.md) | Раунды 3–4: Core по аналогии с The Seed, процедурная генерация, No Man’s Sky/Starfield, одобренные наследие, смерть, вымирание и восстановимость |
+| [`core_generation_and_consequences.md`](design/core_generation_and_consequences.md) | Раунды 3–5: Core по аналогии с The Seed, процедурная генерация, No Man’s Sky/Starfield, одобренные наследие, смерть, вымирание, каскад кризиса и Act I |
 
 ## Лор (`lore/`)
 
