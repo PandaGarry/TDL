@@ -58,8 +58,8 @@ Godot **4.7.2**, проверяет сумму SHA512, импортирует п
 якорные разломы между планетами, смертные персонажи и наследие мира.
 Стратегические основания и причинная рамка одобрены в раундах 4–5;
 Act I должен стабилизировать долину-убежище за целевой ориентир 20–40
-часов, после чего новая беда открывает Act II. Сейчас подготовлены три
-неутверждённых варианта раунда 6 — ввода игрока и точного игрового цикла:
-[`docs/design/round6_core_loop_variants.md`](docs/design/round6_core_loop_variants.md).
+часов, после чего новая беда открывает Act II. В раунде 6 автор одобрил
+гибридный путь игрока A → C → B; его развёрнутая кандидатная концепция:
+[`docs/design/act1_hybrid_experience_concept.md`](docs/design/act1_hybrid_experience_concept.md).
 Источник истины по одобрениям — [`docs/production/decisions.md`](docs/production/decisions.md),
 план — в [`docs/production/roadmap.md`](docs/production/roadmap.md).
