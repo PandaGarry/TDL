@@ -49,7 +49,7 @@ func _has_campaign_save() -> bool:
 	var store := SaveStore.new(CAMPAIGN_SAVE_ROOT, 5)
 	var has_world_candidates := not (
 		store
-		. get_candidate_paths(GreyboxStage.DEFAULT_SLOT_ID, WorldStateCodec.DOCUMENT_NAME)
+		. get_candidate_paths(GreyboxStage.DEFAULT_SLOT_ID, WorldStateCodec.WORLD_DOCUMENT_NAME)
 		. is_empty()
 	)
 	return has_world_candidates or SaveSystem.has_save(0)
@@ -65,7 +65,7 @@ func _on_continue_pressed() -> void:
 	var store := SaveStore.new(CAMPAIGN_SAVE_ROOT, 5)
 	var has_world_candidates := not (
 		store
-		. get_candidate_paths(GreyboxStage.DEFAULT_SLOT_ID, WorldStateCodec.DOCUMENT_NAME)
+		. get_candidate_paths(GreyboxStage.DEFAULT_SLOT_ID, WorldStateCodec.WORLD_DOCUMENT_NAME)
 		. is_empty()
 	)
 	if has_world_candidates:
