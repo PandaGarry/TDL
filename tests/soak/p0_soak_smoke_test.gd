@@ -166,7 +166,7 @@ func _run_single_season_soak(seed_value: int, slot_id: String) -> Dictionary:
 
 func _on_hourly_tick(world: WorldState, context: Dictionary) -> bool:
 	_hourly_calls += 1
-	var draw := world.rng_streams().stream("weather").next_int_range(0, 1000)
+	var draw := world.rng_streams().randi_range(&"weather", 0, 1000)
 	var crate_id := GreyboxWorld.find_supply_object(world)
 	if crate_id > 0:
 		var telemetry: Dictionary = world.get_entity_component(crate_id, "soak_telemetry")
@@ -178,7 +178,7 @@ func _on_hourly_tick(world: WorldState, context: Dictionary) -> bool:
 
 func _on_daily_tick(world: WorldState, context: Dictionary) -> bool:
 	_daily_calls += 1
-	var draw := world.rng_streams().stream("ecology").next_int_range(0, 10000)
+	var draw := world.rng_streams().randi_range(&"ecology", 0, 10000)
 	var crate_id := GreyboxWorld.find_supply_object(world)
 	if crate_id > 0:
 		var telemetry: Dictionary = world.get_entity_component(crate_id, "soak_telemetry")
@@ -190,7 +190,7 @@ func _on_daily_tick(world: WorldState, context: Dictionary) -> bool:
 
 func _on_decade_tick(world: WorldState, context: Dictionary) -> bool:
 	_decade_calls += 1
-	var draw := world.rng_streams().stream("social").next_int_range(0, 100000)
+	var draw := world.rng_streams().randi_range(&"social", 0, 100000)
 	var crate_id := GreyboxWorld.find_supply_object(world)
 	if crate_id > 0:
 		var telemetry: Dictionary = world.get_entity_component(crate_id, "soak_telemetry")

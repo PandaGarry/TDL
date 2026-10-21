@@ -93,7 +93,7 @@ func _run_fixed_seed_scenario(campaign_id: String, seed_value: int) -> Dictionar
 		SessionProtocol.INTENT_MOVE_BODY, {"entity_id": body_id, "to_tile_x": 3, "to_tile_y": 3}
 	)
 	var advance: Dictionary = session.advance_simulation_minutes(180)
-	var weather_sample := world.rng_streams().stream("weather").next_int_range(1, 1000000)
+	var weather_sample := world.rng_streams().randi_range(&"weather", 1, 1000000)
 	var result := {
 		"ok": bool(advance.get("ok", false)),
 		"state_hash": session.domain_state_hash(),
@@ -105,7 +105,7 @@ func _run_fixed_seed_scenario(campaign_id: String, seed_value: int) -> Dictionar
 
 
 func _hourly_rng_probe(world: WorldState, context: Dictionary) -> bool:
-	var draw := world.rng_streams().stream("ecology").next_int_range(0, 9999)
+	var draw := world.rng_streams().randi_range(&"ecology", 0, 9999)
 	var crate_id := GreyboxWorld.find_supply_object(world)
 	if crate_id > 0:
 		world.set_entity_component(
