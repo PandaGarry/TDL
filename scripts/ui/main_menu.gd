@@ -1,12 +1,16 @@
 extends Control
-## Главное меню — временная заглушка пре-продакшена.
+## Главное меню — вход в P0-F greybox-прототип и настройки оболочки.
 ##
-## Кнопки уже честно подключены к системам (выход работает, "Продолжить"
-## проверяет реальное сохранение), но первого уровня пока нет: направление
-## H1 выбрано и сведено в GDD v1.0 Core Baseline, однако игровой прототип
-## ещё не реализован.
-## См. docs/design/gdd.md и docs/production/round12_baseline_lock.md.
+## Все тексты проходят через ключи локализации `UiLocaleCatalog` (`tr(...)`).
+## "Новая кампания" запускает `scenes/levels/greybox_stage.tscn` через
+## `SceneLoader` и `GameManager`, а "Продолжить" проверяет наличие
+## валидного мирового слота в `SaveStore`.
 
+const GREYBOX_STAGE_SCENE_PATH := "res://scenes/levels/greybox_stage.tscn"
+const CAMPAIGN_SAVE_ROOT := "user://saves/campaigns"
+
+@onready var _title_label: Label = %TitleLabel
+@onready var _subtitle_label: Label = %SubtitleLabel
 @onready var _new_game_button: Button = %NewGameButton
 @onready var _continue_button: Button = %ContinueButton
 @onready var _settings_button: Button = %SettingsButton
@@ -15,37 +19,61 @@ extends Control
 
 
 func _ready() -> void:
+	UiLocaleCatalog.ensure_registered()
+	_apply_localized_texts()
 	_new_game_button.pressed.connect(_on_new_game_pressed)
 	_continue_button.pressed.connect(_on_continue_pressed)
 	_settings_button.pressed.connect(_on_settings_pressed)
 	_quit_button.pressed.connect(_on_quit_pressed)
+	SettingsManager.settings_changed.connect(_apply_localized_texts)
 
-	_continue_button.disabled = not SaveSystem.has_save(0)
+	_continue_button.disabled = not _has_campaign_save()
 	_new_game_button.grab_focus()
 
 
+func _exit_tree() -> void:
+	if SettingsManager.settings_changed.is_connected(_apply_localized_texts):
+		SettingsManager.settings_changed.disconnect(_apply_localized_texts)
+
+
+func _apply_localized_texts() -> void:
+	_title_label.text = tr("ui.main_menu.title")
+	_subtitle_label.text = tr("ui.main_menu.subtitle")
+	_new_game_button.text = tr("ui.main_menu.new_game")
+	_continue_button.text = tr("ui.main_menu.continue")
+	_settings_button.text = tr("ui.main_menu.settings")
+	_quit_button.text = tr("ui.main_menu.quit")
+
+
+func _has_campaign_save() -> bool:
+	var store := SaveStore.new(CAMPAIGN_SAVE_ROOT, 5)
+	return store.has_slot(GreyboxStage.DEFAULT_SLOT_ID) or SaveSystem.has_save(0)
+
+
 func _on_new_game_pressed() -> void:
-	# TODO: после утверждения первого прототипа —
-	# SceneLoader.change_scene_async(первый уровень) и GameManager.start_game().
-	_status_label.text = (
-		"Игрового прототипа пока нет. GDD v1.0 Core Baseline принят.\n" + "См. docs/design/gdd.md"
-	)
+	GreyboxStage.next_launch_load_slot_id = ""
+	GameManager.start_game()
+	SceneLoader.change_scene_immediate(GREYBOX_STAGE_SCENE_PATH)
 
 
 func _on_continue_pressed() -> void:
-	var data := SaveSystem.load_game(0)
-	if data.is_empty():
-		_status_label.text = "Сохранение не найдено или повреждено."
+	var store := SaveStore.new(CAMPAIGN_SAVE_ROOT, 5)
+	if store.has_slot(GreyboxStage.DEFAULT_SLOT_ID):
+		GreyboxStage.next_launch_load_slot_id = GreyboxStage.DEFAULT_SLOT_ID
+		GameManager.start_game()
+		SceneLoader.change_scene_immediate(GREYBOX_STAGE_SCENE_PATH)
+		return
+	var legacy_data: Dictionary = SaveSystem.load_game(0)
+	if legacy_data.is_empty():
+		_status_label.text = tr("ui.main_menu.status_no_save")
 	else:
-		_status_label.text = "Сохранение загружено. Игрового уровня в каркасе пока нет."
+		GreyboxStage.next_launch_load_slot_id = ""
+		GameManager.start_game()
+		SceneLoader.change_scene_immediate(GREYBOX_STAGE_SCENE_PATH)
 
 
 func _on_settings_pressed() -> void:
-	# TODO: экран настроек поверх меню; логика уже есть в SettingsManager.
-	_status_label.text = (
-		"Экран настроек появится вместе с первым прототипом.\n"
-		+ "Настройки уже хранятся: SettingsManager."
-	)
+	_status_label.text = tr("ui.main_menu.status_settings_info")
 
 
 func _on_quit_pressed() -> void:
