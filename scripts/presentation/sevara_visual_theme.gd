@@ -133,6 +133,28 @@ static func npc_visual_palette(npc_id: String) -> Dictionary:
 			}
 
 
+static func npc_display_tag(npc_id: String) -> String:
+	match npc_id:
+		"sarela":
+			return "Сарела · Вождь"
+		"tovan":
+			return "Тован · Шлюз"
+		"ilune":
+			return "Илуне · Мулане"
+		"mavena":
+			return "Мавена · Травница"
+		"evaren":
+			return "Эварен · Хераво"
+		"selima":
+			return "Селима · Хроника"
+		"tobren":
+			return "Тобрен · Кевар"
+		"ruvet":
+			return "Рувет · Лесоруб"
+		_:
+			return npc_id
+
+
 static func draw_chunk_landscape(
 	canvas: CanvasItem,
 	width_tiles: int,
@@ -152,6 +174,13 @@ static func draw_chunk_landscape(
 	var include_normals := quality == "medium" or quality == "high"
 	var light := lighting_for_hour(hour_of_day)
 	var ambient := _color_or(light.get("ambient"), Color.WHITE)
+	var meadow_tex := load_canvas_texture("tex_meadow_moss_and_snow", include_normals)
+	var outer_rect := field_rect.grow(tile_size_px * 18.0)
+	if meadow_tex != null:
+		canvas.draw_texture_rect(meadow_tex, outer_rect, true, ambient.darkened(0.18))
+	else:
+		canvas.draw_rect(outer_rect, Color(0.16, 0.21, 0.15, 1.0) * ambient, true)
+
 	var chunk_clean_tex := load_canvas_texture("chunk_nivara_clean", include_normals)
 	var chunk_silted_tex := load_canvas_texture("chunk_nivara_silted_dusk", false)
 	var wetland: Variant = basin_summary.get("mulane_wetland", {})
@@ -182,7 +211,6 @@ static func draw_chunk_landscape(
 				)
 		return
 
-	var meadow_tex := load_canvas_texture("tex_meadow_moss_and_snow", include_normals)
 	if meadow_tex != null:
 		canvas.draw_texture_rect(meadow_tex, field_rect, true, ambient)
 	else:

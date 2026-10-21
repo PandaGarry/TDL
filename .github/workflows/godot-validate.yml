@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: godot-validate-${{ github.ref }}
@@ -74,6 +74,26 @@ jobs:
       - name: Проверить проект (импорт + скрипты + smoke)
         shell: bash
         run: bash tools/check_project.sh ~/.cache/tdl-godot/godot
+
+      - name: Снять скриншоты движком Godot 4.7.2 (Xvfb + OpenGL3)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v xvfb-run >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq xvfb libgl1-mesa-dri
+          fi
+          LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s "-screen 0 1920x1080x24" \
+            ~/.cache/tdl-godot/godot --audio-driver Dummy --rendering-driver opengl3 \
+            --path . --scene "res://tests/smoke/capture_screenshots.tscn" --quit-after 300
+          ls -la docs/art/godot_captures/
+          if [ -n "$(git status --porcelain docs/art/godot_captures)" ]; then
+            git config user.name "PandaGarry"
+            git config user.email "92579573+PandaGarry@users.noreply.github.com"
+            git add docs/art/godot_captures/*.png
+            git commit -m "Capture live Godot 4.7.2 engine screenshots [skip ci]"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
 
       - name: Загрузить логи проверки
         if: always()
