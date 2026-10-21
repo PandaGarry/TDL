@@ -1,6 +1,6 @@
 # Тесты
 
-## Что есть сейчас: smoke, P0 foundation и persistence tests
+## Что есть сейчас: smoke, P0 foundation, persistence и session tests
 
 `tests/smoke/project_validation.tscn` — валидационная сцена. Запускается
 как обычная сцена проекта (с активными автозагрузками) и загружает каждый
@@ -17,6 +17,14 @@ WorldState snapshot/restore без частичного commit, реальный
 из DefinitionRegistry, codec v1 и checksum, миграцию
 `tests/fixtures/saves/world_v0_legacy.json`, ротацию backup, stale temp,
 fallback при битом JSON/checksum и отсутствующий слот.
+
+`tests/unit/session_test.tscn` — runner P0-E. Он проверяет
+`SessionProtocol`, детерминированный `SimulationScheduler` с бюджетом и
+защитой от прямого сдвига часов, соло-сессию через хостовый конвейер
+намерений, отказ при несовпадении package pins, явную сверку legacy-мира
+без pins и реальную пару ENet localhost host/client с двумя телами,
+одним изменяемым ящиком припасов, отказом подделанного намерения,
+отключением и повторным подключением гостя.
 
 Запуск: `tools/check_project.sh [godot]`, автоматически — GitHub Actions
 при каждом пуше (`.github/workflows/godot-validate.yml`, Godot 4.7.2).
@@ -44,7 +52,7 @@ soak-тесты экологии/поселений и проверка один
    проверки на Godot 4.7.2. GUT — альтернативный fallback.
 2. Тесты — в этой папке, зеркально структуре `scripts/`
    (например `tests/autoloads/test_save_system.gd`).
-3. Следующий набор P0-E/G: два процесса Godot host/client получают
-   одинаковый мир; намерения клиента валидирует хост; отключение,
-   повторное подключение и сохранение во время сессии не ломают
-   кампанию. Настройки и сценовые тесты подключаются со своими срезами.
+3. Внутрипроцессный контур P0-E уже работает в `session_test.tscn`.
+   Следующий набор P0-F/G: greybox-презентация, debug overlay,
+   двухпроцессный приёмочный прогон host/client и сценарии краша сейва.
+   Настройки и сценовые тесты подключаются со своими срезами.

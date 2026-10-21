@@ -16,6 +16,48 @@
 
 ---
 
+## 2026-10-21 — P0-E: авторитетная GameSession, ENet-шов и hardening-gate пройдены
+
+- **Основание:** после закрытия P0-D и закрепления постоянного quality
+  gate выполнен следующий запланированный этап Blueprint — P0-E.
+  Архитектурные детали ниже являются технической реализацией агента в
+  рамках Baseline Lock, а не новым продуктовым каноном.
+- **Что реализовано:** `SimulationScheduler` в `scripts/core/`;
+  `GameSession`, `SessionWorldLoader`, `SessionParticipants` и
+  `SessionIntentProcessor` в `scripts/app/`; `SessionTransport`,
+  `EnetSessionTransport`, `SessionProtocol` и
+  `SessionMessageValidator` в `scripts/net/`; `GreyboxWorld` и
+  `GreyboxIntents` в `scripts/features/greybox/`; определения
+  `core:actor/greybox_body` и `core:object/greybox_supply_crate` в
+  `data/core/definitions/greybox.json`; сценовый runner
+  `tests/unit/session_test.tscn`.
+- **Выполненные инварианты из аудита P0-D:** `GameSession` не оформлена
+  как автозагрузка; соло и кооператив проходят через один и тот же
+  хостовый путь намерений; загруженный мир сверяет package pins и все
+  `definition_id` сущностей с активным `DefinitionRegistry`, а пустые
+  pins принимаются только при явной сверке мигрированного legacy-сейва;
+  сохранение мира разрешено только на хосте между батчами симуляции; все
+  факты сессии пишутся на текущей минуте `WorldClock`.
+- **Уроки CI и hardening-gate:** первые прогоны поймали два
+  двигатель-специфичных момента — строгий GDScript parse error на
+  inferred `Variant` в `pop_front()`/`await` и несовпадение ключа
+  `manifest_hash` со схемой `WorldState`; при этом улучшен вывод
+  `tools/check_project.sh`, чтобы аннотации CI показывали следующую
+  строку с точным файлом и номером строки. После первого зелёного CI
+  (`39644000774`) проведён профессиональный self-review и закрыты
+  повторный старт на активной сессии до чтения сейва, идемпотентность
+  повторного `hello`, лимит очереди намерений, запрет системам напрямую
+  двигать `WorldClock`, валидация существующего тела при загрузке и
+  строгая схема `participants` в снимке состояния. Hardening коммит
+  `0aa5855`, CI `39645425915` — success на Godot 4.7.2.
+- **Сознательная граница P0-E:** репликация пока отправляет надёжные
+  полные снимки крошечного greybox-мира; дельты по интересу, визуальная
+  сцена чанка/ActorView/Camera2D/debug overlay (P0-F), двухпроцессная
+  приёмка (P0-G) и отдельные схемы персонажа/наследия остаются
+  следующими этапами.
+- **Вердикт gate:** зелёный. P0-E стабилен в своей границе; следующим
+  шагом идёт P0-F.
+
 ## 2026-10-21 — Постоянный quality gate после каждого этапа; P0-D hardening пройден
 
 - **Правило автора:** после каждого значимого этапа повторяем процедуру

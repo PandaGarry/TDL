@@ -44,8 +44,12 @@
 - [x] P0-D: минимальный WorldState, codec v1 с checksum, миграция
       `v0 -> v1`, generic atomic SaveStore и backup recovery; мировой
       документ проверен отдельным persistence runner на Godot 4.7.2
-- [ ] P0-E–G: авторитетная GameSession/ENet-хост с двумя телами,
-      greybox и debug overlay, интеграционная приёмка отключения/краша
+- [x] P0-E: авторитетная GameSession, SimulationScheduler, сверка
+      package pins, намерения с валидацией хоста и ENet host/client с
+      двумя телами и одним изменяемым объектом; проверено отдельным
+      session runner на Godot 4.7.2
+- [ ] P0-F–G: greybox-презентация и debug overlay, двухпроцессная
+      интеграционная приёмка отключения/краша
 - [ ] P1–P3: протестировать экологическую цепочку, коэффициенты
       0.45/0.30/0.25, порог 55, окно 5–7 дней, бюджеты автономии и бой C
 - [ ] Технический долг первого прототипа: мировая схема и crash-safe

@@ -88,9 +88,9 @@ Sensors и Projectiles. Код должен использовать конст�
 - Репликация — собственные снимки/дельты по интересу, а не автоматическая
   синхронизация всего дерева нод.
 - Тесты: текущий smoke сохраняется; P0-слой проверяют собственные
-  headless runners `tests/unit/core_foundation_test.tscn` и
-  `tests/unit/persistence_test.tscn`, а CI дополнительно гоняет
-  gdtoolkit 4.5.0 по всем first-party GDScript. GdUnit4 6.2.x
+  headless runners `tests/unit/core_foundation_test.tscn`,
+  `tests/unit/persistence_test.tscn` и `tests/unit/session_test.tscn`, а
+  CI дополнительно гоняет gdtoolkit 4.5.0 по всем first-party GDScript. GdUnit4 6.2.x
   остаётся кандидатом на отдельный спайк перед сценовыми тестами;
   собственный soak-runner появится вместе с доменной симуляцией.
 

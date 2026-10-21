@@ -4,8 +4,9 @@
 с чистого листа как аккуратный технический каркас и документальная база
 пре-продакшена. Направление H1 выбрано; Baseline Lock раунда 12 собрал
 **GDD v1.0 Core Baseline**, достаточный для строительства ядра. P0 уже
-начат: реализованы примитивы Core, реестр JSON-данных и crash-safe
-мировой сейв, но игрового прототипа и живой симуляции в коде пока нет.
+в активной сборке: реализованы примитивы Core, реестр JSON-данных,
+мировой crash-safe сейв и авторитетная `GameSession` с ENet-транспортом,
+но визуальной greybox-сцены и полной симуляции долины в коде пока нет.
 
 > Название **TDL** — временное (унаследовано от имени репозитория).
 > Настоящее название пока не выбрано и не блокирует пре-продакшен.
@@ -26,14 +27,14 @@
 | Папка | Что внутри |
 |---|---|
 | `scenes/` | Сцены Godot: `main/`, `levels/`, `characters/`, `ui/` |
-| `scripts/` | GDScript: `autoloads/` (глобальные системы), `components/`, `core/`, `persistence/`, `ui/` |
+| `scripts/` | GDScript: `autoloads/` (оболочка), `app/`, `components/`, `core/`, `features/`, `net/`, `persistence/`, `ui/` |
 | `assets/` | Арт, аудио (`music/`, `sfx/`, `ambience/`), шрифты, шейдеры |
 | `resources/` | Данные Godot (`.tres`): конфиги, темы UI, диалоги |
 | `addons/` | Сторонние плагины (см. [`addons/README.md`](addons/README.md)) — лежат готовыми, но **выключены** до первого использования |
 | `docs/` | Дизайн (`design/`), лор (`lore/`), арт (`art/`), техника (`tech/`), продакшен (`production/`) |
 | `tools/` | Служебные скрипты (установка/обновление плагинов) |
 | `data/` | Версионированные пакеты определений Core (`data/core`) |
-| `tests/` | Smoke, собственные P0 foundation/persistence runners и fixtures; спайк GdUnit4 — перед сценовыми тестами |
+| `tests/` | Smoke, собственные P0 foundation/persistence/session runners и fixtures; спайк GdUnit4 — перед сценовыми тестами |
 
 ## Что уже работает
 
@@ -53,15 +54,17 @@
 слои Terrain/Bodies/Structures/Items/Interactables/Hazards/Sensors/
 Projectiles и renderer **GL Compatibility**. В `scripts/core/` уже лежат
 StableId, JsonValue, WorldClock, RNG-потоки, FactLog, StateHash,
-DefinitionRegistry, WorldState и константы слоёв; первый пакет
-определений — в `data/core/`. В `scripts/persistence/` лежат codec
-мирового сейва v1 с checksum/миграцией и generic atomic `SaveStore`
-с backup recovery.
+DefinitionRegistry, WorldState, SimulationScheduler и константы слоёв;
+первый пакет определений — в `data/core/`. В `scripts/persistence/`
+лежат codec мирового сейва v1 с checksum/миграцией и generic atomic
+`SaveStore` с backup recovery. В `scripts/app/`, `scripts/net/` и
+`scripts/features/greybox/` реализована авторитетная `GameSession`,
+JSON-протокол, ENet-адаптер и первые greybox-сущности/намерения.
 
 **Проверка движком:** GitHub Actions при каждом пуше скачивает официальный
 Godot **4.7.2**, проверяет сумму SHA512, импортирует проект, компилирует
-все скрипты в контексте проекта, запускает P0 foundation и persistence
-tests и главную сцену в headless-режиме; gdtoolkit 4.5.0 проверяет формат/линт всех
+все скрипты в контексте проекта, запускает P0 foundation, persistence и
+session tests и главную сцену в headless-режиме; gdtoolkit 4.5.0 проверяет формат/линт всех
 first-party GDScript в `scripts/` и `tests/`
 (`.github/workflows/godot-validate.yml`, локально —
 `tools/check_project.sh`).
