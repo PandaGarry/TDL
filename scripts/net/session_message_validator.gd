@@ -124,7 +124,7 @@ static func validated_snapshot_world(
 		var object_id := integral_value(payload.get("greybox_object_entity_id", null))
 		if typeof(snapshot_value) != TYPE_DICTIONARY:
 			error = "snapshot world payload is missing"
-		elif typeof(participants_value) != TYPE_ARRAY:
+		elif not _participants_payload_is_valid(participants_value):
 			error = "snapshot participants payload is invalid"
 		elif not bool(object_id.get("ok", false)) or int(object_id.get("value", -1)) < 1:
 			error = "snapshot greybox object ID is invalid"
@@ -192,3 +192,26 @@ static func _pins_equal(left: Variant, right: Variant) -> bool:
 			== StateHash.sha256_hex(JsonValue.duplicate_canonical(right))
 		)
 	)
+
+
+static func _participants_payload_is_valid(raw_participants: Variant) -> bool:
+	if typeof(raw_participants) != TYPE_ARRAY:
+		return false
+	for raw_record in raw_participants:
+		if typeof(raw_record) != TYPE_DICTIONARY:
+			return false
+		var record: Dictionary = raw_record
+		var body_id := integral_value(record.get("body_entity_id", null))
+		if (
+			not has_only_keys(
+				record, ["participant_id", "display_name", "body_entity_id", "connected", "is_host"]
+			)
+			or not StableId.is_valid_segment(string_value(record.get("participant_id", null)))
+			or string_value(record.get("display_name", null)).strip_edges().is_empty()
+			or not bool(body_id.get("ok", false))
+			or int(body_id.get("value", -1)) < 1
+			or typeof(record.get("connected", null)) != TYPE_BOOL
+			or typeof(record.get("is_host", null)) != TYPE_BOOL
+		):
+			return false
+	return true

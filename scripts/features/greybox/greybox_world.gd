@@ -103,7 +103,7 @@ static func spawn_body(
 ) -> Dictionary:
 	var existing_id := find_body(world, participant_id)
 	if existing_id > 0:
-		return {"ok": true, "body_entity_id": existing_id, "created": false, "errors": []}
+		return _existing_body_report(world, existing_id, width_tiles, height_tiles)
 	var preflight_error := _body_spawn_preflight_error(world, active_registry, max_players)
 	if not preflight_error.is_empty():
 		return _failure(preflight_error)
@@ -314,6 +314,21 @@ static func _existing_object_report(
 	):
 		return _failure("existing greybox supply object has invalid components")
 	return {"ok": true, "entity_id": entity_id, "created": false, "errors": []}
+
+
+static func _existing_body_report(
+	world: WorldState, entity_id: int, width_tiles: int, height_tiles: int
+) -> Dictionary:
+	if (
+		not position_component_is_valid(
+			world.get_entity_component(entity_id, POSITION_COMPONENT), width_tiles, height_tiles
+		)
+		or not inventory_component_is_valid(
+			world.get_entity_component(entity_id, INVENTORY_COMPONENT)
+		)
+	):
+		return _failure("existing greybox body has invalid components")
+	return {"ok": true, "body_entity_id": entity_id, "created": false, "errors": []}
 
 
 static func _body_spawn_preflight_error(

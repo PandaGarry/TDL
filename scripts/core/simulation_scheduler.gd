@@ -128,6 +128,10 @@ func advance(
 			var callable: Callable = entry.get("callable", Callable())
 			var result: Variant = callable.call(world, context)
 			system_calls += 1
+			if world.clock().total_minutes() != event_minute:
+				errors.append("scheduled system '%s' mutated the world clock" % system_id)
+				failed = true
+				break
 			if typeof(result) == TYPE_BOOL and not bool(result):
 				errors.append("scheduled system '%s' reported failure" % system_id)
 				failed = true

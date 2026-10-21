@@ -89,6 +89,19 @@ func _test_scheduler_budget() -> void:
 		"scheduler minute call order"
 	)
 
+	var mutating_scheduler := SimulationScheduler.new()
+	_check(
+		mutating_scheduler.register_system(
+			"clock_mutator", 1, Callable(self, "_illegally_mutate_clock")
+		),
+		"scheduler registers clock mutator probe"
+	)
+	var mutating_report := mutating_scheduler.advance(world, 2)
+	_check(
+		not bool(mutating_report.get("ok", true)),
+		"scheduler rejects a system that mutates the world clock"
+	)
+
 
 func _test_solo_session_and_persistence() -> void:
 	_delete_slot(SOLO_SLOT)
@@ -98,6 +111,11 @@ func _test_solo_session_and_persistence() -> void:
 	if not bool(start_report.get("ok", false)):
 		_destroy_session(session)
 		return
+	var duplicate_start := session.start_new_offline("p0e_duplicate", 1, "host", "Host")
+	_check(
+		not bool(duplicate_start.get("ok", true)),
+		"starting a second campaign on an active session is rejected"
+	)
 
 	var world := session.world_state()
 	var body_id := GreyboxWorld.find_body(world, "host")
@@ -375,6 +393,19 @@ func _test_enet_host_client() -> void:
 	var host_save := _network_host.save_world(NETWORK_SLOT)
 	_check(bool(host_save.get("ok", false)), "network host saves the authoritative world")
 	_destroy_session(_network_client)
+	_network_client = _make_session("ReconnectNetworkClient")
+	var reconnect_report := _network_client.start_client(
+		"127.0.0.1", selected_port, "guest_1", "Guest"
+	)
+	_check(bool(reconnect_report.get("ok", false)), "disconnected guest can reconnect")
+	var reconnected: bool = await _wait_until(Callable(self, "_network_client_ready"), 10000)
+	_check(reconnected, "reconnected guest receives the current world")
+	_check_equal(
+		GreyboxWorld.find_body(_network_host.world_state(), "guest_1"),
+		guest_body_id,
+		"reconnected guest reclaims its existing persistent body"
+	)
+	_destroy_session(_network_client)
 	_destroy_session(_network_host)
 	_network_client = null
 	_network_host = null
@@ -384,6 +415,11 @@ func _record_scheduled_system(_world: WorldState, context: Dictionary) -> bool:
 	_scheduled_calls.append(
 		"%s@%d" % [String(context.get("system_id", "")), int(context.get("scheduled_minute", -1))]
 	)
+	return true
+
+
+func _illegally_mutate_clock(world: WorldState, _context: Dictionary) -> bool:
+	world.clock().advance_minutes(1)
 	return true
 
 

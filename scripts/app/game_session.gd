@@ -38,6 +38,7 @@ const LOCAL_PEER_ID := 1
 const DEFAULT_PORT := 24731
 const DEFAULT_MAX_PLAYERS := 4
 const MAX_INTENTS_PER_BATCH := 128
+const MAX_PENDING_INTENTS := 256
 const MAX_DISPLAY_NAME_LENGTH := 48
 
 @export var content_manifest_path: String = "res://data/core/manifest.json"
@@ -109,6 +110,8 @@ func start_new_offline(
 	participant_id: String = "host",
 	display_name: String = "Host"
 ) -> Dictionary:
+	if _running:
+		return _failure(["a game session is already running"])
 	return _finish_prepared_host_start(
 		SessionWorldLoader.prepare_new_world(
 			content_manifest_path,
@@ -153,6 +156,8 @@ func start_new_host(
 	participant_id: String = "host",
 	display_name: String = "Host"
 ) -> Dictionary:
+	if _running:
+		return _failure(["a game session is already running"])
 	return _finish_prepared_host_start(
 		SessionWorldLoader.prepare_new_world(
 			content_manifest_path,
@@ -172,6 +177,8 @@ func start_new_host(
 func load_and_start_offline(
 	slot_id: String, participant_id: String = "host", display_name: String = "Host"
 ) -> Dictionary:
+	if _running:
+		return _failure(["a game session is already running"])
 	var prepared := SessionWorldLoader.prepare_loaded_world(
 		content_manifest_path,
 		save_root_dir,
@@ -191,6 +198,8 @@ func load_and_start_host(
 	participant_id: String = "host",
 	display_name: String = "Host"
 ) -> Dictionary:
+	if _running:
+		return _failure(["a game session is already running"])
 	var prepared := SessionWorldLoader.prepare_loaded_world(
 		content_manifest_path,
 		save_root_dir,
@@ -270,6 +279,8 @@ func submit_intent(intent_type: String, payload: Dictionary) -> Dictionary:
 		return _submit_client_intent(validation)
 	if not _is_host_authority():
 		return _failure(["session role cannot submit intents"])
+	if _pending_intents.size() >= MAX_PENDING_INTENTS:
+		return _failure(["host intent queue is full"])
 	_queue_intent(LOCAL_PEER_ID, _local_participant_id, validation.get("intent", {}))
 	_next_client_sequence += 1
 	return _success({"queued": true, "client_sequence": int(validation["client_sequence"])})
@@ -686,6 +697,11 @@ func _handle_host_intent(peer_id: int, payload: Dictionary) -> void:
 			String(validation.get("error", "invalid intent"))
 		)
 		return
+	if _pending_intents.size() >= MAX_PENDING_INTENTS:
+		_send_rejection_message(
+			peer_id, participant_id, validation.get("intent", {}), "intent_queue_full", ""
+		)
+		return
 	_queue_intent(peer_id, participant_id, validation.get("intent", {}))
 
 
@@ -756,6 +772,11 @@ func _handle_hello(peer_id: int, payload: Dictionary) -> void:
 		_send_rejection_message(peer_id, participant_id, {}, "session_full", "")
 		return
 	var body_entity_id := int(spawn_report.get("body_entity_id", -1))
+	var existing_record := _participants_state.record(participant_id)
+	var already_connected := (
+		bool(existing_record.get("connected", false))
+		and int(existing_record.get("peer_id", 0)) == peer_id
+	)
 	_pending_peers.erase(peer_id)
 	var record := _participants_state.upsert_record(
 		participant_id, peer_id, display_name, body_entity_id, true
@@ -769,17 +790,18 @@ func _handle_hello(peer_id: int, payload: Dictionary) -> void:
 		"snapshot": _make_snapshot_payload(),
 	}
 	_send_message_to_peer(peer_id, SessionProtocol.KIND_WELCOME, welcome)
-	_send_message_to_authenticated(
-		SessionProtocol.KIND_EVENT,
-		{
-			"event_type": "participant_joined",
-			"participant_id": participant_id,
-			"body_entity_id": body_entity_id,
-		},
-		peer_id
-	)
-	_broadcast_snapshot(true, peer_id)
-	participant_joined.emit(participant_id, body_entity_id)
+	if not already_connected:
+		_send_message_to_authenticated(
+			SessionProtocol.KIND_EVENT,
+			{
+				"event_type": "participant_joined",
+				"participant_id": participant_id,
+				"body_entity_id": body_entity_id,
+			},
+			peer_id
+		)
+		_broadcast_snapshot(true, peer_id)
+		participant_joined.emit(participant_id, body_entity_id)
 
 
 func _handle_welcome(payload: Dictionary) -> void:
