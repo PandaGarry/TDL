@@ -28,8 +28,7 @@ func _on_new_game_pressed() -> void:
 	# TODO: после утверждения первого прототипа —
 	# SceneLoader.change_scene_async(первый уровень) и GameManager.start_game().
 	_status_label.text = (
-		"Игрового прототипа пока нет. GDD v1.0 Core Baseline принят.\n"
-		+ "См. docs/design/gdd.md"
+		"Игрового прототипа пока нет. GDD v1.0 Core Baseline принят.\n" + "См. docs/design/gdd.md"
 	)
 
 

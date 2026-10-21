@@ -8,10 +8,10 @@ extends Node
 signal state_changed(new_state: State)
 
 enum State {
-	BOOT, ## Только стартовали, ещё ничего не показано.
-	MAIN_MENU, ## Главное меню.
-	PLAYING, ## Идёт игровой процесс.
-	PAUSED, ## Игровой процесс на паузе (get_tree().paused == true).
+	BOOT,  ## Только стартовали, ещё ничего не показано.
+	MAIN_MENU,  ## Главное меню.
+	PLAYING,  ## Идёт игровой процесс.
+	PAUSED,  ## Игровой процесс на паузе (get_tree().paused == true).
 }
 
 const MAIN_SCENE_PATH := "res://scenes/main/main.tscn"

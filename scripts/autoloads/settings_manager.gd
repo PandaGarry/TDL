@@ -26,7 +26,7 @@ func _ready() -> void:
 func load_settings() -> void:
 	var config := ConfigFile.new()
 	if config.load(SETTINGS_PATH) != OK:
-		return # Первый запуск — остаются значения по умолчанию.
+		return  # Первый запуск — остаются значения по умолчанию.
 	master_volume = float(config.get_value("audio", "master_volume", master_volume))
 	music_volume = float(config.get_value("audio", "music_volume", music_volume))
 	sfx_volume = float(config.get_value("audio", "sfx_volume", sfx_volume))

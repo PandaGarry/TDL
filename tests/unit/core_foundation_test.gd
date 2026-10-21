@@ -17,6 +17,7 @@ func _ready() -> void:
 func _run_tests() -> void:
 	_test_project_foundation()
 	_test_stable_id()
+	_test_json_value()
 	_test_world_clock()
 	_test_rng_streams()
 	_test_fact_log()
@@ -88,6 +89,10 @@ func _test_project_foundation() -> void:
 			not InputMap.has_action(removed_action), "template action '%s' removed" % removed_action
 		)
 
+	_check(_action_has_keycode(&"move_run", KEY_SHIFT), "move_run defaults to Shift")
+	_check(_action_has_keycode(&"group_command", KEY_TAB), "group_command defaults to Tab")
+	_check(_action_has_keycode(&"debug_toggle", KEY_F3), "debug_toggle defaults to F3")
+
 
 func _test_stable_id() -> void:
 	_check(StableId.is_valid("core:species/navelu"), "canonical stable ID is valid")
@@ -95,6 +100,16 @@ func _test_stable_id() -> void:
 	_check(not StableId.is_valid("Core:Species/Navelu"), "uppercase stable ID rejected")
 	_check(not StableId.is_valid("core:navelu"), "stable ID without kind/name rejected")
 	_check(not StableId.is_valid("core:species/navelu "), "stable ID with whitespace rejected")
+	for invalid_id in [
+		"core::species/navelu",
+		"core:species//navelu",
+		"core:species/",
+		"core:/navelu",
+		"core:species/navelu/",
+	]:
+		_check(
+			not StableId.is_valid(invalid_id), "empty stable ID segment rejected: %s" % invalid_id
+		)
 	_check_equal(StableId.namespace_of("core:species/navelu"), "core", "stable ID namespace")
 	_check_equal(StableId.kind_of("core:species/navelu"), "species", "stable ID kind")
 	_check_equal(StableId.name_of("core:species/navelu"), "navelu", "stable ID name")
@@ -104,6 +119,20 @@ func _test_stable_id() -> void:
 		"stable ID factory"
 	)
 	_check_equal(StableId.make("Core", "material", "wood"), "", "invalid stable ID factory result")
+
+
+func _test_json_value() -> void:
+	_check(JsonValue.is_safe({"nested": [1, {"ok": true}]}), "nested JSON-safe value accepted")
+	_check(
+		JsonValue.is_safe({"max": JsonValue.MAX_SAFE_INTEGER}), "max exact JSON integer accepted"
+	)
+	_check(
+		not JsonValue.is_safe({"too_big": JsonValue.MAX_SAFE_INTEGER + 1}),
+		"integer beyond exact JSON range rejected"
+	)
+	var cyclic: Dictionary = {}
+	cyclic["self"] = cyclic
+	_check(not JsonValue.is_safe(cyclic), "cyclic JSON value rejected by depth guard")
 
 
 func _test_world_clock() -> void:
@@ -130,6 +159,16 @@ func _test_world_clock() -> void:
 	var restored := WorldClock.new()
 	_check(restored.restore_state(snapshot), "clock snapshot restores")
 	_check_equal(restored.total_minutes(), clock.total_minutes(), "restored clock total minutes")
+
+	var invalid_clock := WorldClock.new()
+	invalid_clock.setup(60)
+	_check(
+		not invalid_clock.restore_state(
+			{"schema_version": WorldClock.SCHEMA_VERSION, "total_minutes": -1}
+		),
+		"negative clock snapshot rejected"
+	)
+	_check_equal(invalid_clock.total_minutes(), 60, "failed clock restore preserves state")
 
 	restored.setup(WorldClock.MINUTES_PER_DAY * (WorldClock.DAYS_PER_YEAR - 1))
 	restored.advance_minutes(WorldClock.MINUTES_PER_DAY)
@@ -162,6 +201,14 @@ func _test_rng_streams() -> void:
 	source.randi_range(&"society", 1, 1000)
 	source.randi_range(&"society", 1, 1000)
 	var snapshot := source.snapshot_state()
+	_check_equal(
+		int(snapshot.get("schema_version", -1)), RngStreams.SCHEMA_VERSION, "RNG snapshot schema"
+	)
+	_check_equal(typeof(snapshot["root_seed"]), TYPE_STRING, "RNG root seed is string-encoded")
+	var snapshot_streams: Dictionary = snapshot["streams"]
+	_check_equal(
+		typeof(snapshot_streams["society"]), TYPE_STRING, "RNG stream state is string-encoded"
+	)
 	var expected_next: Array[int] = []
 	for index in range(3):
 		expected_next.append(source.randi_range(&"society", 1, 1000))
@@ -172,6 +219,23 @@ func _test_rng_streams() -> void:
 	for index in range(3):
 		restored_next.append(restored.randi_range(&"society", 1, 1000))
 	_check_equal(restored_next, expected_next, "restored RNG stream continues identically")
+
+	var preserved := RngStreams.new()
+	preserved.setup(424242)
+	preserved.randi_range(&"weather", 1, 1000)
+	var preserved_clone := RngStreams.new()
+	preserved_clone.setup(424242)
+	preserved_clone.randi_range(&"weather", 1, 1000)
+	var bad_snapshot: Dictionary = snapshot.duplicate(true)
+	var bad_streams: Dictionary = bad_snapshot["streams"]
+	bad_streams["society"] = "not_an_integer"
+	bad_snapshot["streams"] = bad_streams
+	_check(not preserved.restore_state(bad_snapshot), "invalid RNG snapshot rejected")
+	_check_equal(
+		preserved.randi_range(&"weather", 1, 1000),
+		preserved_clone.randi_range(&"weather", 1, 1000),
+		"failed RNG restore preserves current streams"
+	)
 
 
 func _test_fact_log() -> void:
@@ -190,12 +254,25 @@ func _test_fact_log() -> void:
 	var rejected := log.append_fact("invalid_payload", 121, {"position": Vector2.ONE})
 	_check(rejected.is_empty(), "non-JSON-safe fact payload rejected")
 	_check_equal(log.size(), 1, "rejected fact does not change log size")
+	var bad_actor := log.append_fact("invalid_actor", 121, {}, -2)
+	_check(bad_actor.is_empty(), "fact with actor_id below -1 rejected")
+	_check_equal(log.size(), 1, "invalid actor fact does not change log size")
 
 	var snapshot := log.snapshot_state()
 	var restored := FactLog.new()
 	_check(restored.restore_state(snapshot), "fact log snapshot restores")
 	var next_fact := restored.append_fact("world_restored", 122)
 	_check_equal(int(next_fact.get("sequence", 0)), 2, "restored fact log continues sequence")
+
+	var bad_snapshot: Dictionary = snapshot.duplicate(true)
+	var bad_facts: Array = bad_snapshot["facts"]
+	var bad_fact: Dictionary = bad_facts[0]
+	bad_fact["subject_id"] = "not a stable id"
+	bad_facts[0] = bad_fact
+	bad_snapshot["facts"] = bad_facts
+	_check(
+		not FactLog.new().restore_state(bad_snapshot), "fact snapshot with invalid subject rejected"
+	)
 
 
 func _test_state_hash() -> void:
@@ -211,6 +288,18 @@ func _test_state_hash() -> void:
 		StateHash.sha256_hex(first) != StateHash.sha256_hex(changed), "changed state changes hash"
 	)
 	_check_equal(StateHash.sha256_hex(first).length(), 64, "SHA-256 hex length")
+	_check_equal(
+		StateHash.sha256_hex(-0.0), StateHash.sha256_hex(0.0), "negative zero hashes as zero"
+	)
+	_check(
+		StateHash.sha256_hex({1: "same"}) != StateHash.sha256_hex({"1": "same"}),
+		"integer and string dictionary keys hash distinctly"
+	)
+	var cyclic_state: Dictionary = {}
+	cyclic_state["self"] = cyclic_state
+	_check_equal(
+		StateHash.sha256_hex(cyclic_state).length(), 64, "cyclic state hash is depth-guarded"
+	)
 
 
 func _test_definition_registry() -> void:
@@ -273,8 +362,50 @@ func _test_definition_registry() -> void:
 		not (bad_report.get("errors", []) as Array).is_empty(), "rejected package reports errors"
 	)
 
+	var bad_path_manifest: Dictionary = bad_manifest.duplicate(true)
+	bad_path_manifest["definition_files"] = ["definitions//bad.json"]
+	var bad_path_report := DefinitionRegistry.new().load_package_documents(
+		bad_path_manifest, {"definitions//bad.json": bad_document}
+	)
+	_check(not bool(bad_path_report.get("ok", true)), "double-slash definition path rejected")
+
+	var empty_document := {
+		"format": DefinitionRegistry.DEFINITIONS_FORMAT,
+		"schema_version": 1,
+		"definitions": [],
+	}
+	var empty_report := DefinitionRegistry.new().load_package_documents(
+		bad_manifest, {"definitions/bad.json": empty_document}
+	)
+	_check(not bool(empty_report.get("ok", true)), "empty definition package rejected")
+
+	var bad_key_document := {
+		"format": DefinitionRegistry.DEFINITIONS_FORMAT,
+		"schema_version": 1,
+		"definitions":
+		[
+			{
+				"id": "test:species/example",
+				"kind": "species",
+				"name_key": "species..example.name",
+			}
+		],
+	}
+	var bad_key_report := DefinitionRegistry.new().load_package_documents(
+		bad_manifest, {"definitions/bad.json": bad_key_document}
+	)
+	_check(not bool(bad_key_report.get("ok", true)), "empty localization key segment rejected")
+
 	var missing_report := DefinitionRegistry.new().load_package("res://data/core/missing.json")
 	_check(not bool(missing_report.get("ok", true)), "missing manifest is a report, not a crash")
+
+
+func _action_has_keycode(action_name: StringName, expected_keycode: Key) -> bool:
+	for event in InputMap.action_get_events(action_name):
+		var key_event := event as InputEventKey
+		if key_event != null and key_event.keycode == expected_keycode:
+			return true
+	return false
 
 
 func _check(condition: bool, message: String) -> void:

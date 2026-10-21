@@ -9,19 +9,20 @@ extends RefCounted
 ## files, saves, network messages and future data mods.
 
 const MAX_SEGMENT_LENGTH := 64
+const MAX_ID_LENGTH := 192
 
 
 static func is_valid(value: String) -> bool:
-	if value.is_empty() or value.strip_edges() != value:
+	if value.is_empty() or value.length() > MAX_ID_LENGTH or value.strip_edges() != value:
 		return false
 
-	var colon_parts := value.split(":", false)
+	var colon_parts := value.split(":")
 	if colon_parts.size() != 2:
 		return false
 	if not is_valid_segment(colon_parts[0]):
 		return false
 
-	var path_parts := colon_parts[1].split("/", false)
+	var path_parts := colon_parts[1].split("/")
 	if path_parts.size() < 2:
 		return false
 	for part in path_parts:
@@ -33,20 +34,20 @@ static func is_valid(value: String) -> bool:
 static func namespace_of(value: String) -> String:
 	if not is_valid(value):
 		return ""
-	return value.split(":", false)[0]
+	return value.split(":")[0]
 
 
 static func kind_of(value: String) -> String:
 	if not is_valid(value):
 		return ""
-	var path := value.split(":", false)[1]
-	return path.split("/", false)[0]
+	var path := value.split(":")[1]
+	return path.split("/")[0]
 
 
 static func name_of(value: String) -> String:
 	if not is_valid(value):
 		return ""
-	var path_parts := value.split(":", false)[1].split("/", false)
+	var path_parts := value.split(":")[1].split("/")
 	path_parts.remove_at(0)
 	return "/".join(path_parts)
 

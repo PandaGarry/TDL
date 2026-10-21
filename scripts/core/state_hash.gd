@@ -7,6 +7,8 @@ extends RefCounted
 ## order differed. It is not a security mechanism and does not replace
 ## save-file checksums at the persistence boundary.
 
+const MAX_DEPTH := 32
+
 
 static func sha256_hex(value: Variant) -> String:
 	var context := HashingContext.new()
@@ -17,7 +19,9 @@ static func sha256_hex(value: Variant) -> String:
 	return context.finish().hex_encode()
 
 
-static func canonicalize(value: Variant) -> String:
+static func canonicalize(value: Variant, depth: int = 0) -> String:
+	if depth > MAX_DEPTH:
+		return JSON.stringify("<max_depth>")
 	match typeof(value):
 		TYPE_NIL:
 			return "null"
@@ -31,42 +35,54 @@ static func canonicalize(value: Variant) -> String:
 				return "nan"
 			if is_inf(number):
 				return "inf" if number > 0.0 else "-inf"
-			return "%0.9f" % number
+			if number == 0.0:
+				number = 0.0
+			return "f64:%s" % var_to_bytes(number).hex_encode()
 		TYPE_STRING, TYPE_STRING_NAME:
 			return JSON.stringify(String(value))
 		TYPE_VECTOR2:
 			var vector: Vector2 = value
-			return "[%s,%s]" % [canonicalize(vector.x), canonicalize(vector.y)]
+			return (
+				"[%s,%s]" % [canonicalize(vector.x, depth + 1), canonicalize(vector.y, depth + 1)]
+			)
 		TYPE_ARRAY:
-			return _canonicalize_array(value)
+			return _canonicalize_array(value, depth + 1)
 		TYPE_PACKED_BYTE_ARRAY:
-			return _canonicalize_array(value)
+			return _canonicalize_array(value, depth + 1)
 		TYPE_PACKED_INT32_ARRAY:
-			return _canonicalize_array(value)
+			return _canonicalize_array(value, depth + 1)
 		TYPE_PACKED_INT64_ARRAY:
-			return _canonicalize_array(value)
+			return _canonicalize_array(value, depth + 1)
 		TYPE_PACKED_FLOAT32_ARRAY:
-			return _canonicalize_array(value)
+			return _canonicalize_array(value, depth + 1)
 		TYPE_PACKED_FLOAT64_ARRAY:
-			return _canonicalize_array(value)
+			return _canonicalize_array(value, depth + 1)
 		TYPE_PACKED_STRING_ARRAY:
-			return _canonicalize_array(value)
+			return _canonicalize_array(value, depth + 1)
 		TYPE_DICTIONARY:
 			var dictionary: Dictionary = value
-			var keys: Array[String] = []
+			var encoded_keys: Array[String] = []
+			var values_by_encoded_key: Dictionary = {}
 			for key in dictionary.keys():
-				keys.append(String(key))
-			keys.sort()
+				var encoded_key := canonicalize(key, depth + 1)
+				encoded_keys.append(encoded_key)
+				values_by_encoded_key[encoded_key] = dictionary[key]
+			encoded_keys.sort()
 			var parts: Array[String] = []
-			for key in keys:
-				parts.append("%s:%s" % [JSON.stringify(key), canonicalize(dictionary[key])])
+			for encoded_key in encoded_keys:
+				parts.append(
+					(
+						"%s:%s"
+						% [encoded_key, canonicalize(values_by_encoded_key[encoded_key], depth + 1)]
+					)
+				)
 			return "{%s}" % ",".join(parts)
 		_:
 			return JSON.stringify("<unsupported:%d>" % typeof(value))
 
 
-static func _canonicalize_array(value: Variant) -> String:
+static func _canonicalize_array(value: Variant, depth: int) -> String:
 	var parts: Array[String] = []
 	for item in value:
-		parts.append(canonicalize(item))
+		parts.append(canonicalize(item, depth))
 	return "[%s]" % ",".join(parts)

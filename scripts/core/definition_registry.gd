@@ -76,6 +76,11 @@ func load_package_documents(manifest: Dictionary, documents_by_path: Dictionary)
 	var errors: Array[String] = []
 	var warnings: Array[String] = []
 
+	if not JsonValue.is_safe(manifest):
+		errors.append("manifest contains non-JSON-safe values")
+	if not JsonValue.is_safe(documents_by_path):
+		errors.append("definition documents contain non-JSON-safe values")
+
 	if String(manifest.get("format", "")) != PACKAGE_FORMAT:
 		errors.append("manifest.format must be '%s'" % PACKAGE_FORMAT)
 	if _integer_value(manifest.get("schema_version", -1)) != SUPPORTED_SCHEMA_VERSION:
@@ -173,6 +178,8 @@ func load_package_documents(manifest: Dictionary, documents_by_path: Dictionary)
 			temp_ids_by_kind[kind] = ids_for_kind
 
 	_validate_references(temp_definitions, errors)
+	if temp_definitions.is_empty():
+		errors.append("package must define at least one definition")
 
 	if not errors.is_empty():
 		return _finish_report(false, errors, warnings, 0)
@@ -360,9 +367,9 @@ static func _integer_value(value: Variant) -> int:
 static func _is_safe_relative_path(path: String) -> bool:
 	if path.is_empty() or not path.ends_with(".json"):
 		return false
-	if path.begins_with("/") or path.contains("://") or path.contains("\\"):
+	if path.begins_with("/") or path.contains(":") or path.contains("\\"):
 		return false
-	for segment in path.split("/", false):
+	for segment in path.split("/"):
 		if segment.is_empty() or segment == "." or segment == "..":
 			return false
 	return true
@@ -371,7 +378,7 @@ static func _is_safe_relative_path(path: String) -> bool:
 static func _is_valid_localization_key(value: String) -> bool:
 	if value.is_empty() or value.strip_edges() != value:
 		return false
-	for segment in value.split(".", false):
+	for segment in value.split("."):
 		if not StableId.is_valid_segment(segment):
 			return false
 	return true
