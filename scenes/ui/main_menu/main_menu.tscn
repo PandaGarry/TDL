@@ -38,7 +38,7 @@ horizontal_alignment = 1
 
 [node name="SubtitleLabel" type="Label" parent="CenterContainer/VBoxContainer"]
 theme_override_font_sizes/font_size = 20
-text = "Рабочее название. Мир ещё предстоит придумать."
+text = "Рабочее название. Пре-продакшен: H1 и GDD v0.1, прототипа пока нет."
 horizontal_alignment = 1
 
 [node name="HSeparator" type="HSeparator" parent="CenterContainer/VBoxContainer"]

@@ -8,8 +8,11 @@
 не статичные фракции.
 
 Подробно: `docs/design/first_valley_spring_tribes.md`,
-`docs/design/social_simulation_succession_and_culture.md` и
-`docs/design/adaptive_settlements_leadership_and_coop.md`.
+`docs/design/social_simulation_succession_and_culture.md`,
+`docs/design/adaptive_settlements_leadership_and_coop.md` и
+`docs/design/leadership_succession_reputation_roles.md`. После раунда 10
+автор подтвердил стартовые веса поддержки 0.45/0.30/0.25 и окно выборов
+5–7 игровых дней.
 
 ## Поселения как акторы
 

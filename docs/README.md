@@ -2,43 +2,55 @@
 
 Карта документов. Принцип: один документ — одна тема; всё, что решено,
 фиксируем здесь, а не «держим в голове». Статус каждого документа указан
-в его начале: `Черновик` / `В работе` / `Утверждено`.
+в его начале. Используем точные статусы: одобрено автором, делегировано
+агенту, рабочая модель, кандидат/рекомендация, проверка прототипом,
+открыто автору, историческая/заменённая запись.
+
+При конфликте сначала смотрим `production/decisions.md`, затем сводный
+`design/gdd.md`, затем специализированный документ. `lore/open_questions.md`
+является протоколом истории, а не текущим списком задач; актуальный
+реестр после аудита — `production/documentation_audit_round11.md`.
 
 ## С чего начать
 
 1. [`production/decisions.md`](production/decisions.md) — подробный журнал
    одобренных решений. Для стратегических оснований H1 это источник
    истины: что принято, почему, что отвергнуто и где граница одобрения.
-2. [`design/first_valley_spring_tribes.md`](design/first_valley_spring_tribes.md) —
+2. [`design/gdd.md`](design/gdd.md) — **GDD v0.1 после аудита:** питч,
+   столпы, кор-цикл, системы, Act I, scope и список того, что мешает v1.
+3. [`production/documentation_audit_round11.md`](production/documentation_audit_round11.md) —
+   полный аудит: сводный снимок концепции, исправленные противоречия и единый
+   реестр действительно открытых вопросов.
+4. [`design/first_valley_spring_tribes.md`](design/first_valley_spring_tribes.md) —
    **текущая рабочая конкретизация раундов 7–10:** весенняя долина Севары,
    средневековые адаптивные племенные поселения, вожди, 24 якорных NPC,
    одобренный RU/EN-нейминг, межпоселенческие отношения и
    динамический баланс. Социальная преемственность и распределённая
    власть — в [`design/adaptive_settlements_leadership_and_coop.md`](design/adaptive_settlements_leadership_and_coop.md)
    и [`design/leadership_succession_reputation_roles.md`](design/leadership_succession_reputation_roles.md).
-3. [`design/personal_combat_and_leadership.md`](design/personal_combat_and_leadership.md) —
+5. [`design/personal_combat_and_leadership.md`](design/personal_combat_and_leadership.md) —
    рекомендуемая агентом модель боя и прокачки: личный персонаж всегда,
    лидерство и отряд как социальная прогрессия; ждёт подтверждения.
-4. [`design/act1_hybrid_experience_concept.md`](design/act1_hybrid_experience_concept.md) —
+6. [`design/act1_hybrid_experience_concept.md`](design/act1_hybrid_experience_concept.md) —
    расширенная концепция Act I: одобренный гибрид A → C → B, партитура
    начала, циклы, NPC, живой дом, пейзажи, лор-тайны и экспедиции.
-5. [`design/round6_core_loop_variants.md`](design/round6_core_loop_variants.md) —
+7. [`design/round6_core_loop_variants.md`](design/round6_core_loop_variants.md) —
    исторический документ трёх исходных вариантов раунда 6.
-6. [`design/core_generation_and_consequences.md`](design/core_generation_and_consequences.md) —
+8. [`design/core_generation_and_consequences.md`](design/core_generation_and_consequences.md) —
    Core, генерация, якорные разломы, наследие, необратимость, каскад
    кризиса и арка Act I.
-7. [`design/home_world_and_core_concept.md`](design/home_world_and_core_concept.md) — разбор
+9. [`design/home_world_and_core_concept.md`](design/home_world_and_core_concept.md) — разбор
    выбранного направления H1 о родном мире на общем игровом ядре.
-8. [`lore/open_questions.md`](lore/open_questions.md) — ответы автора по
-   раундам исследования, протокол одобрений и оставшиеся вопросы.
-9. [`design/gdd.md`](design/gdd.md) — игровой дизайн-документ; пока шаблон.
 10. [`lore/world_bible.md`](lore/world_bible.md) — библия мира v0.1.
+11. [`lore/open_questions.md`](lore/open_questions.md) — ответы автора по
+   раундам исследования и исторический протокол одобрений; не текущий
+   бэклог открытых вопросов.
 
 ## Дизайн (`design/`)
 
 | Документ | О чём |
 |---|---|
-| [`gdd.md`](design/gdd.md) | Главный дизайн-документ: питч, жанр, кор-цикл, механики, прогрессия, scope |
+| [`gdd.md`](design/gdd.md) | GDD v0.1: питч, столпы, кор-цикл, системы и их статусы, прогрессия, Act I, scope и условия перехода к v1 |
 | [`home_world_and_core_concept.md`](design/home_world_and_core_concept.md) | Выбранное направление H1: конечный живой дом, экспедиции через якорные разломы, общее игровое ядро и последствия между мирами |
 | [`core_generation_and_consequences.md`](design/core_generation_and_consequences.md) | Раунды 3–5: Core по аналогии с The Seed, процедурная генерация, No Man’s Sky/Starfield, одобренные наследие, смерть, вымирание, каскад кризиса и Act I |
 | [`round6_core_loop_variants.md`](design/round6_core_loop_variants.md) | Раунд 6: исторические три варианта ввода игрока и игрового цикла, сравнение и путь к выбранному гибриду |
@@ -53,7 +65,7 @@
 
 | Документ | О чём |
 |---|---|
-| [`open_questions.md`](lore/open_questions.md) | Открытые вопросы брейншторма концепции и мира |
+| [`open_questions.md`](lore/open_questions.md) | Исторический протокол исходного опросника и ответов автора по раундам; текущий реестр открытых вопросов находится в аудите раунда 11 |
 | [`world_bible.md`](lore/world_bible.md) | Мир целиком: законы, тон, темы, центральный конфликт |
 | [`timeline.md`](lore/timeline.md) | Хронология событий мира и игры |
 | [`factions.md`](lore/factions.md) | Фракции, организации, силы |
@@ -85,3 +97,4 @@
 | [`roadmap.md`](production/roadmap.md) | Этапы: концепция -> прототип -> вертикальный срез -> продакшен |
 | [`backlog.md`](production/backlog.md) | Задачи и идеи «на потом» (чтобы не терялись и не расползался scope) |
 | [`decisions.md`](production/decisions.md) | Журнал принятых решений: что решили, почему, какие были альтернативы |
+| [`documentation_audit_round11.md`](production/documentation_audit_round11.md) | Раунд 11: полный аудит документации, сводный снимок концепции, исправленные противоречия и реестр открытых вопросов |

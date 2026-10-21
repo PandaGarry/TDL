@@ -1,10 +1,11 @@
 extends Control
-## Главное меню — временная заглушка до выбора концепции игры.
+## Главное меню — временная заглушка пре-продакшена.
 ##
 ## Кнопки уже честно подключены к системам (выход работает, "Продолжить"
-## проверяет реальное сохранение), но первого уровня пока нет —
-## он появится после того, как мы определимся с миром и жанром.
-## См. docs/lore/open_questions.md и docs/design/gdd.md.
+## проверяет реальное сохранение), но первого уровня пока нет: направление
+## H1 выбрано и сведено в GDD v0.1, однако финальный GDD v1 и прототип
+## ещё не утверждены и не реализованы.
+## См. docs/design/gdd.md и docs/production/documentation_audit_round11.md.
 
 @onready var _new_game_button: Button = %NewGameButton
 @onready var _continue_button: Button = %ContinueButton
@@ -24,11 +25,11 @@ func _ready() -> void:
 
 
 func _on_new_game_pressed() -> void:
-	# TODO: после выбора концепции — SceneLoader.change_scene_async(первый уровень)
-	# и GameManager.start_game(). Пока честно говорим, что уровня ещё нет.
+	# TODO: после утверждения первого прототипа —
+	# SceneLoader.change_scene_async(первый уровень) и GameManager.start_game().
 	_status_label.text = (
-		"Первый уровень появится после выбора концепции игры.\n"
-		+ "См. docs/lore/open_questions.md"
+		"Игрового прототипа пока нет. Концепция сведена в GDD v0.1.\n"
+		+ "См. docs/design/gdd.md"
 	)
 
 
@@ -37,7 +38,7 @@ func _on_continue_pressed() -> void:
 	if data.is_empty():
 		_status_label.text = "Сохранение не найдено или повреждено."
 	else:
-		_status_label.text = "Сохранение загружено. Загрузка уровня — после выбора концепции."
+		_status_label.text = "Сохранение загружено. Игрового уровня в каркасе пока нет."
 
 
 func _on_settings_pressed() -> void:
