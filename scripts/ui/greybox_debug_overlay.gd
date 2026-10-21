@@ -79,6 +79,7 @@ static func build_snapshot(
 		"local_tile": {"x": local_tile.x, "y": local_tile.y},
 		"local_ecocell": {"x": local_ecocell.x, "y": local_ecocell.y},
 		"local_chunk": {"x": local_chunk.x, "y": local_chunk.y},
+		"world_rules": JsonValue.duplicate_safe(status.get("world_rules", {})),
 		"transport_peer_id": int(status.get("transport_peer_id", 0)),
 		"transport_peers": JsonValue.duplicate_safe(status.get("transport_peers", [])),
 		"participants": JsonValue.duplicate_safe(status.get("participants", [])),
@@ -145,6 +146,23 @@ static func format_report(snapshot: Dictionary) -> String:
 			)
 		)
 	)
+	var rules: Dictionary = snapshot.get("world_rules", {})
+	if not rules.is_empty():
+		(
+			lines
+			. append(
+				(
+					"Rules: lobby='%s' day=%.1fm scale=x%.1f xp=x%.1f max_players=%d"
+					% [
+						String(rules.get("lobby_name", "")),
+						float(rules.get("day_length_real_minutes", 12.0)),
+						float(rules.get("time_scale", 1.0)),
+						float(rules.get("skill_xp_multiplier", 1.0)),
+						int(rules.get("max_players", 4)),
+					]
+				)
+			)
+		)
 	(
 		lines
 		. append(

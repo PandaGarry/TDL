@@ -173,7 +173,12 @@ func load_and_start_offline(
 		greybox_height_tiles
 	)
 	return _finish_prepared_host_start(
-		prepared, participant_id, display_name, false, 0, _load_metadata(prepared, slot_id)
+		prepared,
+		participant_id,
+		display_name,
+		false,
+		0,
+		SessionReplication.load_metadata(prepared, slot_id)
 	)
 
 
@@ -194,7 +199,12 @@ func load_and_start_host(
 		greybox_height_tiles
 	)
 	return _finish_prepared_host_start(
-		prepared, participant_id, display_name, true, port, _load_metadata(prepared, slot_id)
+		prepared,
+		participant_id,
+		display_name,
+		true,
+		port,
+		SessionReplication.load_metadata(prepared, slot_id)
 	)
 
 
@@ -354,6 +364,42 @@ func advance_disconnect_grace(seconds: float) -> Array[Dictionary]:
 	return sheltered
 
 
+func world_rules() -> Dictionary:
+	if _world == null or not _world.is_initialized():
+		return {}
+	return _world.world_rules().snapshot_state()
+
+
+func configure_world_rules(patch: Dictionary) -> Dictionary:
+	if not _running or not _is_host_authority():
+		return _failure(["only the authoritative host can update world rules"])
+	if _simulation_advance_in_progress or _intent_processing_in_progress or _save_in_progress:
+		return _failure(["world rules can only be updated between simulation batches"])
+	var apply_report := _world.world_rules().apply_patch(patch)
+	if not bool(apply_report.get("ok", false)):
+		var rule_errors: Array[String] = []
+		for raw_err in apply_report.get("errors", []):
+			rule_errors.append(String(raw_err))
+		return _failure(rule_errors)
+	_sync_runtime_from_world_rules()
+	var changed_keys: Array = apply_report.get("changed_keys", [])
+	var fact := _append_current_fact(
+		"world_rules_updated",
+		{"changed_keys": changed_keys, "rules": _world.world_rules().snapshot_state()},
+		_body_entity_id_for_participant(_local_participant_id)
+	)
+	if not fact.is_empty():
+		_world_dirty = true
+	_record_local_event({"event_type": "world_rules_updated", "changed_keys": changed_keys})
+	_broadcast_snapshot(true)
+	return _success(
+		{
+			"rules": _world.world_rules().snapshot_state(),
+			"changed_keys": changed_keys,
+		}
+	)
+
+
 func save_world(slot_id: String) -> Dictionary:
 	if not _running or not _is_host_authority():
 		return _failure(["only the authoritative host can save the world"])
@@ -393,11 +439,12 @@ func session_status() -> Dictionary:
 		"game_minute": _current_tick(),
 		"entity_count": _world.entity_ids().size() if world_initialized else 0,
 		"greybox_object_entity_id": _greybox_object_entity_id,
+		"world_rules": world_rules(),
 		"participants": _public_participants(),
 		"disconnect_grace": _participants_state.disconnect_grace_summary(),
 		"pending_intents": _pending_intents.size(),
 		"transport_peer_id": _transport.get_unique_id() if _transport != null else 0,
-		"transport_peers": _transport_peer_ids(),
+		"transport_peers": SessionReplication.transport_peer_ids(_transport),
 		"state_hash": domain_state_hash(),
 		"last_rejection": JsonValue.duplicate_safe(_last_rejection),
 	}
@@ -476,6 +523,7 @@ func _start_prepared_host(
 	)
 	_scheduler.reset_for_minute(_current_tick())
 	_last_snapshot_minute = _current_tick()
+	_sync_runtime_from_world_rules()
 
 	if network_host:
 		_transport = EnetSessionTransport.new()
@@ -495,18 +543,12 @@ func _start_prepared_host(
 	return report
 
 
-func _load_metadata(prepared: Dictionary, slot_id: String) -> Dictionary:
-	var loaded: Dictionary = prepared.get("loaded", {})
-	return {
-		"fresh_campaign": false,
-		"slot_id": slot_id,
-		"loaded_path": String(loaded.get("path", "")),
-		"recovered": bool(loaded.get("recovered", false)),
-		"migrated": bool(loaded.get("migrated", false)),
-		"source_schema_version": int(loaded.get("source_schema_version", -1)),
-		"package_pins_reconciled": bool(prepared.get("package_pins_reconciled", false)),
-		"warnings": prepared.get("warnings", []),
-	}
+func _sync_runtime_from_world_rules() -> void:
+	if _world == null or not _world.is_initialized():
+		return
+	var rules := _world.world_rules()
+	max_players = rules.max_players()
+	game_minutes_per_real_second = rules.effective_game_minutes_per_real_second()
 
 
 func _body_entity_id_for_participant(participant_id: String) -> int:
@@ -581,32 +623,11 @@ func _append_current_fact(
 
 
 func _bind_transport() -> void:
-	if _transport == null:
-		return
-	_transport.peer_connected.connect(_on_transport_peer_connected)
-	_transport.peer_disconnected.connect(_on_transport_peer_disconnected)
-	_transport.packet_received.connect(_on_transport_packet_received)
-	_transport.connected_to_server.connect(_on_transport_connected_to_server)
-	_transport.connection_failed.connect(_on_transport_connection_failed)
-	_transport.server_disconnected.connect(_on_transport_server_disconnected)
+	SessionReplication.bind_transport(_transport, self)
 
 
 func _unbind_and_close_transport() -> void:
-	if _transport == null:
-		return
-	if _transport.peer_connected.is_connected(_on_transport_peer_connected):
-		_transport.peer_connected.disconnect(_on_transport_peer_connected)
-	if _transport.peer_disconnected.is_connected(_on_transport_peer_disconnected):
-		_transport.peer_disconnected.disconnect(_on_transport_peer_disconnected)
-	if _transport.packet_received.is_connected(_on_transport_packet_received):
-		_transport.packet_received.disconnect(_on_transport_packet_received)
-	if _transport.connected_to_server.is_connected(_on_transport_connected_to_server):
-		_transport.connected_to_server.disconnect(_on_transport_connected_to_server)
-	if _transport.connection_failed.is_connected(_on_transport_connection_failed):
-		_transport.connection_failed.disconnect(_on_transport_connection_failed)
-	if _transport.server_disconnected.is_connected(_on_transport_server_disconnected):
-		_transport.server_disconnected.disconnect(_on_transport_server_disconnected)
-	_transport.close()
+	SessionReplication.unbind_and_close_transport(_transport, self)
 	_transport = null
 
 
@@ -619,7 +640,12 @@ func _on_transport_peer_disconnected(peer_id: int) -> void:
 	_pending_peers.erase(peer_id)
 	if not _running or not _network_host:
 		return
-	var record := _participants_state.disconnect_peer(peer_id)
+	var grace_sec := (
+		_world.world_rules().disconnect_grace_seconds()
+		if _world != null and _world.is_initialized()
+		else SessionParticipants.EMERGENCY_DISCONNECT_GRACE_SECONDS
+	)
+	var record := _participants_state.disconnect_peer(peer_id, grace_sec)
 	if record.is_empty():
 		return
 	var participant_id := String(record.get("participant_id", ""))
@@ -727,13 +753,9 @@ func _handle_client_packet(peer_id: int, kind: String, payload: Dictionary) -> v
 
 
 func _send_hello() -> void:
-	var payload := {
-		"game_version": _game_version(),
-		"world_schema_version": WorldState.SCHEMA_VERSION,
-		"content_packages": [SessionWorldLoader.package_pin_for_registry(_registry)],
-		"participant_id": _local_participant_id,
-		"display_name": _local_display_name,
-	}
+	var payload := SessionReplication.make_hello_payload(
+		_game_version(), _registry, _local_participant_id, _local_display_name
+	)
 	var error := _send_message_to_peer(LOCAL_PEER_ID, SessionProtocol.KIND_HELLO, payload)
 	if error != OK:
 		_emit_session_error("failed to send session hello: %s" % error_string(error))
@@ -742,53 +764,39 @@ func _send_hello() -> void:
 func _handle_hello(peer_id: int, payload: Dictionary) -> void:
 	if not _network_host or peer_id <= LOCAL_PEER_ID:
 		return
-	var validation := SessionMessageValidator.validate_hello(
-		payload, _game_version(), _world.content_packages()
-	)
-	if not bool(validation.get("ok", false)):
-		_send_rejection_message(
-			peer_id, "", {}, String(validation.get("reason", "invalid_hello")), ""
-		)
-		return
-	var participant_id := String(validation.get("participant_id", ""))
-	var display_name := String(validation.get("display_name", ""))
-	var binding_rejection := _participants_state.binding_rejection(peer_id, participant_id)
-	if not binding_rejection.is_empty():
-		_send_rejection_message(peer_id, participant_id, {}, binding_rejection, "")
-		return
-	var spawn_report := GreyboxWorld.spawn_body(
+	var accepted := SessionReplication.accept_hello(
+		peer_id,
+		payload,
+		_game_version(),
 		_world,
 		_registry,
-		participant_id,
-		display_name,
+		_participants_state,
 		_effective_max_players(),
 		greybox_width_tiles,
 		greybox_height_tiles
 	)
-	if not bool(spawn_report.get("ok", false)):
-		_send_rejection_message(peer_id, participant_id, {}, "session_full", "")
+	if not bool(accepted.get("ok", false)):
+		_send_rejection_message(
+			peer_id,
+			String(accepted.get("participant_id", "")),
+			{},
+			String(accepted.get("reason", "invalid_hello")),
+			""
+		)
 		return
-	var body_entity_id := int(spawn_report.get("body_entity_id", -1))
-	var existing_record := _participants_state.record(participant_id)
-	var already_connected := (
-		bool(existing_record.get("connected", false))
-		and int(existing_record.get("peer_id", 0)) == peer_id
-	)
+	var participant_id := String(accepted.get("participant_id", ""))
+	var body_entity_id := int(accepted.get("body_entity_id", -1))
 	_pending_peers.erase(peer_id)
-	SessionParticipants.set_body_sheltered(_world, body_entity_id, false)
-	var record := _participants_state.upsert_record(
-		participant_id, peer_id, display_name, body_entity_id, true
-	)
-	if bool(spawn_report.get("created", false)):
+	if bool(accepted.get("created", false)):
 		_world_dirty = true
-	var welcome := {
-		"participant_id": participant_id,
-		"body_entity_id": body_entity_id,
-		"next_client_sequence": int(record.get("last_client_sequence", 0)) + 1,
-		"snapshot": _make_snapshot_payload(),
-	}
+	var welcome := SessionReplication.make_welcome_payload(
+		participant_id,
+		body_entity_id,
+		int(accepted.get("next_client_sequence", 1)),
+		_make_snapshot_payload()
+	)
 	_send_message_to_peer(peer_id, SessionProtocol.KIND_WELCOME, welcome)
-	if not already_connected:
+	if not bool(accepted.get("already_connected", false)):
 		_send_message_to_authenticated(
 			SessionProtocol.KIND_EVENT,
 			{
@@ -812,12 +820,9 @@ func _handle_welcome(payload: Dictionary) -> void:
 
 
 func _make_snapshot_payload() -> Dictionary:
-	return {
-		"world_snapshot": _world.snapshot_state(),
-		"state_hash": domain_state_hash(),
-		"participants": _public_participants(),
-		"greybox_object_entity_id": _greybox_object_entity_id,
-	}
+	return SessionReplication.make_snapshot_payload(
+		_world, domain_state_hash(), _public_participants(), _greybox_object_entity_id
+	)
 
 
 func _apply_snapshot_payload(payload: Dictionary, expected_body_id: int = -1) -> bool:
@@ -827,6 +832,7 @@ func _apply_snapshot_payload(payload: Dictionary, expected_body_id: int = -1) ->
 	if not bool(validation.get("ok", false)) or not _world.restore_state(payload["world_snapshot"]):
 		_emit_session_error(String(validation.get("error", "invalid snapshot")))
 		return false
+	_sync_runtime_from_world_rules()
 	_greybox_object_entity_id = GreyboxWorld.find_supply_object(_world)
 	_participants_state.rebuild_from_world(_world)
 	_participants_state.overlay_public_records(
@@ -861,40 +867,25 @@ func _broadcast_snapshot(force: bool = false, excluded_peer_id: int = 0) -> void
 func _send_message_to_authenticated(
 	kind: String, payload: Dictionary, excluded_peer_id: int = 0
 ) -> void:
-	if _transport == null or not _network_host:
+	if not _network_host:
 		return
-	var peer_ids := _participants_state.authenticated_peer_ids()
-	for peer_id in peer_ids:
-		if peer_id == LOCAL_PEER_ID or peer_id == excluded_peer_id:
-			continue
-		_send_message_to_peer(peer_id, kind, payload)
+	SessionReplication.send_message_to_authenticated(
+		_transport, _participants_state, _current_tick(), kind, payload, excluded_peer_id
+	)
 
 
 func _send_message_to_peer(peer_id: int, kind: String, payload: Dictionary) -> Error:
-	if _transport == null:
-		return ERR_UNCONFIGURED
-	var packet := SessionProtocol.encode_message(
-		SessionProtocol.make_message(kind, _current_tick(), payload)
+	return SessionReplication.send_message_to_peer(
+		_transport, peer_id, _current_tick(), kind, payload
 	)
-	if packet.is_empty():
-		return ERR_INVALID_DATA
-	return _transport.send_packet(peer_id, packet, true)
 
 
 func _send_rejection_message(
 	peer_id: int, participant_id: String, intent: Dictionary, reason: String, error: String
 ) -> void:
-	var rejection := {
-		"participant_id": participant_id,
-		"peer_id": peer_id,
-		"intent_type": String(intent.get("intent_type", "")),
-		"client_sequence":
-		int(
-			SessionMessageValidator.integral_value(intent.get("client_sequence", 0)).get("value", 0)
-		),
-		"reason": reason,
-		"error": error,
-	}
+	var rejection := SessionReplication.make_rejection(
+		peer_id, participant_id, intent, reason, error
+	)
 	_last_rejection = rejection.duplicate(true)
 	_send_message_to_peer(peer_id, SessionProtocol.KIND_REJECT, rejection)
 	intent_rejected.emit(rejection.duplicate(true))
@@ -972,15 +963,6 @@ func _game_version() -> String:
 			. strip_edges()
 		)
 	return resolved if not resolved.is_empty() else WorldStateCodec.DEFAULT_GAME_VERSION
-
-
-func _transport_peer_ids() -> Array[int]:
-	var result: Array[int] = []
-	if _transport == null:
-		return result
-	for peer_id in _transport.get_peers():
-		result.append(peer_id)
-	return result
 
 
 func _success(extra: Dictionary = {}) -> Dictionary:

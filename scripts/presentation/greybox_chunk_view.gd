@@ -25,6 +25,17 @@ func _init() -> void:
 
 
 func _ready() -> void:
+	if not SettingsManager.graphics_settings_changed.is_connected(_on_graphics_settings_changed):
+		SettingsManager.graphics_settings_changed.connect(_on_graphics_settings_changed)
+	queue_redraw()
+
+
+func _exit_tree() -> void:
+	if SettingsManager.graphics_settings_changed.is_connected(_on_graphics_settings_changed):
+		SettingsManager.graphics_settings_changed.disconnect(_on_graphics_settings_changed)
+
+
+func _on_graphics_settings_changed(_profile: Dictionary) -> void:
 	queue_redraw()
 
 
@@ -149,6 +160,7 @@ func presentation_summary() -> Dictionary:
 		"actor_count": actors.size(),
 		"actors": actors,
 		"supply_crate": crate.view_summary() if crate != null else {},
+		"graphics_profile": SettingsManager.graphics_profile(),
 	}
 
 

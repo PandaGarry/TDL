@@ -106,14 +106,16 @@ func set_connected(participant_id: String, connected: bool) -> void:
 	_records[participant_id] = stored
 
 
-func disconnect_peer(peer_id: int) -> Dictionary:
+func disconnect_peer(
+	peer_id: int, grace_seconds: float = EMERGENCY_DISCONNECT_GRACE_SECONDS
+) -> Dictionary:
 	var participant_id := participant_id_for_peer(peer_id)
 	if participant_id.is_empty():
 		return {}
 	var stored := record(participant_id)
 	stored["peer_id"] = 0
 	stored["connected"] = false
-	stored["disconnect_grace_remaining_sec"] = EMERGENCY_DISCONNECT_GRACE_SECONDS
+	stored["disconnect_grace_remaining_sec"] = maxf(grace_seconds, 0.0)
 	stored["sheltered_after_disconnect"] = false
 	_records[participant_id] = stored
 	_peer_to_participant.erase(peer_id)
@@ -141,6 +143,7 @@ func advance_disconnect_grace(world: WorldState, seconds: float) -> Array[Dictio
 			stored["sheltered_after_disconnect"] = true
 			var body_entity_id := int(stored.get("body_entity_id", -1))
 			if world != null and world.is_initialized():
+				var configured_grace := int(round(world.world_rules().disconnect_grace_seconds()))
 				set_body_sheltered(world, body_entity_id, true)
 				(
 					world
@@ -151,7 +154,7 @@ func advance_disconnect_grace(world: WorldState, seconds: float) -> Array[Dictio
 						{
 							"participant_id": participant_id,
 							"entity_id": body_entity_id,
-							"grace_seconds": int(EMERGENCY_DISCONNECT_GRACE_SECONDS),
+							"grace_seconds": configured_grace,
 						},
 						body_entity_id,
 						GreyboxWorld.BODY_DEFINITION_ID

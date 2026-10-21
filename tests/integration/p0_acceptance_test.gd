@@ -312,6 +312,33 @@ func _test_two_process_host_client_disconnect_and_bug_bundle() -> void:
 		"remote_peer body component is marked sheltered in WorldState after 90s grace"
 	)
 
+	var rules_update: Dictionary = (
+		_host_session
+		. configure_world_rules(
+			{
+				"lobby_name": "Sevara Co-op Lobby",
+				"day_length_real_minutes": 6.0,
+				"time_scale": 3.0,
+				"skill_xp_multiplier": 2.5,
+				"absent_settlement_protection": false,
+			}
+		)
+	)
+	_check(bool(rules_update.get("ok", false)), "host updates campaign WorldRules at runtime")
+	_check(
+		is_equal_approx(_host_session.game_minutes_per_real_second, 12.0),
+		"host runtime clock rate updates from WorldRules (6m day x3.0 = 12m/s)"
+	)
+	var rule_facts: Array[Dictionary] = _host_session.world_state().fact_log().facts_of_kind(
+		"world_rules_updated"
+	)
+	_check_equal(rule_facts.size(), 1, "FactLog records world_rules_updated")
+	var bad_rules_update: Dictionary = _host_session.configure_world_rules({"time_scale": -5.0})
+	_check(
+		not bool(bad_rules_update.get("ok", true)),
+		"host rejects out-of-range WorldRules update without mutating state"
+	)
+
 	if host_stage != null:
 		host_stage.refresh_presentation()
 	var export_report: Dictionary = BugBundleExporter.export_to_store(

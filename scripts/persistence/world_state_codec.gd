@@ -263,6 +263,7 @@ static func _migrate_v0_to_v1(document: Dictionary) -> Dictionary:
 		"campaign_id": campaign_id,
 		"genesis_seed": str(genesis_seed),
 		"content_packages": [],
+		"world_rules": WorldRules.new().snapshot_state(),
 		"clock":
 		{
 			"schema_version": WorldClock.SCHEMA_VERSION,

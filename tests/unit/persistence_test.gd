@@ -85,6 +85,35 @@ func _test_world_state_contract() -> void:
 	_check(world.remove_entity(2), "entity removal")
 	_check(not world.has_entity(2), "removed entity no longer exists")
 
+	_check(
+		is_equal_approx(world.world_rules().effective_game_minutes_per_real_second(), 2.0),
+		"default WorldRules 12-min day yields 2.0 game minutes per real second"
+	)
+	var rules_patch: Dictionary = (
+		world
+		. world_rules()
+		. apply_patch(
+			{
+				"lobby_name": "Sevara Test Lobby",
+				"day_length_real_minutes": 6.0,
+				"time_scale": 2.5,
+				"skill_xp_multiplier": 3.0,
+			}
+		)
+	)
+	_check(bool(rules_patch.get("ok", false)), "valid WorldRules patch applies")
+	_check(
+		is_equal_approx(world.world_rules().effective_game_minutes_per_real_second(), 10.0),
+		"patched WorldRules 6-min day x2.5 yields 10.0 game minutes per real second"
+	)
+	var bad_rules_patch: Dictionary = world.world_rules().apply_patch({"max_players": 99})
+	_check(not bool(bad_rules_patch.get("ok", true)), "out-of-range max_players rejected")
+	_check_equal(
+		world.world_rules().lobby_name(),
+		"Sevara Test Lobby",
+		"rejected WorldRules patch leaves existing rules intact"
+	)
+
 	var snapshot := world.snapshot_state()
 	_check(JsonValue.is_safe(snapshot), "world snapshot is JSON-safe")
 	var parsed_snapshot := _json_round_trip(snapshot)

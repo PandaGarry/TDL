@@ -18,6 +18,7 @@ const SCHEMA_VERSION := 1
 var _campaign_id: String = ""
 var _genesis_seed: int = 0
 var _content_packages: Array[Dictionary] = []
+var _world_rules := WorldRules.new()
 var _clock := WorldClock.new()
 var _rng := RngStreams.new()
 var _fact_log := FactLog.new()
@@ -51,6 +52,7 @@ func setup_campaign(campaign_id: String, genesis_seed: int, content_packages: Ar
 	_campaign_id = campaign_id
 	_genesis_seed = genesis_seed
 	_content_packages = validated_packages
+	_world_rules.reset_defaults()
 	_clock.setup(0)
 	_rng.setup(genesis_seed)
 	_fact_log.clear()
@@ -73,6 +75,10 @@ func genesis_seed() -> int:
 
 func content_packages() -> Array[Dictionary]:
 	return _copy_package_array(_content_packages)
+
+
+func world_rules() -> WorldRules:
+	return _world_rules
 
 
 func clock() -> WorldClock:
@@ -206,6 +212,7 @@ func snapshot_state() -> Dictionary:
 		"campaign_id": _campaign_id,
 		"genesis_seed": str(_genesis_seed),
 		"content_packages": JsonValue.duplicate_safe(_content_packages),
+		"world_rules": _world_rules.snapshot_state(),
 		"clock": _clock.snapshot_state(),
 		"rng": _rng.snapshot_state(),
 		"facts": _fact_log.snapshot_state(),
@@ -224,6 +231,7 @@ func restore_state(snapshot: Dictionary) -> bool:
 	_campaign_id = String(parsed["campaign_id"])
 	_genesis_seed = int(parsed["genesis_seed"])
 	_content_packages = _copy_package_array(parsed["content_packages"])
+	_world_rules = parsed["world_rules"] as WorldRules
 	_clock = parsed["clock"] as WorldClock
 	_rng = parsed["rng"] as RngStreams
 	_fact_log = parsed["fact_log"] as FactLog
@@ -237,6 +245,9 @@ static func _parse_snapshot(snapshot: Dictionary) -> Dictionary:
 		return {"ok": false}
 
 	var identity := _parse_snapshot_identity(snapshot)
+	var restored_rules := _restored_world_rules(
+		snapshot.get("world_rules", null), snapshot.has("world_rules")
+	)
 	var restored_clock := _restored_clock(snapshot.get("clock", null))
 	var restored_rng := _restored_rng(
 		snapshot.get("rng", null), int(identity.get("genesis_seed", 0))
@@ -249,6 +260,7 @@ static func _parse_snapshot(snapshot: Dictionary) -> Dictionary:
 
 	var valid := (
 		bool(identity["ok"])
+		and restored_rules != null
 		and restored_clock != null
 		and restored_rng != null
 		and restored_fact_log != null
@@ -264,6 +276,7 @@ static func _parse_snapshot(snapshot: Dictionary) -> Dictionary:
 		"campaign_id": String(identity["campaign_id"]),
 		"genesis_seed": int(identity["genesis_seed"]),
 		"content_packages": identity["content_packages"],
+		"world_rules": restored_rules,
 		"clock": restored_clock,
 		"rng": restored_rng,
 		"fact_log": restored_fact_log,
@@ -273,24 +286,33 @@ static func _parse_snapshot(snapshot: Dictionary) -> Dictionary:
 
 
 static func _snapshot_envelope_is_valid(snapshot: Dictionary) -> bool:
+	var base_keys := [
+		"schema_version",
+		"campaign_id",
+		"genesis_seed",
+		"content_packages",
+		"clock",
+		"rng",
+		"facts",
+		"next_entity_id",
+		"entities",
+	]
+	var full_keys := base_keys.duplicate()
+	full_keys.append("world_rules")
 	return (
 		JsonValue.is_safe(snapshot)
 		and _integer_value(snapshot.get("schema_version", -1)) == SCHEMA_VERSION
-		and _has_only_keys(
-			snapshot,
-			[
-				"schema_version",
-				"campaign_id",
-				"genesis_seed",
-				"content_packages",
-				"clock",
-				"rng",
-				"facts",
-				"next_entity_id",
-				"entities",
-			]
-		)
+		and (_has_only_keys(snapshot, full_keys) or _has_only_keys(snapshot, base_keys))
 	)
+
+
+static func _restored_world_rules(raw_snapshot: Variant, has_key: bool) -> WorldRules:
+	var restored := WorldRules.new()
+	if not has_key:
+		return restored
+	if typeof(raw_snapshot) != TYPE_DICTIONARY:
+		return null
+	return restored if restored.restore_state(raw_snapshot) else null
 
 
 static func _parse_snapshot_identity(snapshot: Dictionary) -> Dictionary:

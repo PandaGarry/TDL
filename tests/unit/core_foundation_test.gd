@@ -273,6 +273,17 @@ func _test_fact_log() -> void:
 	_check(restored.restore_state(snapshot), "fact log snapshot restores")
 	var next_fact := restored.append_fact("world_restored", 122)
 	_check_equal(int(next_fact.get("sequence", 0)), 2, "restored fact log continues sequence")
+	restored.append_fact("third_fact", 123)
+	_check_equal(
+		restored.compact_keeping_recent(1), 2, "compact_keeping_recent removes 2 old facts"
+	)
+	_check_equal(restored.size(), 1, "compacted fact log retains 1 recent fact")
+	_check_equal(restored.next_sequence(), 4, "compacted fact log preserves next_sequence")
+	var compacted_restored := FactLog.new()
+	_check(
+		compacted_restored.restore_state(restored.snapshot_state()),
+		"compacted fact log snapshot restores cleanly"
+	)
 
 	var bad_snapshot: Dictionary = snapshot.duplicate(true)
 	var bad_facts: Array = bad_snapshot["facts"]

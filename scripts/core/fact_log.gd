@@ -52,6 +52,19 @@ func size() -> int:
 	return _facts.size()
 
 
+func next_sequence() -> int:
+	return _next_sequence
+
+
+func compact_keeping_recent(keep_count: int) -> int:
+	var bounded_keep := maxi(keep_count, 0)
+	var remove_count := _facts.size() - bounded_keep
+	if remove_count <= 0:
+		return 0
+	_facts = _facts.slice(remove_count, _facts.size())
+	return remove_count
+
+
 func facts() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	for fact in _facts:

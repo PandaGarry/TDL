@@ -81,6 +81,39 @@ func _test_localization_and_ambience_settings() -> void:
 	_check(AudioServer.is_bus_mute(ambience_bus_idx), "Ambience bus is muted at volume 0.0")
 	SettingsManager.set_ambience_volume(1.0)
 
+	_check(
+		not SettingsManager.set_texture_quality("invalid_preset"),
+		"SettingsManager rejects unknown texture_quality preset"
+	)
+	_check(
+		SettingsManager.set_texture_quality(SettingsManager.TEXTURE_QUALITY_GREYBOX),
+		"SettingsManager accepts greybox texture_quality preset"
+	)
+	SettingsManager.set_foliage_density(0.45)
+	SettingsManager.set_wind_and_water_shaders(false)
+	SettingsManager.set_ui_scale(1.25)
+	SettingsManager.texture_quality = SettingsManager.TEXTURE_QUALITY_HIGH
+	SettingsManager.foliage_density = 1.0
+	SettingsManager.load_settings()
+	var gfx: Dictionary = SettingsManager.graphics_profile()
+	_check_equal(
+		String(gfx.get("texture_quality", "")),
+		SettingsManager.TEXTURE_QUALITY_GREYBOX,
+		"SettingsManager persists texture_quality preset"
+	)
+	_check(
+		is_equal_approx(float(gfx.get("foliage_density", 0.0)), 0.45),
+		"SettingsManager persists foliage_density"
+	)
+	_check(
+		not bool(gfx.get("wind_and_water_shaders", true)),
+		"SettingsManager persists wind_and_water_shaders toggle"
+	)
+	SettingsManager.set_texture_quality(SettingsManager.TEXTURE_QUALITY_HIGH)
+	SettingsManager.set_foliage_density(1.0)
+	SettingsManager.set_wind_and_water_shaders(true)
+	SettingsManager.set_ui_scale(1.0)
+
 
 func _test_grid_metrics_and_physics_layers() -> void:
 	var center := GreyboxGridMetrics.tile_to_world_center(Vector2i(2, 3), 48.0)
