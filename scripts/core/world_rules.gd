@@ -220,21 +220,21 @@ static func _validate_snapshot(snapshot: Dictionary) -> Dictionary:
 	if not JsonValue.is_safe(snapshot):
 		return {"ok": false, "error": "world_rules snapshot is not JSON-safe"}
 	var required_keys := _snapshot_keys()
-	if not GreyboxWorld.has_only_keys(snapshot, required_keys):
+	if not _has_only_keys(snapshot, required_keys):
 		return {"ok": false, "error": "world_rules snapshot has missing or unknown keys"}
 
-	var schema := GreyboxWorld.integral_value(snapshot.get("schema_version", -1))
+	var schema := _integral_value(snapshot.get("schema_version", -1))
 	if not bool(schema.get("ok", false)) or int(schema.get("value", -1)) != SCHEMA_VERSION:
 		return {"ok": false, "error": "unsupported world_rules schema_version"}
 
-	var raw_lobby := snapshot.get("lobby_name", null)
+	var raw_lobby: Variant = snapshot.get("lobby_name", null)
 	if typeof(raw_lobby) != TYPE_STRING:
 		return {"ok": false, "error": "lobby_name must be a string"}
 	var lobby := String(raw_lobby).strip_edges()
 	if lobby.is_empty() or lobby.length() > MAX_LOBBY_NAME_LENGTH:
 		return {"ok": false, "error": "lobby_name length must be 1..%d" % MAX_LOBBY_NAME_LENGTH}
 
-	var parsed_max_players := GreyboxWorld.integral_value(snapshot.get("max_players", -1))
+	var parsed_max_players := _integral_value(snapshot.get("max_players", -1))
 	var max_p := int(parsed_max_players.get("value", -1))
 	if (
 		not bool(parsed_max_players.get("ok", false))
@@ -332,3 +332,22 @@ static func _snapshot_keys() -> Array[String]:
 	var keys := _patchable_keys()
 	keys.append("schema_version")
 	return keys
+
+
+static func _has_only_keys(dict: Dictionary, required_keys: Array[String]) -> bool:
+	if dict.size() != required_keys.size():
+		return false
+	for key in required_keys:
+		if not dict.has(key):
+			return false
+	return true
+
+
+static func _integral_value(value: Variant) -> Dictionary:
+	if typeof(value) == TYPE_INT:
+		return {"ok": true, "value": int(value)}
+	if typeof(value) == TYPE_FLOAT:
+		var f := float(value)
+		if is_finite(f) and is_equal_approx(f, roundf(f)):
+			return {"ok": true, "value": int(roundf(f))}
+	return {"ok": false, "value": 0}
