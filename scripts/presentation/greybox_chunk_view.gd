@@ -14,6 +14,7 @@ var _height_tiles: int = 24
 var _local_body_entity_id: int = -1
 var _local_tile: Vector2i = Vector2i(-1, -1)
 var _hour_of_day: int = 8
+var _basin_nodes_count: int = 0
 var _basin_summary: Dictionary = {}
 var _npcs_summary: Array[Dictionary] = []
 var _actor_views_by_entity: Dictionary = {}
@@ -63,6 +64,7 @@ func sync_from_session(session: GameSession) -> Dictionary:
 	var connected_by_participant := _connected_lookup(status)
 	_local_tile = _resolve_entity_tile(world, _local_body_entity_id)
 	_hour_of_day = world.clock().hour_of_day()
+	_basin_nodes_count = SevaraEcoChain.find_basin_nodes(world).size()
 	_basin_summary = SevaraEcoChain.basin_summary(world)
 	_npcs_summary = SevaraP1Npcs.npcs_summary(world)
 
@@ -104,6 +106,7 @@ func dehydrate_all() -> void:
 	_local_body_entity_id = -1
 	_local_tile = Vector2i(-1, -1)
 	_hour_of_day = 8
+	_basin_nodes_count = 0
 	_basin_summary = {}
 	_npcs_summary = []
 	queue_redraw()
@@ -170,7 +173,7 @@ func presentation_summary() -> Dictionary:
 		"actor_count": actors.size(),
 		"actors": actors,
 		"supply_crate": crate.view_summary() if crate != null else {},
-		"p1_basin_nodes_count": int(_basin_summary.get("node_count", 0)),
+		"p1_basin_nodes_count": _basin_nodes_count,
 		"p1_npcs_count": _npcs_summary.size(),
 		"ambient_phase": String(light.get("phase", "morning")),
 		"graphics_profile": SettingsManager.graphics_profile(),

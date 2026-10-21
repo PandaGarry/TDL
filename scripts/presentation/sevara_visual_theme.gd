@@ -21,9 +21,7 @@ static func load_canvas_texture(base_name: String, include_normals: bool = true)
 			return cached as Texture2D
 
 	var diffuse_path := "%s/%s.png" % [TEXTURE_DIR, base_name]
-	if not ResourceLoader.exists(diffuse_path):
-		return null
-	var diffuse := ResourceLoader.load(diffuse_path) as Texture2D
+	var diffuse := _load_texture_2d(diffuse_path)
 	if diffuse == null:
 		return null
 
@@ -34,12 +32,24 @@ static func load_canvas_texture(base_name: String, include_normals: bool = true)
 	var normal_path := "%s/%s_normal.png" % [TEXTURE_DIR, base_name]
 	var canvas_tex := CanvasTexture.new()
 	canvas_tex.diffuse_texture = diffuse
-	if ResourceLoader.exists(normal_path):
-		var normal := ResourceLoader.load(normal_path) as Texture2D
-		if normal != null:
-			canvas_tex.normal_texture = normal
+	var normal := _load_texture_2d(normal_path)
+	if normal != null:
+		canvas_tex.normal_texture = normal
 	_cached_textures[cache_key] = canvas_tex
 	return canvas_tex
+
+
+static func _load_texture_2d(res_path: String) -> Texture2D:
+	var abs_path := ProjectSettings.globalize_path(res_path)
+	if FileAccess.file_exists(abs_path):
+		var img := Image.load_from_file(abs_path)
+		if img != null and not img.is_empty():
+			return ImageTexture.create_from_image(img)
+	if ResourceLoader.exists(res_path):
+		var res: Resource = ResourceLoader.load(res_path)
+		if res is Texture2D:
+			return res as Texture2D
+	return null
 
 
 static func lighting_for_hour(hour_of_day: int) -> Dictionary:
@@ -141,11 +151,21 @@ static func draw_chunk_landscape(
 
 	var include_normals := quality == "medium" or quality == "high"
 	var light := lighting_for_hour(hour_of_day)
-	var ambient: Color = light.get("ambient", Color.WHITE)
+	var ambient := _color_or(light.get("ambient"), Color.WHITE)
 	var chunk_clean_tex := load_canvas_texture("chunk_nivara_clean", include_normals)
 	var chunk_silted_tex := load_canvas_texture("chunk_nivara_silted_dusk", false)
-	var avg_silt := float(basin_summary.get("average_silt_load", 0.28))
-	var kevalu_wild := bool(basin_summary.get("any_kevalu_wild", false))
+	var wetland: Variant = basin_summary.get("mulane_wetland", {})
+	var channel: Variant = basin_summary.get("nivarel_channel", {})
+	var avg_silt := (
+		float((wetland as Dictionary).get("silt_load", 0.28))
+		if typeof(wetland) == TYPE_DICTIONARY
+		else 0.28
+	)
+	var kevalu_wild := (
+		float((channel as Dictionary).get("kevalu_wild_biomass", 0.0)) > 0.05
+		if typeof(channel) == TYPE_DICTIONARY
+		else false
+	)
 	var phase := String(light.get("phase", "morning"))
 
 	if chunk_clean_tex != null:
@@ -163,45 +183,10 @@ static func draw_chunk_landscape(
 		return
 
 	var meadow_tex := load_canvas_texture("tex_meadow_moss_and_snow", include_normals)
-	var mud_tex := load_canvas_texture("tex_spring_mud_and_silt", include_normals)
-	var pebble_tex := load_canvas_texture("tex_riverbed_pebbles", include_normals)
-	var stone_tex := load_canvas_texture("tex_stone_and_timber", include_normals)
-
 	if meadow_tex != null:
 		canvas.draw_texture_rect(field_rect, meadow_tex, true, ambient)
 	else:
 		canvas.draw_rect(field_rect, Color(0.22, 0.28, 0.19, 1.0) * ambient, true)
-
-	var courtyard_rect := Rect2(
-		Vector2(10.0, 8.0) * tile_size_px, Vector2(12.0, 9.0) * tile_size_px
-	)
-	if mud_tex != null:
-		canvas.draw_texture_rect(courtyard_rect, mud_tex, true, ambient)
-
-	var channel_rect := Rect2(
-		Vector2(13.0, 0.0) * tile_size_px, Vector2(4.5, float(height_tiles)) * tile_size_px
-	)
-	if stone_tex != null:
-		canvas.draw_texture_rect(channel_rect.grow(tile_size_px * 0.45), stone_tex, true, ambient)
-	if pebble_tex != null:
-		canvas.draw_texture_rect(channel_rect, pebble_tex, true, ambient)
-
-	var water_color := Color(0.18, 0.36, 0.42, 0.62).lerp(
-		Color(0.46, 0.31, 0.20, 0.84), clampf(avg_silt * 1.15, 0.0, 1.0)
-	)
-	canvas.draw_rect(channel_rect, water_color * ambient, true)
-
-	var sluice_rect := Rect2(Vector2(12.8, 10.6) * tile_size_px, Vector2(4.9, 1.1) * tile_size_px)
-	canvas.draw_rect(sluice_rect, Color(0.32, 0.23, 0.16, 0.96) * ambient, true)
-	canvas.draw_rect(sluice_rect, Color(0.58, 0.45, 0.31, 0.95) * ambient, false, 2.0)
-
-	var kevar_center := Vector2(25.5, 5.5) * tile_size_px
-	canvas.draw_circle(kevar_center, tile_size_px * 2.2, Color(0.18, 0.20, 0.23, 0.92) * ambient)
-	canvas.draw_circle(kevar_center, tile_size_px * 1.5, Color(0.16, 0.28, 0.33, 0.88) * ambient)
-	if bool(basin_summary.get("any_kevalu_wild", false)):
-		canvas.draw_arc(
-			kevar_center, tile_size_px * 1.85, 0.0, TAU, 32, Color(0.78, 0.77, 0.72, 0.85), 2.5
-		)
 
 
 static func draw_humanoid_6_5_heads(
@@ -214,7 +199,7 @@ static func draw_humanoid_6_5_heads(
 	hour_of_day: int
 ) -> void:
 	var light := lighting_for_hour(hour_of_day)
-	var shadow_offset: Vector2 = light.get("shadow_offset", Vector2(-0.4, 0.28))
+	var shadow_offset := _vec2_or(light.get("shadow_offset"), Vector2(-0.4, 0.28))
 	var shadow_alpha := float(light.get("shadow_alpha", 0.4))
 	var h := tile_size_px * 0.92
 	var head_r := h / 6.8 * 0.52
@@ -225,9 +210,9 @@ static func draw_humanoid_6_5_heads(
 		Color(0.02, 0.03, 0.04, shadow_alpha)
 	)
 
-	var cloak_color: Color = palette.get("cloak", Color(0.34, 0.40, 0.28, 1.0))
-	var tunic_color: Color = palette.get("tunic", Color(0.68, 0.62, 0.52, 1.0))
-	var trim_color: Color = palette.get("trim", Color(0.86, 0.68, 0.28, 1.0))
+	var cloak_color := _color_or(palette.get("cloak"), Color(0.34, 0.40, 0.28, 1.0))
+	var tunic_color := _color_or(palette.get("tunic"), Color(0.68, 0.62, 0.52, 1.0))
+	var trim_color := _color_or(palette.get("trim"), Color(0.86, 0.68, 0.28, 1.0))
 	var wetness := float(vitals.get("wetness", 0.0))
 	if wetness > 20.0:
 		cloak_color = cloak_color.darkened(clampf(wetness / 180.0, 0.0, 0.38))
@@ -277,3 +262,15 @@ static func draw_humanoid_6_5_heads(
 			head_r * 0.55,
 			Color(0.88, 0.93, 0.96, 0.45)
 		)
+
+
+static func _color_or(raw: Variant, fallback: Color) -> Color:
+	if typeof(raw) == TYPE_COLOR:
+		return raw as Color
+	return fallback
+
+
+static func _vec2_or(raw: Variant, fallback: Vector2) -> Vector2:
+	if typeof(raw) == TYPE_VECTOR2:
+		return raw as Vector2
+	return fallback
