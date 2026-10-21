@@ -298,7 +298,7 @@ func process_pending_intents(max_intents: int = MAX_INTENTS_PER_BATCH) -> Dictio
 	_intent_processing_in_progress = true
 	var results: Array[Dictionary] = []
 	while not _pending_intents.is_empty() and results.size() < max_intents:
-		var item := _pending_intents.pop_front()
+		var item: Dictionary = _pending_intents.pop_front()
 		results.append(_process_intent_item(item))
 	_intent_processing_in_progress = false
 
