@@ -87,6 +87,7 @@
 | Документ | О чём |
 |---|---|
 | [`architecture.md`](tech/architecture.md) | Архитектура кода и сцен, автозагрузки, потоки данных |
+| [`core_foundation_blueprint.md`](tech/core_foundation_blueprint.md) | Предстартовый план фундамента Core: слои, стабильные контракты расширения, инженерный контур и порядок P0 |
 | [`conventions.md`](tech/conventions.md) | Именования, стиль GDScript, структура папок, гитовые договорённости |
 | [`addons.md`](tech/addons.md) | Плагины: что установлено, зачем, как включать и обновлять |
 | [`build_and_export.md`](tech/build_and_export.md) | Экспорт билдов, Git LFS, релизный чек-лист |

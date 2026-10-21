@@ -3,7 +3,9 @@
 Статус: **Baseline Core stack после раунда 12**. Движок: **Godot
 4.7.2**, язык — **типизированный GDScript**, renderer —
 **Compatibility**. Полный стек и критерии P0:
-`docs/production/round12_baseline_lock.md`. Принцип: сцены
+`docs/production/round12_baseline_lock.md`. Предстартовый план слоёв,
+контрактов расширения и порядка строительства фундамента:
+`docs/tech/core_foundation_blueprint.md`. Принцип: сцены
 самодостаточны, автозагрузок мало и каждая — про одну глобальную заботу.
 
 ## Точка входа
