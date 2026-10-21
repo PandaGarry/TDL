@@ -810,13 +810,7 @@ func _handle_welcome(payload: Dictionary) -> void:
 		_emit_session_error(String(parsed.get("error", "invalid welcome payload")))
 		return
 	_next_client_sequence = int(parsed.get("next_client_sequence", 1))
-	if _apply_snapshot_payload(parsed.get("snapshot", {})):
-		_client_ready = (
-			_body_entity_id_for_participant(_local_participant_id)
-			== int(parsed.get("body_entity_id", -1))
-		)
-		if not _client_ready:
-			_emit_session_error("welcome body does not match the snapshot body")
+	_apply_snapshot_payload(parsed.get("snapshot", {}), int(parsed.get("body_entity_id", -1)))
 
 
 func _make_snapshot_payload() -> Dictionary:
@@ -828,14 +822,13 @@ func _make_snapshot_payload() -> Dictionary:
 	}
 
 
-func _apply_snapshot_payload(payload: Dictionary) -> bool:
+func _apply_snapshot_payload(payload: Dictionary, expected_body_id: int = -1) -> bool:
 	var validation := SessionMessageValidator.validated_snapshot_world(
 		payload, _registry, [SessionWorldLoader.package_pin_for_registry(_registry)]
 	)
-	if not bool(validation.get("ok", false)):
+	if not bool(validation.get("ok", false)) or not _world.restore_state(payload["world_snapshot"]):
 		_emit_session_error(String(validation.get("error", "invalid snapshot")))
 		return false
-	_world = validation.get("world") as WorldState
 	_greybox_object_entity_id = GreyboxWorld.find_supply_object(_world)
 	_participants_state.rebuild_from_world(_world)
 	_participants_state.overlay_public_records(
@@ -846,6 +839,11 @@ func _apply_snapshot_payload(payload: Dictionary) -> bool:
 	_scheduler.reset_for_minute(_current_tick())
 	_last_snapshot_minute = _current_tick()
 	_world_dirty = false
+	if expected_body_id > 0:
+		_client_ready = _body_entity_id_for_participant(_local_participant_id) == expected_body_id
+		if not _client_ready:
+			_emit_session_error("welcome body does not match the snapshot body")
+			return false
 	snapshot_applied.emit(String(validation.get("state_hash", "")))
 	return true
 

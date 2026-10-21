@@ -93,6 +93,23 @@ if grep -RniE 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load res
 	FAILED=1
 fi
 
+for required_pair in \
+	"validate_scripts.log:PROJECT_VALIDATION_OK" \
+	"core_foundation_tests.log:CORE_FOUNDATION_TESTS_OK" \
+	"persistence_tests.log:PERSISTENCE_TESTS_OK" \
+	"session_tests.log:SESSION_TESTS_OK" \
+	"presentation_tests.log:PRESENTATION_TESTS_OK" ; do
+	log_file="${required_pair%%:*}"
+	marker="${required_pair#*:}"
+	if ! grep -Fq "$marker" "$LOG_DIR/$log_file" ; then
+		echo "!! В '$LOG_DIR/$log_file' отсутствует маркер успешного завершения '$marker'"
+		if [ "${GITHUB_ACTIONS:-false}" = "true" ]; then
+			echo "::error title=Missing test marker::${log_file} did not print ${marker}"
+		fi
+		FAILED=1
+	fi
+done
+
 if [ "$FAILED" -ne 0 ]; then
 	# В GitHub Actions дублируем ключевые строки логов в аннотации и summary:
 	# полные логи/артефакты не всегда доступны внешним инструментам, а первые
