@@ -177,7 +177,7 @@ static func draw_chunk_landscape(
 	var meadow_tex := load_canvas_texture("tex_meadow_moss_and_snow", include_normals)
 	var outer_rect := field_rect.grow(tile_size_px * 18.0)
 	if meadow_tex != null:
-		canvas.draw_texture_rect(meadow_tex, outer_rect, true, ambient.darkened(0.18))
+		canvas.draw_texture_rect(meadow_tex, outer_rect, false, ambient.darkened(0.18))
 	else:
 		canvas.draw_rect(outer_rect, Color(0.16, 0.21, 0.15, 1.0) * ambient, true)
 

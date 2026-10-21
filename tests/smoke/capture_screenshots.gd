@@ -55,7 +55,9 @@ func _capture_stage_states(abs_dir: String) -> void:
 	stage.start_offline_campaign("sevara_p1_showcase", 4072026, "host", "Путник")
 	stage.enable_p1_slice()
 	stage.session().advance_simulation_minutes(480)
-	stage.session().submit_local_intent(SessionProtocol.INTENT_MOVE_BODY, {"dx": 10, "dy": 8})
+	for _step in range(8):
+		stage.session().submit_intent(SessionProtocol.INTENT_MOVE_BODY, {"dx": 1, "dy": 0})
+		stage.session().submit_intent(SessionProtocol.INTENT_MOVE_BODY, {"dx": 0, "dy": 1})
 	stage.session().process_pending_intents()
 	SettingsManager.set_texture_quality(SettingsManager.TEXTURE_QUALITY_HIGH)
 	stage.refresh_presentation()
@@ -66,11 +68,11 @@ func _capture_stage_states(abs_dir: String) -> void:
 	await _wait_frames(4)
 	_save_viewport_png(abs_dir.path_join("02_godot_stage_p1_morning_clean.png"))
 
-	stage.session().submit_local_intent(
+	stage.session().submit_intent(
 		SessionProtocol.INTENT_ECO_INTERVENTION,
 		{"intervention": SevaraEcoChain.INTERVENTION_CLEAR_NAVELU_DAM}
 	)
-	stage.session().submit_local_intent(
+	stage.session().submit_intent(
 		SessionProtocol.INTENT_ECO_INTERVENTION,
 		{"intervention": SevaraEcoChain.INTERVENTION_RELEASE_KEVALU_WILD}
 	)
