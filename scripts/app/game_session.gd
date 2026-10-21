@@ -417,11 +417,12 @@ func domain_state_hash() -> String:
 	return StateHash.sha256_hex(_world.snapshot_state())
 
 
-func take_local_events() -> Array[Dictionary]:
+func take_local_events(clear_after: bool = true) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	for event in _local_events:
 		result.append(JsonValue.duplicate_safe(event) as Dictionary)
-	_local_events.clear()
+	if clear_after:
+		_local_events.clear()
 	return result
 
 
@@ -774,6 +775,7 @@ func _handle_hello(peer_id: int, payload: Dictionary) -> void:
 		and int(existing_record.get("peer_id", 0)) == peer_id
 	)
 	_pending_peers.erase(peer_id)
+	SessionParticipants.set_body_sheltered(_world, body_entity_id, false)
 	var record := _participants_state.upsert_record(
 		participant_id, peer_id, display_name, body_entity_id, true
 	)

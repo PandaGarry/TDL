@@ -3,10 +3,14 @@
 Рабочее название игры на **Godot 4.7** (GDScript). Репозиторий подготовлен
 с чистого листа как аккуратный технический каркас и документальная база
 пре-продакшена. Направление H1 выбрано; Baseline Lock раунда 12 собрал
-**GDD v1.0 Core Baseline**, достаточный для строительства ядра. P0 уже
-в активной сборке: реализованы примитивы Core, реестр JSON-данных,
-мировой crash-safe сейв и авторитетная `GameSession` с ENet-транспортом,
-но визуальной greybox-сцены и полной симуляции долины в коде пока нет.
+**GDD v1.0 Core Baseline**, достаточный для строительства ядра.
+Технологический фундамент **P0 (P0-A..P0-G)** полностью реализован и
+принят зелёным CI на Godot 4.7.2: примитивы Core, реестр JSON-данных,
+мировой crash-safe сейв, авторитетная `GameSession` с ENet-транспортом,
+играбельная greybox-сцена чанка с `ActorView`/`Camera2D`/debug overlay,
+двухпроцессная сетевая приёмка, 90-секундное аварийное окно отключения,
+экспорт `BugBundle` и сезонный soak-smoke раннер. Следующий этап — **P1**
+(одна полная экологическая цепочка и Кевар/Кевалу/карантин).
 
 > Название **TDL** — временное (унаследовано от имени репозитория).
 > Настоящее название пока не выбрано и не блокирует пре-продакшен.
@@ -27,14 +31,14 @@
 | Папка | Что внутри |
 |---|---|
 | `scenes/` | Сцены Godot: `main/`, `levels/`, `characters/`, `ui/` |
-| `scripts/` | GDScript: `autoloads/` (оболочка), `app/`, `components/`, `core/`, `features/`, `net/`, `persistence/`, `ui/` |
+| `scripts/` | GDScript: `autoloads/` (оболочка), `app/`, `components/`, `core/`, `features/`, `levels/`, `net/`, `persistence/`, `presentation/`, `ui/` |
 | `assets/` | Арт, аудио (`music/`, `sfx/`, `ambience/`), шрифты, шейдеры |
 | `resources/` | Данные Godot (`.tres`): конфиги, темы UI, диалоги |
 | `addons/` | Сторонние плагины (см. [`addons/README.md`](addons/README.md)) — лежат готовыми, но **выключены** до первого использования |
 | `docs/` | Дизайн (`design/`), лор (`lore/`), арт (`art/`), техника (`tech/`), продакшен (`production/`) |
 | `tools/` | Служебные скрипты (установка/обновление плагинов) |
 | `data/` | Версионированные пакеты определений Core (`data/core`) |
-| `tests/` | Smoke, собственные P0 foundation/persistence/session runners и fixtures; спайк GdUnit4 — перед сценовыми тестами |
+| `tests/` | Smoke, модульные (`unit/`), двухпроцессные приёмочные (`integration/`), сезонные (`soak/`) runners и `fixtures/` |
 
 ## Что уже работает
 
@@ -59,19 +63,25 @@ DefinitionRegistry, WorldState, SimulationScheduler и константы сло
 лежат codec мирового сейва v1 с checksum/миграцией и generic atomic
 `SaveStore` с backup recovery. В `scripts/app/`, `scripts/net/` и
 `scripts/features/greybox/` реализована авторитетная `GameSession`,
-JSON-протокол, ENet-адаптер и первые greybox-сущности/намерения.
+90-секундное аварийное окно отключения участников, `BugBundleExporter`,
+JSON-протокол, ENet-адаптер и первые greybox-сущности/намерения. В
+`scripts/presentation/`, `scripts/levels/` и `scenes/levels/greybox_stage.tscn`
+реализована презентация чанка (`GreyboxChunkView`, `ActorView`,
+`SupplyCrateView`), `Camera2D`, контроллер семантического ввода,
+`GreyboxDebugOverlay` и RU/EN каталог `UiLocaleCatalog`.
 
 **Проверка движком:** GitHub Actions при каждом пуше скачивает официальный
 Godot **4.7.2**, проверяет сумму SHA512, импортирует проект, компилирует
-все скрипты в контексте проекта, запускает P0 foundation, persistence и
-session tests и главную сцену в headless-режиме; gdtoolkit 4.5.0 проверяет формат/линт всех
+все скрипты в контексте проекта, запускает P0 foundation, persistence,
+session, presentation, двухпроцессный P0 acceptance и сезонный soak-smoke
+тесты, а также главную сцену в headless-режиме; gdtoolkit 4.5.0 проверяет формат/линт всех
 first-party GDScript в `scripts/` и `tests/`
 (`.github/workflows/godot-validate.yml`, локально —
 `tools/check_project.sh`).
 
 ## Статус
 
-**Пре-продакшен завершён Baseline Lock; идёт строительство P0 Core.** Выбрано направление H1 «Родной мир на общем
+**Пре-продакшен и технологический фундамент P0 завершены; следующий этап — P1 (экологическая цепочка).** Выбрано направление H1 «Родной мир на общем
 игровом ядре»: открытый живой дом, кооператив 1–4, конечная экология,
 якорные разломы между планетами, смертные персонажи и наследие мира.
 Стратегические основания и причинная рамка одобрены в раундах 4–5;

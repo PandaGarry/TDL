@@ -28,7 +28,7 @@ static func build_bundle(
 		recent_facts = world.fact_log().last_facts(DEFAULT_FACT_LIMIT)
 	var session_events: Array[Dictionary] = []
 	if session != null:
-		session_events = session.take_local_events()
+		session_events = session.take_local_events(false)
 	var stage_status: Dictionary = stage.stage_status() if stage != null else {}
 
 	var raw_payload := {

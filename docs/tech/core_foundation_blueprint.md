@@ -432,9 +432,23 @@ GdUnit4, экспортный билд и perf-бенчмарки — им ну�
    клиент не пишет сейв и не меняет мир локально; факты пишутся на
    текущей минуте `WorldClock`. Первый зелёный прогон — CI
    `39644000774`, hardening-gate — CI `39645425915`.
-6. **P0-F. Greybox-презентация:** чанк, ActorView, Camera2D, debug overlay.
-7. **P0-G. Приёмка:** unit/integration/soak-smoke, краш сейва, битый JSON,
-   отключение клиента, одинаковый мир у host/client.
+6. **P0-F. Greybox-презентация — реализовано:** `GreyboxGridMetrics`,
+   `ActorView` (`CharacterBody2D` + `Area2D` на `PhysicsLayers`),
+   `SupplyCrateView` (`StaticBody2D`), `GreyboxChunkView`,
+   `GreyboxInputController`, `GreyboxDebugOverlay`, `UiLocaleCatalog`
+   (RU/EN), громкость `Ambience` в `SettingsManager` и сцена
+   `scenes/levels/greybox_stage.tscn`. Удаление/пересоздание узлов
+   презентации не меняет `domain_state_hash()`. Первый зелёный прогон —
+   CI `39652369054`, hardening-gate — CI `39652890941`.
+7. **P0-G. Приёмка — реализовано:** двухпроцессная (`OS.create_process`)
+   проверка `host` + `client` (`tests/integration/p0_acceptance_test.tscn`
+   и `enet_client_worker.tscn`), симуляция краша во время сохранения с
+   восстановлением из backup, устойчивость к битому JSON манифеста и
+   сейва, 90-секундное аварийное окно отключения с переводом тела в
+   укрытие (`participant_sheltered` и флаг `sheltered` в `WorldState`),
+   `BugBundleExporter` (`tdl.bug_bundle` v1) и сезонный headless
+   soak-smoke раннер (`tests/soak/p0_soak_smoke_test.tscn`, 3 сида по
+   30 игровых дней). Зелёный прогон — CI `39655812588`.
 
 ### Постоянный quality gate после каждого этапа
 

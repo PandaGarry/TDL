@@ -303,6 +303,14 @@ func _test_two_process_host_client_disconnect_and_bug_bundle() -> void:
 		"participant_sheltered"
 	)
 	_check_equal(sheltered_facts.size(), 1, "FactLog records participant_sheltered after 90s grace")
+	var remote_body_id := GreyboxWorld.find_body(_host_session.world_state(), "remote_peer")
+	var remote_body_comp: Dictionary = _host_session.world_state().get_entity_component(
+		remote_body_id, GreyboxWorld.BODY_COMPONENT
+	)
+	_check(
+		bool(remote_body_comp.get("sheltered", false)),
+		"remote_peer body component is marked sheltered in WorldState after 90s grace"
+	)
 
 	if host_stage != null:
 		host_stage.refresh_presentation()
@@ -317,6 +325,15 @@ func _test_two_process_host_client_disconnect_and_bug_bundle() -> void:
 		String(bundle_payload.get("state_hash", "")),
 		_host_session.domain_state_hash(),
 		"loaded bug bundle state_hash matches host session"
+	)
+	var tampered_bundle: Dictionary = (bundle_load.get("bundle", {}) as Dictionary).duplicate(true)
+	var tampered_payload: Dictionary = tampered_bundle.get("payload", {})
+	tampered_payload["note"] = "tampered note"
+	tampered_bundle["payload"] = tampered_payload
+	var tampered_validation: Dictionary = BugBundleExporter.validate_bundle(tampered_bundle)
+	_check(
+		not bool(tampered_validation.get("ok", true)),
+		"BugBundleExporter rejects bundle with tampered payload"
 	)
 
 	_cleanup_two_process(host_stage)

@@ -141,6 +141,7 @@ func advance_disconnect_grace(world: WorldState, seconds: float) -> Array[Dictio
 			stored["sheltered_after_disconnect"] = true
 			var body_entity_id := int(stored.get("body_entity_id", -1))
 			if world != null and world.is_initialized():
+				set_body_sheltered(world, body_entity_id, true)
 				(
 					world
 					. fact_log()
@@ -159,6 +160,19 @@ func advance_disconnect_grace(world: WorldState, seconds: float) -> Array[Dictio
 			sheltered_list.append(stored.duplicate(true))
 		_records[participant_id] = stored
 	return sheltered_list
+
+
+static func set_body_sheltered(world: WorldState, body_entity_id: int, sheltered: bool) -> void:
+	if world == null or not world.is_initialized() or body_entity_id < 1:
+		return
+	var body_comp := world.get_entity_component(body_entity_id, GreyboxWorld.BODY_COMPONENT)
+	if body_comp.is_empty():
+		return
+	if sheltered:
+		body_comp["sheltered"] = true
+	else:
+		body_comp.erase("sheltered")
+	world.set_entity_component(body_entity_id, GreyboxWorld.BODY_COMPONENT, body_comp)
 
 
 func disconnect_grace_summary() -> Dictionary:

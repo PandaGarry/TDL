@@ -16,6 +16,60 @@
 
 ---
 
+## 2026-10-21 — P0-F и P0-G завершены: greybox-презентация, двухпроцессная приёмка P0 и закрытие технологического фундамента
+
+- **Основание:** плановое завершение технологического фундамента P0 по
+  `docs/tech/core_foundation_blueprint.md` и `docs/production/round12_baseline_lock.md`
+  с прохождением обязательного standing quality gate после каждого среза.
+  Конкретные классы и тестовые сцены ниже — техническая реализация агента
+  в рамках одобренного Baseline Lock.
+- **Что реализовано в P0-F (презентация и локализация):**
+  - `UiLocaleCatalog` (`scripts/ui/ui_locale_catalog.gd`) с RU/EN-переводами
+    для главного меню, greybox-сцены и debug overlay, регистрируемыми в
+    `TranslationServer`; сохранение/перезагрузка громкости шины `Ambience`
+    в `SettingsManager`;
+  - `GreyboxGridMetrics`, `ActorView` (`CharacterBody2D` + `Area2D` на
+    слоях `PhysicsLayers`), `SupplyCrateView` (`StaticBody2D`),
+    `GreyboxChunkView`, `GreyboxInputController`, `GreyboxDebugOverlay` и
+    сцена `scenes/levels/greybox_stage.tscn` (`scripts/levels/greybox_stage.gd`);
+  - модульный и сетевой сценовый раннер `tests/unit/presentation_test.tscn`.
+- **Уроки CI и hardening P0-F:**
+  - в Godot 4.7.2 `SceneMultiplayer::_process_packet` отбрасывает пакеты
+    при пустом `root_path`; в `EnetSessionTransport._create_api()` явно
+    задан `_api.root_path = NodePath("/root")`;
+  - в `GameSession._apply_snapshot_payload` обновление клиентского мира
+    переведено на `_world.restore_state(...)` на месте, чтобы внешние
+    ссылки на `session.world_state()` не устаревали после репликации;
+  - в `tools/check_project.sh` добавлена обязательная проверка маркеров
+    `*_OK` в логах тестовых сцен;
+  - в рамках hardening-gate P0-F (`05dea60`, CI `39652890941` — success)
+    добавлен канонический парсинг целых чисел во view-скриптах, защита от
+    отпускания клавиш и `echo`-событий во вводе, публичное сохранение
+    офлайн-кампании из `GreyboxStage` и тест `bind_session(null)`.
+- **Что реализовано в P0-G (приёмка P0, аварийное окно и soak):**
+  - 90-секундное аварийное окно отключения участников в
+    `SessionParticipants` и `GameSession` (`advance_disconnect_grace`,
+    сводка `disconnect_grace`, запись факта `participant_sheltered` в
+    `FactLog` и флага `sheltered: true` в компоненте тела в `WorldState`,
+    автоматический выход из укрытия при повторном подключении);
+  - `BugBundleExporter` (`scripts/app/bug_bundle_exporter.gd`, формат
+    `tdl.bug_bundle` v1) с контрольной суммой SHA-256 и недеструктивным
+    чтением локального журнала сессии;
+  - двухпроцессный (`OS.create_process`) ENet-воркер клиента
+    `tests/integration/enet_client_worker.tscn` и приёмочный раннер
+    `tests/integration/p0_acceptance_test.tscn` (детерминированный повтор
+    с фиксированным сидом, симуляция краша во время сохранения,
+    устойчивость к битому JSON манифеста и сейва, совпадение `state_hash`
+    между процессами ОС `host` и `client`, проверка 90-секундного окна и
+    подделки `BugBundle`);
+  - сезонный soak-smoke раннер `tests/soak/p0_soak_smoke_test.tscn`
+    (3 сида по 30 игровых дней = 43,200 минут каждый с почасовыми,
+    суточными и 10-дневными системами, потоками `RngStreams` и проверкой
+    бит-в-бит идентичного повтора сезона).
+- **Вердикт gate:** технологический фундамент **P0 (P0-A..P0-G)** полностью
+  закрыт и стабилен. Следующий этап по дорожной карте — **P1** (одна
+  полная экологическая цепочка и Кевар/Кевалу/карантин).
+
 ## 2026-10-21 — P0-E: авторитетная GameSession, ENet-шов и hardening-gate пройдены
 
 - **Основание:** после закрытия P0-D и закрепления постоянного quality

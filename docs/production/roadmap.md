@@ -92,10 +92,13 @@ Baseline Lock раунда 12 принимает последовательно�
 модели C. Состав и критерии приёмки — в
 `docs/production/round12_baseline_lock.md`.
 
-- [~] P0: InputMap/слои, DefinitionRegistry, WorldClock/RNG/FactLog,
-      WorldState, crash-safe мировой сейв и авторитетная GameSession/
-      ENet-хост с двумя телами реализованы и проверены в CI; дальше
-      greybox-презентация P0-F и приёмка P0-G
+- [x] P0: InputMap/слои, DefinitionRegistry, WorldClock/RNG/FactLog,
+      WorldState, crash-safe мировой сейв, авторитетная GameSession/ENet,
+      greybox-презентация чанка (`GreyboxStage`, `ActorView`, `Camera2D`,
+      debug overlay, RU/EN локализация, шина `Ambience`), двухпроцессная
+      приёмка P0-G, 90-секундное окно отключения, `BugBundleExporter` и
+      сезонный soak-smoke полностью реализованы и закрыты зелёным CI на
+      Godot 4.7.2
 - [ ] P1: одна полная экологическая цепочка и Кевар/Кевалу/карантин
 - [ ] P2: два поселения, взрослый резерв, вакансия вождя и автономные
       прогоны нескольких сезонов на разных сидах
