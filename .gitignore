@@ -30,6 +30,8 @@ Desktop.ini
 # Logs / crash dumps
 *.log
 logs/
+Unselected files/
+docs/art/concepts/
 
 # Локальные секреты и оверрайды настроек (не коммитить)
 override.cfg
