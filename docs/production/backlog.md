@@ -39,7 +39,8 @@
       Compatibility подтверждён, InputMap/2D-слои пересобраны,
       JSON-реестр и валидатор данных, StableId/JsonValue, WorldClock,
       RNG-потоки, FactLog, StateHash и собственный test runner работают
-      на Godot 4.7.2 в CI
+      на Godot 4.7.2 в CI; проведён отдельный hardening snapshots,
+      JSON/i64, StableId/путей и полного first-party style gate
 - [ ] P0-D–G: минимальный WorldState и отдельные crash-safe сейвы,
       авторитетная GameSession/ENet-хост с двумя телами, greybox и
       debug overlay, интеграционная приёмка отключения/краша

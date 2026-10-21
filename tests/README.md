@@ -15,7 +15,11 @@ RngStreams, FactLog, StateHash и DefinitionRegistry на официальном
 Запуск: `tools/check_project.sh [godot]`, автоматически — GitHub Actions
 при каждом пуше (`.github/workflows/godot-validate.yml`, Godot 4.7.2).
 CI также гоняет закреплённый gdtoolkit 4.5.0 (`gdformat --check` и
-`gdlint`) по новым P0-путям `scripts/core` и `tests/unit`.
+`gdlint`) по всем first-party GDScript в `scripts/` и `tests/`. После
+P0-A/B/C runner дополнительно покрывает hardening-контракты: пустые
+сегменты ID/ключей, циклы и глубину JSON, точный диапазон JSON integer,
+string-encoded i64 состояния RNG и сохранение текущего состояния при
+битом restore.
 
 ## Что будет позже
 

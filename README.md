@@ -59,8 +59,9 @@ DefinitionRegistry и константы слоёв; первый пакет о�
 **Проверка движком:** GitHub Actions при каждом пуше скачивает официальный
 Godot **4.7.2**, проверяет сумму SHA512, импортирует проект, компилирует
 все скрипты в контексте проекта, запускает P0 foundation tests и главную
-сцену в headless-режиме; gdtoolkit 4.5.0 проверяет формат/линт новых
-P0-путей (`.github/workflows/godot-validate.yml`, локально —
+сцену в headless-режиме; gdtoolkit 4.5.0 проверяет формат/линт всех
+first-party GDScript в `scripts/` и `tests/`
+(`.github/workflows/godot-validate.yml`, локально —
 `tools/check_project.sh`).
 
 ## Статус
