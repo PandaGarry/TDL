@@ -130,6 +130,16 @@ func _test_json_value() -> void:
 		not JsonValue.is_safe({"too_big": JsonValue.MAX_SAFE_INTEGER + 1}),
 		"integer beyond exact JSON range rejected"
 	)
+	var canonical: Dictionary = JsonValue.duplicate_canonical(
+		{"whole": 2.0, "fraction": 2.5, "nested": [3.0]}
+	)
+	_check_equal(typeof(canonical["whole"]), TYPE_INT, "integral JSON float canonicalizes to int")
+	_check_equal(typeof(canonical["fraction"]), TYPE_FLOAT, "fractional JSON float stays float")
+	_check_equal(
+		typeof((canonical["nested"] as Array)[0]),
+		TYPE_INT,
+		"nested integral JSON float canonicalizes"
+	)
 	var cyclic: Dictionary = {}
 	cyclic["self"] = cyclic
 	_check(not JsonValue.is_safe(cyclic), "cyclic JSON value rejected by depth guard")

@@ -346,7 +346,7 @@ func _make_world(campaign_id: String, total_minutes: int) -> WorldState:
 	world.clock().advance_minutes(total_minutes)
 	world.rng_streams().randi_range(&"ecology", 0, 1000000)
 	var fact := world.fact_log().append_fact(
-		"world_created", total_minutes, {"campaign_id": campaign_id}
+		"world_created", total_minutes, {"campaign_id": campaign_id, "minute_marker": total_minutes}
 	)
 	_check(not fact.is_empty(), "test world fact appended")
 

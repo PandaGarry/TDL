@@ -382,7 +382,7 @@ static func _validated_components(raw_components: Variant) -> Dictionary:
 			return {"ok": false, "value": {}}
 		if typeof(source[raw_name]) != TYPE_DICTIONARY:
 			return {"ok": false, "value": {}}
-		result[component_name] = JsonValue.duplicate_safe(source[raw_name])
+		result[component_name] = JsonValue.duplicate_canonical(source[raw_name])
 	return {"ok": true, "value": result}
 
 

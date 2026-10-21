@@ -41,7 +41,7 @@ func append_fact(
 		"game_minute": game_minute,
 		"actor_id": actor_id,
 		"subject_id": subject_id,
-		"payload": JsonValue.duplicate_safe(payload),
+		"payload": JsonValue.duplicate_canonical(payload),
 	}
 	_next_sequence += 1
 	_facts.append(fact)
@@ -170,6 +170,7 @@ func _normalize_restored_fact(fact: Dictionary) -> void:
 	fact["game_minute"] = int(_integral_value(fact["game_minute"])["value"])
 	fact["actor_id"] = int(_integral_value(fact["actor_id"])["value"])
 	fact["subject_id"] = String(fact["subject_id"])
+	fact["payload"] = JsonValue.duplicate_canonical(fact["payload"])
 
 
 static func _integral_value(value: Variant) -> Dictionary:
