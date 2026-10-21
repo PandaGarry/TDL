@@ -651,6 +651,80 @@ func _test_p1_ecology_and_body_vitals_session() -> void:
 		session, SessionProtocol.INTENT_BODY_CARE, {"action": BodyVitals.ACTION_REST_AND_WARM}
 	)
 	_check(bool(rest_report.get("ok", false)), "rest_and_warm body_care intent succeeds")
+
+	var npcs := SevaraP1Npcs.find_npcs(session.world_state())
+	_check_equal(npcs.size(), 8, "P1-C spawns all 8 canonical Sevara anchor NPCs")
+	var consult_mavena := _submit_and_process(
+		session,
+		SessionProtocol.INTENT_FIELD_ACTION,
+		{
+			"action": FieldJournalAndChronicle.ACTION_CONSULT_NPC,
+			"target_id": SevaraP1Npcs.NPC_MAVENA,
+			"accept_promise": true,
+		}
+	)
+	_check(
+		bool(consult_mavena.get("ok", false)),
+		"player consults Mavena and accepts quarantine promise"
+	)
+	var collect_kevalu := _submit_and_process(
+		session,
+		SessionProtocol.INTENT_FIELD_ACTION,
+		{"action": FieldJournalAndChronicle.ACTION_COLLECT_KEVAR_SAMPLE}
+	)
+	_check(bool(collect_kevalu.get("ok", false)), "player collects kevalu_propagule at Kevar")
+	_check_equal(
+		_inventory_count(session.world_state(), body_id, "core:material/kevalu_propagule"),
+		1,
+		"kevalu_propagule added to body inventory"
+	)
+	var plant_q := _submit_and_process(
+		session,
+		SessionProtocol.INTENT_ECO_INTERVENTION,
+		{"intervention": SevaraEcoChain.INTERVENTION_PLANT_KEVALU_QUARANTINE}
+	)
+	_check(bool(plant_q.get("ok", false)), "plant_kevalu_quarantine succeeds")
+	session.advance_simulation_minutes(180)
+	_check_equal(
+		session.world_state().fact_log().facts_of_kind("npc_promise_fulfilled").size(),
+		1,
+		"Mavena quarantine promise is fulfilled after 3 hours of clean quarantine study"
+	)
+
+	_submit_and_process(
+		session,
+		SessionProtocol.INTENT_FIELD_ACTION,
+		{
+			"action": FieldJournalAndChronicle.ACTION_INSPECT_BASIN_NODE,
+			"target_id": SevaraEcoChain.NODE_MULANE_WETLAND,
+		}
+	)
+	_submit_and_process(
+		session,
+		SessionProtocol.INTENT_FIELD_ACTION,
+		{
+			"action": FieldJournalAndChronicle.ACTION_INSPECT_BASIN_NODE,
+			"target_id": SevaraEcoChain.NODE_NIVAREL_CHANNEL,
+		}
+	)
+	for npc_id in [
+		SevaraP1Npcs.NPC_TOVAN,
+		SevaraP1Npcs.NPC_SELIMA,
+		SevaraP1Npcs.NPC_SARELA,
+		SevaraP1Npcs.NPC_EVAREN,
+	]:
+		_submit_and_process(
+			session,
+			SessionProtocol.INTENT_FIELD_ACTION,
+			{"action": FieldJournalAndChronicle.ACTION_CONSULT_NPC, "target_id": npc_id}
+		)
+	var journal := session.world_state().get_entity_component(
+		body_id, FieldJournalAndChronicle.JOURNAL_COMPONENT
+	)
+	var hyps: Array = journal.get("hypotheses", [])
+	_check_equal(hyps.size(), 5, "all 5 canonical revelation hypotheses unlocked in field journal")
+	var chronicle := FieldJournalAndChronicle.build_settlement_chronicle(session.world_state())
+	_check(chronicle.size() >= 6, "Selima settlement chronicle records major P1 facts and promises")
 	_destroy_session(session)
 
 

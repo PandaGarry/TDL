@@ -25,6 +25,7 @@ const INTENT_MOVE_BODY := "move_body"
 const INTENT_INTERACT_OBJECT := "interact_object"
 const INTENT_ECO_INTERVENTION := "eco_intervention"
 const INTENT_BODY_CARE := "body_care"
+const INTENT_FIELD_ACTION := "field_action"
 
 const _MESSAGE_KEYS: Array[String] = ["protocol_version", "kind", "tick", "payload"]
 const _INTENT_KEYS: Array[String] = ["intent_type", "client_sequence", "payload"]
@@ -97,6 +98,7 @@ static func validate_intent(intent: Variant) -> Dictionary:
 			INTENT_INTERACT_OBJECT,
 			INTENT_ECO_INTERVENTION,
 			INTENT_BODY_CARE,
+			INTENT_FIELD_ACTION,
 		]
 		. has(intent_type)
 	):

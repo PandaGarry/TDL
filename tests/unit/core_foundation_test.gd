@@ -331,7 +331,7 @@ func _test_definition_registry() -> void:
 		bool(report.get("ok", false)),
 		"core definition package loads: %s" % str(report.get("errors", []))
 	)
-	_check_equal(int(report.get("definition_count", -1)), 19, "core package definition count")
+	_check_equal(int(report.get("definition_count", -1)), 20, "core package definition count")
 	_check_equal(registry.package_id(), "core", "registry package ID")
 	_check_equal(registry.manifest_hash().length(), 64, "registry manifest hash length")
 	_check_equal(

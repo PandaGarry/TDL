@@ -19,6 +19,7 @@ const DEFAULT_MAX_PLAYERS := 4
 
 const DEFAULT_ABSENT_SETTLEMENT_PROTECTION := true
 const DEFAULT_ALLOW_PLAYER_CONFLICT := true
+const DEFAULT_KEVAR_WINDOW_ALWAYS_OPEN := true
 
 const MIN_DISCONNECT_GRACE_SECONDS := 5.0
 const MAX_DISCONNECT_GRACE_SECONDS := 600.0
@@ -53,6 +54,7 @@ var _max_players: int = DEFAULT_MAX_PLAYERS
 var _absent_settlement_protection: bool = DEFAULT_ABSENT_SETTLEMENT_PROTECTION
 var _disconnect_grace_seconds: float = DEFAULT_DISCONNECT_GRACE_SECONDS
 var _allow_player_conflict: bool = DEFAULT_ALLOW_PLAYER_CONFLICT
+var _kevar_window_always_open: bool = DEFAULT_KEVAR_WINDOW_ALWAYS_OPEN
 var _day_length_real_minutes: float = DEFAULT_DAY_LENGTH_REAL_MINUTES
 var _time_scale: float = DEFAULT_TIME_SCALE
 var _skill_xp_multiplier: float = DEFAULT_SKILL_XP_MULTIPLIER
@@ -93,6 +95,10 @@ func disconnect_grace_seconds() -> float:
 
 func allow_player_conflict() -> bool:
 	return _allow_player_conflict
+
+
+func kevar_window_always_open() -> bool:
+	return _kevar_window_always_open
 
 
 func day_length_real_minutes() -> float:
@@ -181,6 +187,7 @@ func snapshot_state() -> Dictionary:
 					"absent_settlement_protection": _absent_settlement_protection,
 					"disconnect_grace_seconds": _disconnect_grace_seconds,
 					"allow_player_conflict": _allow_player_conflict,
+					"kevar_window_always_open": _kevar_window_always_open,
 					"day_length_real_minutes": _day_length_real_minutes,
 					"time_scale": _time_scale,
 					"skill_xp_multiplier": _skill_xp_multiplier,
@@ -208,6 +215,7 @@ func _commit_validated(values: Dictionary) -> void:
 	_absent_settlement_protection = bool(values["absent_settlement_protection"])
 	_disconnect_grace_seconds = float(values["disconnect_grace_seconds"])
 	_allow_player_conflict = bool(values["allow_player_conflict"])
+	_kevar_window_always_open = bool(values["kevar_window_always_open"])
 	_day_length_real_minutes = float(values["day_length_real_minutes"])
 	_time_scale = float(values["time_scale"])
 	_skill_xp_multiplier = float(values["skill_xp_multiplier"])
@@ -250,6 +258,8 @@ static func _validate_snapshot(snapshot: Dictionary) -> Dictionary:
 		return {"ok": false, "error": "absent_settlement_protection must be a bool"}
 	if typeof(snapshot.get("allow_player_conflict", null)) != TYPE_BOOL:
 		return {"ok": false, "error": "allow_player_conflict must be a bool"}
+	if typeof(snapshot.get("kevar_window_always_open", true)) != TYPE_BOOL:
+		return {"ok": false, "error": "kevar_window_always_open must be a bool"}
 
 	var float_specs := [
 		["disconnect_grace_seconds", MIN_DISCONNECT_GRACE_SECONDS, MAX_DISCONNECT_GRACE_SECONDS],
@@ -291,6 +301,7 @@ static func _validate_snapshot(snapshot: Dictionary) -> Dictionary:
 			"max_players": max_p,
 			"absent_settlement_protection": bool(snapshot["absent_settlement_protection"]),
 			"allow_player_conflict": bool(snapshot["allow_player_conflict"]),
+			"kevar_window_always_open": bool(snapshot.get("kevar_window_always_open", true)),
 			"disconnect_grace_seconds": float(parsed_floats["disconnect_grace_seconds"]),
 			"day_length_real_minutes": float(parsed_floats["day_length_real_minutes"]),
 			"time_scale": float(parsed_floats["time_scale"]),
@@ -319,6 +330,7 @@ static func _patchable_keys() -> Array[String]:
 		"absent_settlement_protection",
 		"disconnect_grace_seconds",
 		"allow_player_conflict",
+		"kevar_window_always_open",
 		"day_length_real_minutes",
 		"time_scale",
 		"skill_xp_multiplier",

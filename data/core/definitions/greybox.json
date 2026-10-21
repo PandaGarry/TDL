@@ -61,6 +61,20 @@
       "properties": {
         "solid": false
       }
+    },
+    {
+      "id": "core:actor/anchor_npc",
+      "kind": "actor",
+      "name_key": "actor.anchor_npc.name",
+      "tags": [
+        "npc",
+        "anchor_npc",
+        "p1_slice"
+      ],
+      "visual_profile": "core:visual/actor_anchor_npc",
+      "properties": {
+        "solid": false
+      }
     }
   ]
 }

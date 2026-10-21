@@ -343,14 +343,21 @@ func enable_sevara_p1_slice() -> Dictionary:
 	var eco_report := SevaraEcoChain.ensure_basin_nodes(_world)
 	if not bool(eco_report.get("ok", false)):
 		return _failure([String(eco_report.get("error", "failed to initialize P1 basin nodes"))])
+	var npc_report := SevaraP1Npcs.ensure_slice_npcs(_world)
+	if not bool(npc_report.get("ok", false)):
+		return _failure([String(npc_report.get("error", "failed to initialize P1 anchor NPCs"))])
 	var body_count := BodyVitals.ensure_all_bodies(_world)
+	for record in GreyboxWorld.body_records(_world):
+		FieldJournalAndChronicle.ensure_journal(_world, int(record.get("body_entity_id", -1)))
 	register_system("p1_sevara_ecology_hour", 60, Callable(self, "_step_p1_ecology_hour"), 100)
 	register_system("p1_body_vitals_hour", 60, Callable(self, "_step_p1_body_vitals_hour"), 110)
+	register_system("p1_anchor_npcs_hour", 60, Callable(self, "_step_p1_npcs_hour"), 120)
 	_world_dirty = true
 	_broadcast_snapshot(true)
 	return _success(
 		{
 			"basin_nodes": eco_report.get("nodes", {}),
+			"npcs": npc_report.get("npcs", {}),
 			"body_count": body_count,
 			"basin_summary": SevaraEcoChain.basin_summary(_world),
 		}
@@ -363,6 +370,10 @@ func _step_p1_ecology_hour(world: WorldState, _context: Dictionary) -> bool:
 
 func _step_p1_body_vitals_hour(world: WorldState, _context: Dictionary) -> bool:
 	return bool(BodyVitals.step_hour(world).get("ok", false))
+
+
+func _step_p1_npcs_hour(world: WorldState, _context: Dictionary) -> bool:
+	return bool(SevaraP1Npcs.step_hour(world).get("ok", false))
 
 
 func configure_world_rules(patch: Dictionary) -> Dictionary:

@@ -46,6 +46,8 @@ static func apply_intent(
 			return _apply_eco_intervention(world, body_entity_id, typed_payload)
 		SessionProtocol.INTENT_BODY_CARE:
 			return _apply_body_care(world, body_entity_id, typed_payload)
+		SessionProtocol.INTENT_FIELD_ACTION:
+			return _apply_field_action(world, body_entity_id, typed_payload)
 	return _failure("unsupported_intent", "intent type is not supported")
 
 
@@ -330,6 +332,7 @@ static func _apply_eco_intervention(
 		world.set_entity_component(body_entity_id, GreyboxWorld.INVENTORY_COMPONENT, next_inv)
 
 	BodyVitals.ensure_body_components(world, body_entity_id)
+	SevaraP1Npcs.record_intervention_reaction(world, kind)
 	var domain := _practice_domain_for_intervention(kind)
 	if not domain.is_empty():
 		BodyVitals.award_practice(world, body_entity_id, domain, 2.5)
@@ -358,6 +361,25 @@ static func _apply_body_care(
 		return _failure(
 			String(report.get("reason", "body_care_failed")),
 			String(report.get("error", "body care failed"))
+		)
+	return {"ok": true, "fact": report.get("fact", {}), "reason": "", "error": ""}
+
+
+static func _apply_field_action(
+	world: WorldState, body_entity_id: int, payload: Dictionary
+) -> Dictionary:
+	var action := GreyboxWorld.string_value(payload.get("action", null))
+	var target_id := GreyboxWorld.string_value(payload.get("target_id", ""))
+	var accept_promise := bool(payload.get("accept_promise", false))
+	if action.is_empty():
+		return _failure("invalid_payload", "field_action payload requires 'action'")
+	var report := FieldJournalAndChronicle.apply_field_action(
+		world, body_entity_id, action, target_id, accept_promise
+	)
+	if not bool(report.get("ok", false)):
+		return _failure(
+			String(report.get("reason", "field_action_failed")),
+			String(report.get("error", "field action failed"))
 		)
 	return {"ok": true, "fact": report.get("fact", {}), "reason": "", "error": ""}
 

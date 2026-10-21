@@ -80,6 +80,11 @@ static func build_snapshot(
 		"local_ecocell": {"x": local_ecocell.x, "y": local_ecocell.y},
 		"local_chunk": {"x": local_chunk.x, "y": local_chunk.y},
 		"world_rules": JsonValue.duplicate_safe(status.get("world_rules", {})),
+		"graphics_profile": SettingsManager.graphics_profile(),
+		"p1_basin": SevaraEcoChain.basin_summary(world) if world_ready else {},
+		"p1_npcs_count": SevaraP1Npcs.find_npcs(world).size() if world_ready else 0,
+		"p1_chronicle_count":
+		FieldJournalAndChronicle.build_settlement_chronicle(world).size() if world_ready else 0,
 		"transport_peer_id": int(status.get("transport_peer_id", 0)),
 		"transport_peers": JsonValue.duplicate_safe(status.get("transport_peers", [])),
 		"participants": JsonValue.duplicate_safe(status.get("participants", [])),
@@ -159,6 +164,26 @@ static func format_report(snapshot: Dictionary) -> String:
 						float(rules.get("time_scale", 1.0)),
 						float(rules.get("skill_xp_multiplier", 1.0)),
 						int(rules.get("max_players", 4)),
+					]
+				)
+			)
+		)
+	var p1_basin: Dictionary = snapshot.get("p1_basin", {})
+	if not p1_basin.is_empty():
+		var ch: Dictionary = p1_basin.get(SevaraEcoChain.NODE_NIVAREL_CHANNEL, {})
+		var wt: Dictionary = p1_basin.get(SevaraEcoChain.NODE_MULANE_WETLAND, {})
+		(
+			lines
+			. append(
+				(
+					"P1 Sevara: dams=%.2f selave=%.2f murela_juv=%.2f kevalu_wild=%.2f npcs=%d chronicle=%d"
+					% [
+						float(ch.get("navelu_dams_integrity", 0.0)),
+						float(ch.get("selave_coverage", 0.0)),
+						float(wt.get("murela_juveniles", 0.0)),
+						float(ch.get("kevalu_wild_biomass", 0.0)),
+						int(snapshot.get("p1_npcs_count", 0)),
+						int(snapshot.get("p1_chronicle_count", 0)),
 					]
 				)
 			)

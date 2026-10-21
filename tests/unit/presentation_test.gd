@@ -352,6 +352,26 @@ func _test_input_actions_and_debug_overlay() -> void:
 				Vector2i(2, 3),
 				"loaded stage hydrates actor at saved tile (2,3)"
 			)
+		var next_preset: String = loaded_stage.cycle_texture_quality_preset()
+		_check_equal(
+			next_preset,
+			SettingsManager.TEXTURE_QUALITY_GREYBOX,
+			"stage cycles texture quality preset from high to greybox"
+		)
+		_check_equal(
+			loaded_stage.session().domain_state_hash(),
+			saved_hash,
+			"cycling client texture quality preset never mutates domain_state_hash"
+		)
+		SettingsManager.set_texture_quality(SettingsManager.TEXTURE_QUALITY_HIGH)
+		var p1_enable: Dictionary = loaded_stage.enable_p1_slice()
+		_check(bool(p1_enable.get("ok", false)), "stage enables P1 ecological and NPC slice")
+		var p1_snap: Dictionary = loaded_stage.debug_overlay().last_snapshot()
+		_check_equal(
+			int(p1_snap.get("p1_npcs_count", 0)),
+			8,
+			"debug overlay snapshot reports 8 active P1 anchor NPCs"
+		)
 		_destroy_node(loaded_stage)
 
 

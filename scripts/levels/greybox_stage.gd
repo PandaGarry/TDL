@@ -14,6 +14,7 @@ const DEFAULT_GENESIS_SEED := 4072026
 static var next_launch_load_slot_id: String = ""
 
 @export var auto_start_offline: bool = true
+@export var auto_enable_p1_slice: bool = false
 @export var load_existing_slot_on_start: bool = false
 @export var default_campaign_id: String = DEFAULT_CAMPAIGN_ID
 @export var default_slot_id: String = DEFAULT_SLOT_ID
@@ -97,6 +98,8 @@ func start_offline_campaign(
 	var report: Dictionary = active_session.start_new_offline(
 		campaign_id, genesis_seed, participant_id, display_name
 	)
+	if bool(report.get("ok", false)) and auto_enable_p1_slice:
+		active_session.enable_sevara_p1_slice()
 	refresh_presentation()
 	return report
 
@@ -120,6 +123,31 @@ func save_offline_campaign(slot_id: String = default_slot_id) -> Dictionary:
 	if _session == null:
 		return {"ok": false, "errors": ["no game session is bound to the stage"]}
 	var report: Dictionary = _session.save_world(slot_id)
+	refresh_presentation()
+	return report
+
+
+func enable_p1_slice() -> Dictionary:
+	if _session == null:
+		return {"ok": false, "errors": ["no game session is bound to the stage"]}
+	var report: Dictionary = _session.enable_sevara_p1_slice()
+	refresh_presentation()
+	return report
+
+
+func cycle_texture_quality_preset() -> String:
+	var presets := SettingsManager.SUPPORTED_TEXTURE_QUALITIES
+	var idx := presets.find(SettingsManager.texture_quality)
+	var next_preset := String(presets[(idx + 1) % presets.size()])
+	SettingsManager.set_texture_quality(next_preset)
+	refresh_presentation()
+	return next_preset
+
+
+func apply_lobby_rules_patch(patch: Dictionary) -> Dictionary:
+	if _session == null:
+		return {"ok": false, "errors": ["no game session is bound to the stage"]}
+	var report: Dictionary = _session.configure_world_rules(patch)
 	refresh_presentation()
 	return report
 

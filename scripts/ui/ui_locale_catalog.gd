@@ -9,6 +9,7 @@ extends RefCounted
 const SUPPORTED_LOCALES := ["ru", "en"]
 
 const MESSAGES_RU := {
+	"actor.anchor_npc.name": "Якорный житель долины Севары",
 	"actor.greybox_body.name": "Тело участника (greybox)",
 	"object.greybox_supply_crate.name": "Ящик припасов (greybox)",
 	"object.eco_basin_node.name": "Экологический узел бассейна Севары",
@@ -48,6 +49,7 @@ const MESSAGES_RU := {
 }
 
 const MESSAGES_EN := {
+	"actor.anchor_npc.name": "Sevara Valley Anchor Resident",
 	"actor.greybox_body.name": "Participant Body (Greybox)",
 	"object.greybox_supply_crate.name": "Supply Crate (Greybox)",
 	"object.eco_basin_node.name": "Sevara Basin Ecological Node",
