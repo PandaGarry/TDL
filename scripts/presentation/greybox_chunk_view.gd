@@ -224,8 +224,9 @@ func _draw_p1_npcs(resolved_tile: float) -> void:
 	var font := ThemeDB.fallback_font
 	for npc in _npcs_summary:
 		var npc_id := String(npc.get("npc_id", ""))
-		var tx := clampi(int(npc.get("tile_x", 12)), 0, _width_tiles - 1)
-		var ty := clampi(int(npc.get("tile_y", 10)), 0, _height_tiles - 1)
+		var default_tile := SevaraVisualTheme.npc_anchor_tile(npc_id)
+		var tx := clampi(int(npc.get("tile_x", default_tile.x)), 0, _width_tiles - 1)
+		var ty := clampi(int(npc.get("tile_y", default_tile.y)), 0, _height_tiles - 1)
 		var center := GreyboxGridMetrics.tile_to_world_center(Vector2i(tx, ty), resolved_tile)
 		draw_set_transform(center, 0.0, Vector2.ONE)
 		var pal := SevaraVisualTheme.npc_visual_palette(npc_id)
@@ -234,17 +235,17 @@ func _draw_p1_npcs(resolved_tile: float) -> void:
 		)
 		if font != null:
 			var tag := SevaraVisualTheme.npc_display_tag(npc_id)
-			var box := Rect2(Vector2(-58.0, -resolved_tile * 0.86), Vector2(116.0, 18.0))
-			draw_rect(box, Color(0.05, 0.07, 0.08, 0.84), true)
-			draw_rect(box, Color(0.72, 0.66, 0.44, 0.78), false, 1.0)
+			var box := Rect2(Vector2(-64.0, -resolved_tile * 0.88), Vector2(128.0, 19.0))
+			draw_rect(box, Color(0.05, 0.07, 0.08, 0.86), true)
+			draw_rect(box, Color(0.76, 0.68, 0.44, 0.84), false, 1.0)
 			draw_string(
 				font,
-				Vector2(-52.0, -resolved_tile * 0.86 + 13.0),
+				Vector2(-58.0, -resolved_tile * 0.88 + 13.5),
 				tag,
 				HORIZONTAL_ALIGNMENT_CENTER,
-				104.0,
+				116.0,
 				11,
-				Color(0.95, 0.93, 0.86, 1.0)
+				Color(0.96, 0.94, 0.88, 1.0)
 			)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 

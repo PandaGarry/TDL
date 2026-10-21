@@ -88,7 +88,8 @@ static func lighting_for_hour(hour_of_day: int) -> Dictionary:
 
 
 static func npc_visual_palette(npc_id: String) -> Dictionary:
-	match npc_id:
+	var clean_id := npc_id.trim_prefix("npc_")
+	match clean_id:
 		"sarela":
 			return {
 				"cloak": Color(0.20, 0.34, 0.25, 1.0),
@@ -134,25 +135,49 @@ static func npc_visual_palette(npc_id: String) -> Dictionary:
 
 
 static func npc_display_tag(npc_id: String) -> String:
-	match npc_id:
+	var clean_id := npc_id.trim_prefix("npc_")
+	match clean_id:
 		"sarela":
 			return "Сарела · Вождь"
 		"tovan":
 			return "Тован · Шлюз"
 		"ilune":
-			return "Илуне · Мулане"
+			return "Илуне · Семена"
 		"mavena":
 			return "Мавена · Травница"
 		"evaren":
-			return "Эварен · Хераво"
+			return "Эварен · Страж"
 		"selima":
 			return "Селима · Хроника"
 		"tobren":
-			return "Тобрен · Кевар"
+			return "Тобрен · Рыболов"
 		"ruvet":
 			return "Рувет · Лесоруб"
 		_:
 			return npc_id
+
+
+static func npc_anchor_tile(npc_id: String) -> Vector2i:
+	var clean_id := npc_id.trim_prefix("npc_")
+	match clean_id:
+		"sarela":
+			return Vector2i(6, 10)
+		"selima":
+			return Vector2i(8, 7)
+		"mavena":
+			return Vector2i(9, 17)
+		"tovan":
+			return Vector2i(13, 11)
+		"ilune":
+			return Vector2i(19, 13)
+		"evaren":
+			return Vector2i(21, 5)
+		"tobren":
+			return Vector2i(18, 20)
+		"ruvet":
+			return Vector2i(11, 3)
+		_:
+			return Vector2i(12, 10)
 
 
 static func draw_chunk_landscape(
@@ -177,7 +202,19 @@ static func draw_chunk_landscape(
 	var meadow_tex := load_canvas_texture("tex_meadow_moss_and_snow", include_normals)
 	var outer_rect := field_rect.grow(tile_size_px * 18.0)
 	if meadow_tex != null:
-		canvas.draw_texture_rect(meadow_tex, outer_rect, false, ambient.darkened(0.18))
+		var patch_px := 384.0
+		var y := outer_rect.position.y
+		while y < outer_rect.end.y:
+			var x := outer_rect.position.x
+			while x < outer_rect.end.x:
+				canvas.draw_texture_rect(
+					meadow_tex,
+					Rect2(Vector2(x, y), Vector2(patch_px, patch_px)),
+					false,
+					ambient.darkened(0.24)
+				)
+				x += patch_px
+			y += patch_px
 	else:
 		canvas.draw_rect(outer_rect, Color(0.16, 0.21, 0.15, 1.0) * ambient, true)
 

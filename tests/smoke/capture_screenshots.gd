@@ -56,9 +56,8 @@ func _capture_stage_states(abs_dir: String) -> void:
 	stage.enable_p1_slice()
 	stage.session().advance_simulation_minutes(480)
 	for _step in range(8):
-		stage.session().submit_intent(SessionProtocol.INTENT_MOVE_BODY, {"dx": 1, "dy": 0})
-		stage.session().submit_intent(SessionProtocol.INTENT_MOVE_BODY, {"dx": 0, "dy": 1})
-	stage.session().process_pending_intents()
+		stage.trigger_action(&"move_right", true)
+		stage.trigger_action(&"move_down", true)
 	SettingsManager.set_texture_quality(SettingsManager.TEXTURE_QUALITY_HIGH)
 	stage.refresh_presentation()
 	stage.debug_overlay().visible = false
