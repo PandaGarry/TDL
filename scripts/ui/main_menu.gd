@@ -3,9 +3,9 @@ extends Control
 ##
 ## Кнопки уже честно подключены к системам (выход работает, "Продолжить"
 ## проверяет реальное сохранение), но первого уровня пока нет: направление
-## H1 выбрано и сведено в GDD v0.1, однако финальный GDD v1 и прототип
-## ещё не утверждены и не реализованы.
-## См. docs/design/gdd.md и docs/production/documentation_audit_round11.md.
+## H1 выбрано и сведено в GDD v1.0 Core Baseline, однако игровой прототип
+## ещё не реализован.
+## См. docs/design/gdd.md и docs/production/round12_baseline_lock.md.
 
 @onready var _new_game_button: Button = %NewGameButton
 @onready var _continue_button: Button = %ContinueButton
@@ -28,7 +28,7 @@ func _on_new_game_pressed() -> void:
 	# TODO: после утверждения первого прототипа —
 	# SceneLoader.change_scene_async(первый уровень) и GameManager.start_game().
 	_status_label.text = (
-		"Игрового прототипа пока нет. Концепция сведена в GDD v0.1.\n"
+		"Игрового прототипа пока нет. GDD v1.0 Core Baseline принят.\n"
 		+ "См. docs/design/gdd.md"
 	)
 

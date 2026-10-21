@@ -21,9 +21,10 @@ soak-тесты экологии/поселений и проверка один
 
 План подключения (этап прототипа/продакшена):
 
-1. Плагин **GUT** — https://github.com/bitwes/Gut — устанавливается тем же
-   способом, что остальные плагины (папка `addons/gut`, запись в
-   `docs/tech/addons.md`).
+1. Baseline Lock: основной кандидат — **GdUnit4 6.2.x**
+   (https://github.com/godot-gdunit-labs/gdUnit4). Устанавливаем только
+   после зелёной проверки на Godot 4.7.2; fallback — собственный
+   headless runner или GUT.
 2. Тесты — в этой папке, зеркально структуре `scripts/`
    (например `tests/autoloads/test_save_system.gd`).
 3. Первый набор: круг `save -> load` даёт те же данные; битый файл
