@@ -65,8 +65,10 @@ Act I должен стабилизировать долину-убежище з
 [`docs/design/first_valley_spring_tribes.md`](docs/design/first_valley_spring_tribes.md),
 а рекомендуемая модель боя — в
 [`docs/design/personal_combat_and_leadership.md`](docs/design/personal_combat_and_leadership.md).
-В раунде 8 первая редакция имён заменена оригинальной системой Севары
-для RU/EN, а пересмотренная социальная модель наследников и культуры
-описана в [`docs/design/social_simulation_succession_and_culture.md`](docs/design/social_simulation_succession_and_culture.md).
+В раундах 8–9 система имён Севары создана и одобрена автором для RU/EN.
+Адаптивные поселения, упрощённая преемственность и распределённая
+кооперативная власть описаны в
+[`docs/design/social_simulation_succession_and_culture.md`](docs/design/social_simulation_succession_and_culture.md)
+и [`docs/design/adaptive_settlements_leadership_and_coop.md`](docs/design/adaptive_settlements_leadership_and_coop.md).
 Источник истины по одобрениям — [`docs/production/decisions.md`](docs/production/decisions.md),
 план — в [`docs/production/roadmap.md`](docs/production/roadmap.md).
