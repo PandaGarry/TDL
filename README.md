@@ -4,8 +4,8 @@
 с чистого листа как аккуратный технический каркас и документальная база
 пре-продакшена. Направление H1 выбрано; Baseline Lock раунда 12 собрал
 **GDD v1.0 Core Baseline**, достаточный для строительства ядра. P0 уже
-начат: реализованы примитивы Core и реестр JSON-данных, но игрового
-прототипа и живой симуляции в коде пока нет.
+начат: реализованы примитивы Core, реестр JSON-данных и crash-safe
+мировой сейв, но игрового прототипа и живой симуляции в коде пока нет.
 
 > Название **TDL** — временное (унаследовано от имени репозитория).
 > Настоящее название пока не выбрано и не блокирует пре-продакшен.
@@ -26,14 +26,14 @@
 | Папка | Что внутри |
 |---|---|
 | `scenes/` | Сцены Godot: `main/`, `levels/`, `characters/`, `ui/` |
-| `scripts/` | GDScript: `autoloads/` (глобальные системы), `components/`, `core/`, `ui/` |
+| `scripts/` | GDScript: `autoloads/` (глобальные системы), `components/`, `core/`, `persistence/`, `ui/` |
 | `assets/` | Арт, аудио (`music/`, `sfx/`, `ambience/`), шрифты, шейдеры |
 | `resources/` | Данные Godot (`.tres`): конфиги, темы UI, диалоги |
 | `addons/` | Сторонние плагины (см. [`addons/README.md`](addons/README.md)) — лежат готовыми, но **выключены** до первого использования |
 | `docs/` | Дизайн (`design/`), лор (`lore/`), арт (`art/`), техника (`tech/`), продакшен (`production/`) |
 | `tools/` | Служебные скрипты (установка/обновление плагинов) |
 | `data/` | Версионированные пакеты определений Core (`data/core`) |
-| `tests/` | Smoke и собственный P0 foundation runner; спайк GdUnit4 — перед сценовыми тестами |
+| `tests/` | Smoke, собственные P0 foundation/persistence runners и fixtures; спайк GdUnit4 — перед сценовыми тестами |
 
 ## Что уже работает
 
@@ -42,7 +42,7 @@
 - **EventBus** — глобальные сигналы игрового цикла;
 - **AudioManager** — шины Master/Music/SFX/Ambience, кроссфейд музыки, пул SFX;
 - **SettingsManager** — настройки в `user://settings.cfg` (громкость, фулскрин, язык `ru` по умолчанию);
-- **SaveSystem** — JSON-сохранения по слотам в `user://saves/`, с версией формата;
+- **SaveSystem** — legacy-заглушка меню со слотами в `user://saves/`; сейв кампании строят отдельные `WorldStateCodec` и `SaveStore`, а не эта автозагрузка;
 - **SceneLoader** — мгновенная и асинхронная смена сцен с прогрессом;
 - **GameManager** — состояние игры (меню/игра/пауза), пауза по Esc.
 
@@ -53,13 +53,15 @@
 слои Terrain/Bodies/Structures/Items/Interactables/Hazards/Sensors/
 Projectiles и renderer **GL Compatibility**. В `scripts/core/` уже лежат
 StableId, JsonValue, WorldClock, RNG-потоки, FactLog, StateHash,
-DefinitionRegistry и константы слоёв; первый пакет определений — в
-`data/core/`.
+DefinitionRegistry, WorldState и константы слоёв; первый пакет
+определений — в `data/core/`. В `scripts/persistence/` лежат codec
+мирового сейва v1 с checksum/миграцией и generic atomic `SaveStore`
+с backup recovery.
 
 **Проверка движком:** GitHub Actions при каждом пуше скачивает официальный
 Godot **4.7.2**, проверяет сумму SHA512, импортирует проект, компилирует
-все скрипты в контексте проекта, запускает P0 foundation tests и главную
-сцену в headless-режиме; gdtoolkit 4.5.0 проверяет формат/линт всех
+все скрипты в контексте проекта, запускает P0 foundation и persistence
+tests и главную сцену в headless-режиме; gdtoolkit 4.5.0 проверяет формат/линт всех
 first-party GDScript в `scripts/` и `tests/`
 (`.github/workflows/godot-validate.yml`, локально —
 `tools/check_project.sh`).

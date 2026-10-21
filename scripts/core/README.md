@@ -1,16 +1,17 @@
 # scripts/core
 
-Статус: **P0-A/B/C реализован и прошёл hardening перед P0-D**. Здесь
-лежат чистые примитивы ядра без
-привязки к сценам и автозагрузкам:
+Статус: **P0-A–D фундамент реализован**. P0-A/B/C прошли отдельный
+hardening, а P0-D добавил минимальное состояние кампании. Здесь лежат
+чистые примитивы и доменная модель без привязки к сценам и автозагрузкам:
 
 - `stable_id.gd` — стабильные ID контента вида `namespace:kind/name`;
-- `json_value.gd` — граница JSON-safe значений для данных, сейвов и сети;
+- `json_value.gd` — граница JSON-safe значений и каноническая форма чисел для данных, сейвов и сети;
 - `rng_streams.gd` — именованные воспроизводимые RNG-потоки;
 - `world_clock.gd` — доменный календарь кампании в игровых минутах;
 - `fact_log.gd` — append-only журнал авторитетных фактов мира;
 - `state_hash.gd` — канонический SHA-256 хэш доменного состояния;
 - `definition_registry.gd` — загрузчик/валидатор пакетов JSON-определений;
+- `world_state.gd` — сериализуемая правда кампании: seed, package pins, часы/RNG/факты и runtime-сущности;
 - `physics_layers.gd` — именованные константы 2D-физических слоёв.
 
 Эта папка не является местом для всей будущей симуляции. Экология,
@@ -18,5 +19,7 @@
 доменные модули по плану `docs/tech/core_foundation_blueprint.md`.
 
 Контракты примитивов проверяет
-`tests/unit/core_foundation_test.tscn`; сцена запускается в CI настоящим
-Godot 4.7.2 через `tools/check_project.sh`.
+`tests/unit/core_foundation_test.tscn`, контракты WorldState и файлового
+слоя — `tests/unit/persistence_test.tscn`; обе сцены запускаются в CI
+настоящим Godot 4.7.2 через `tools/check_project.sh`. Сам файловый слой
+описан в `scripts/persistence/README.md`.

@@ -1,6 +1,6 @@
 # Тесты
 
-## Что есть сейчас: smoke-валидация и P0 foundation tests
+## Что есть сейчас: smoke, P0 foundation и persistence tests
 
 `tests/smoke/project_validation.tscn` — валидационная сцена. Запускается
 как обычная сцена проекта (с активными автозагрузками) и загружает каждый
@@ -12,14 +12,20 @@ GDScript из `scripts/` через ResourceLoader: движок компили�
 RngStreams, FactLog, StateHash и DefinitionRegistry на официальном
 пакете `data/core`, включая отказ на дубликатах и битых ссылках.
 
+`tests/unit/persistence_test.tscn` — runner P0-D. Он проверяет
+WorldState snapshot/restore без частичного commit, реальный package pin
+из DefinitionRegistry, codec v1 и checksum, миграцию
+`tests/fixtures/saves/world_v0_legacy.json`, ротацию backup, stale temp,
+fallback при битом JSON/checksum и отсутствующий слот.
+
 Запуск: `tools/check_project.sh [godot]`, автоматически — GitHub Actions
 при каждом пуше (`.github/workflows/godot-validate.yml`, Godot 4.7.2).
 CI также гоняет закреплённый gdtoolkit 4.5.0 (`gdformat --check` и
 `gdlint`) по всем first-party GDScript в `scripts/` и `tests/`. После
 P0-A/B/C runner дополнительно покрывает hardening-контракты: пустые
 сегменты ID/ключей, циклы и глубину JSON, точный диапазон JSON integer,
-string-encoded i64 состояния RNG и сохранение текущего состояния при
-битом restore.
+string-encoded i64 состояния RNG, каноническую форму JSON-чисел и
+сохранение текущего состояния при битом restore.
 
 ## Что будет позже
 
@@ -38,6 +44,7 @@ soak-тесты экологии/поселений и проверка один
    проверки на Godot 4.7.2. GUT — альтернативный fallback.
 2. Тесты — в этой папке, зеркально структуре `scripts/`
    (например `tests/autoloads/test_save_system.gd`).
-3. Следующий набор P0-D: круг `save -> load` даёт те же данные; битый
-   файл сейва не роняет игру; fixture старой схемы мигрирует вперёд;
-   настройки переживают перезапуск.
+3. Следующий набор P0-E/G: два процесса Godot host/client получают
+   одинаковый мир; намерения клиента валидирует хост; отключение,
+   повторное подключение и сохранение во время сессии не ломают
+   кампанию. Настройки и сценовые тесты подключаются со своими срезами.
