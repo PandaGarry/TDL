@@ -1,0 +1,40 @@
+{
+  "format": "tdl.definitions",
+  "schema_version": 1,
+  "definitions": [
+    {
+      "id": "core:actor/greybox_body",
+      "kind": "actor",
+      "name_key": "actor.greybox_body.name",
+      "tags": [
+        "body",
+        "greybox",
+        "player_controlled"
+      ],
+      "visual_profile": "core:visual/actor_greybox_body",
+      "properties": {
+        "max_move_step_tiles": 1,
+        "solid": true
+      }
+    },
+    {
+      "id": "core:object/greybox_supply_crate",
+      "kind": "object",
+      "name_key": "object.greybox_supply_crate.name",
+      "tags": [
+        "container",
+        "greybox",
+        "interactable"
+      ],
+      "visual_profile": "core:visual/object_greybox_supply_crate",
+      "references": [
+        "core:material/torava_wood"
+      ],
+      "properties": {
+        "default_contents_definition": "core:material/torava_wood",
+        "default_contents_count": 3,
+        "solid": true
+      }
+    }
+  ]
+}

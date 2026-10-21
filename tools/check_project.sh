@@ -3,7 +3,7 @@
 #   1) импорт проекта редактором (--import),
 #   2) компиляция всех наших GDScript в контексте проекта
 #      (сцена tests/smoke/project_validation.tscn),
-#   3) контрактные сцены P0 foundation и persistence,
+#   3) контрактные сцены P0 foundation, persistence и authoritative session,
 #   4) smoke-запуск главной сцены на несколько кадров (--quit-after).
 #
 # Использование:
@@ -67,6 +67,12 @@ run_step "core_foundation_tests" 180 "$GODOT_BIN" --headless --path . --scene "r
 #     migration, backup rotation and recovery from corrupt current files.
 run_step "persistence_tests" 180 "$GODOT_BIN" --headless --path . --scene "res://tests/unit/persistence_test.tscn" --quit-after 30
 
+# 2d) P0-E authoritative session tests: scheduler/intents, host-only saves,
+#     package-pin reconciliation and a real ENet localhost host/client pair.
+#     The async network runner needs more main-loop iterations than the
+#     synchronous suites; it quits itself as soon as its checks finish.
+run_step "session_tests" 180 "$GODOT_BIN" --headless --path . --scene "res://tests/unit/session_test.tscn" --quit-after 1200
+
 # 4) Smoke-запуск: главная сцена должна прожить 30 итераций без ошибок
 #    скриптов (меню, автозагрузки, загрузка ресурсов).
 run_step "smoke" 120 "$GODOT_BIN" --headless --path . --quit-after 30
@@ -77,7 +83,7 @@ echo "Поиск фатальных маркеров ошибок в логах.
 # отдельно ищем ошибки скриптов и загрузки ресурсов в текстах логов.
 # Обычные ERROR системы CI не валят: в headless CI без GPU допустимы
 # предупреждения драйверов; скриптовые же ошибки не допустимы.
-if grep -RniE 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load resource|PROJECT_VALIDATION_FAILED|CORE_FOUNDATION_TESTS_FAILED|PERSISTENCE_TESTS_FAILED' "$LOG_DIR" ; then
+if grep -RniE 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load resource|PROJECT_VALIDATION_FAILED|CORE_FOUNDATION_TESTS_FAILED|PERSISTENCE_TESTS_FAILED|SESSION_TESTS_FAILED' "$LOG_DIR" ; then
 	echo "!! В логах найдены ошибки скриптов или загрузки ресурсов (см. выше)."
 	FAILED=1
 fi
@@ -92,11 +98,11 @@ if [ "$FAILED" -ne 0 ]; then
 			echo
 			echo "Первые совпадения ошибок скриптов/ресурсов:"
 			echo '```'
-			grep -RniE 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load resource|PROJECT_VALIDATION_FAILED|CORE_FOUNDATION_TESTS_FAILED|PERSISTENCE_TESTS_FAILED|ERROR:' "$LOG_DIR" | head -80 || true
+			grep -RniE 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load resource|PROJECT_VALIDATION_FAILED|CORE_FOUNDATION_TESTS_FAILED|PERSISTENCE_TESTS_FAILED|SESSION_TESTS_FAILED|ERROR:' "$LOG_DIR" | head -80 || true
 			echo '```'
 		} >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
-		grep -RniE 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load resource|PROJECT_VALIDATION_FAILED|CORE_FOUNDATION_TESTS_FAILED|PERSISTENCE_TESTS_FAILED|ERROR:' "$LOG_DIR" | head -40 | while IFS= read -r line; do
+		grep -RniE 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load resource|PROJECT_VALIDATION_FAILED|CORE_FOUNDATION_TESTS_FAILED|PERSISTENCE_TESTS_FAILED|SESSION_TESTS_FAILED|ERROR:' "$LOG_DIR" | head -40 | while IFS= read -r line; do
 			clean_line="$(printf '%s' "$line" | sed -e 's/%/%25/g' -e 's/\r/%0D/g')"
 			echo "::error title=Godot validation::${clean_line}"
 		done

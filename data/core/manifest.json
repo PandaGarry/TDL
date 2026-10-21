@@ -5,6 +5,7 @@
   "version": "0.1.0",
   "definition_files": [
     "definitions/species.json",
-    "definitions/materials.json"
+    "definitions/materials.json",
+    "definitions/greybox.json"
   ]
 }

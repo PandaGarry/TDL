@@ -1,0 +1,170 @@
+class_name SessionParticipants
+extends RefCounted
+## Runtime participant-to-body membership for one GameSession.
+##
+## Participant identity and body ownership are persisted indirectly in
+## WorldState body components. Peer IDs, connection state and the last
+## consumed client sequence are runtime-only facts and therefore live
+## here instead of being written into the campaign save.
+
+var _records: Dictionary = {}
+var _peer_to_participant: Dictionary = {}
+
+
+func clear() -> void:
+	_records.clear()
+	_peer_to_participant.clear()
+
+
+func rebuild_from_world(world: WorldState) -> void:
+	var previous: Dictionary = _records.duplicate(true)
+	_records.clear()
+	_peer_to_participant.clear()
+	for body_record in GreyboxWorld.body_records(world):
+		var participant_id := String(body_record.get("participant_id", ""))
+		var old_record: Dictionary = previous.get(participant_id, {})
+		var peer_id := int(old_record.get("peer_id", 0))
+		_records[participant_id] = {
+			"participant_id": participant_id,
+			"peer_id": peer_id,
+			"body_entity_id": int(body_record.get("body_entity_id", -1)),
+			"display_name": String(body_record.get("display_name", "")),
+			"connected": bool(old_record.get("connected", false)),
+			"last_client_sequence": int(old_record.get("last_client_sequence", 0)),
+		}
+		if peer_id > 0:
+			_peer_to_participant[peer_id] = participant_id
+
+
+func upsert_record(
+	participant_id: String, peer_id: int, display_name: String, body_entity_id: int, connected: bool
+) -> Dictionary:
+	var existing: Dictionary = _records.get(participant_id, {})
+	var record := {
+		"participant_id": participant_id,
+		"peer_id": peer_id,
+		"body_entity_id": body_entity_id,
+		"display_name": display_name,
+		"connected": connected,
+		"last_client_sequence": int(existing.get("last_client_sequence", 0)),
+	}
+	_records[participant_id] = record
+	if peer_id > 0:
+		_peer_to_participant[peer_id] = participant_id
+	return record.duplicate(true)
+
+
+func record(participant_id: String) -> Dictionary:
+	var stored: Variant = _records.get(participant_id, {})
+	return (stored as Dictionary).duplicate(true) if stored is Dictionary else {}
+
+
+func participant_id_for_peer(peer_id: int) -> String:
+	return String(_peer_to_participant.get(peer_id, ""))
+
+
+func binding_rejection(peer_id: int, participant_id: String) -> String:
+	var peer_participant := participant_id_for_peer(peer_id)
+	var existing_record := record(participant_id)
+	if not peer_participant.is_empty() and peer_participant != participant_id:
+		return "peer_already_bound"
+	if (
+		not existing_record.is_empty()
+		and bool(existing_record.get("connected", false))
+		and int(existing_record.get("peer_id", 0)) != peer_id
+	):
+		return "participant_in_use"
+	return ""
+
+
+func set_last_client_sequence(participant_id: String, client_sequence: int) -> void:
+	if not _records.has(participant_id):
+		return
+	var stored := record(participant_id)
+	stored["last_client_sequence"] = client_sequence
+	_records[participant_id] = stored
+
+
+func set_connected(participant_id: String, connected: bool) -> void:
+	if not _records.has(participant_id):
+		return
+	var stored := record(participant_id)
+	stored["connected"] = connected
+	_records[participant_id] = stored
+
+
+func disconnect_peer(peer_id: int) -> Dictionary:
+	var participant_id := participant_id_for_peer(peer_id)
+	if participant_id.is_empty():
+		return {}
+	var stored := record(participant_id)
+	stored["peer_id"] = 0
+	stored["connected"] = false
+	_records[participant_id] = stored
+	_peer_to_participant.erase(peer_id)
+	return stored.duplicate(true)
+
+
+func authenticated_peer_ids() -> Array[int]:
+	var result: Array[int] = []
+	for raw_peer_id in _peer_to_participant.keys():
+		result.append(int(raw_peer_id))
+	result.sort()
+	return result
+
+
+func public_records(world: WorldState, host_participant_id: String = "") -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for body_record in GreyboxWorld.body_records(world):
+		var participant_id := String(body_record.get("participant_id", ""))
+		var runtime_record := record(participant_id)
+		var is_host := participant_id == host_participant_id
+		if host_participant_id.is_empty():
+			is_host = int(runtime_record.get("peer_id", 0)) == 1
+		(
+			result
+			. append(
+				{
+					"participant_id": participant_id,
+					"display_name": String(body_record.get("display_name", "")),
+					"body_entity_id": int(body_record.get("body_entity_id", -1)),
+					"connected": bool(runtime_record.get("connected", false)),
+					"is_host": is_host,
+				}
+			)
+		)
+	result.sort_custom(_compare_records)
+	return result
+
+
+func overlay_public_records(
+	raw_records: Variant, local_participant_id: String, local_peer_id: int
+) -> void:
+	if typeof(raw_records) != TYPE_ARRAY:
+		return
+	for raw_record in raw_records:
+		if typeof(raw_record) != TYPE_DICTIONARY:
+			continue
+		var public_record: Dictionary = raw_record
+		var participant_id := GreyboxWorld.string_value(public_record.get("participant_id", null))
+		if not _records.has(participant_id):
+			continue
+		var stored := record(participant_id)
+		stored["connected"] = bool(public_record.get("connected", false))
+		stored["body_entity_id"] = int(
+			GreyboxWorld.integral_value(public_record.get("body_entity_id", null)).get("value", -1)
+		)
+		if participant_id == local_participant_id:
+			stored["peer_id"] = local_peer_id
+		elif bool(public_record.get("is_host", false)):
+			stored["peer_id"] = 1
+		else:
+			stored["peer_id"] = 0
+		_records[participant_id] = stored
+		var peer_id := int(stored.get("peer_id", 0))
+		if peer_id > 0:
+			_peer_to_participant[peer_id] = participant_id
+
+
+static func _compare_records(left: Dictionary, right: Dictionary) -> bool:
+	return String(left.get("participant_id", "")) < String(right.get("participant_id", ""))
