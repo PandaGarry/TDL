@@ -2,26 +2,10 @@ class_name GameSession
 extends Node
 ## Authoritative composition root for one campaign session.
 ##
-## GameSession owns the runtime relationship between DefinitionRegistry,
-## WorldState, SimulationScheduler, SaveStore and a SessionTransport. It
-## is deliberately not an autoload: the application shell creates it when
-## a campaign starts and destroys it when the campaign ends.
-##
-## Authority rules for P0-E:
-## - solo and networked play use the same host-side intent pipeline;
-## - clients never mutate their mirrored WorldState locally;
-## - a body can be controlled only by the participant bound to it;
-## - entity creation is checked against DefinitionRegistry here, while
-##   WorldState itself remains registry-agnostic;
-## - world facts are appended only by this session, always at the current
-##   WorldClock minute;
-## - only the host writes campaign saves, and only between simulation
-##   advances/intent batches.
-##
-## P0-E replication is intentionally simple and honest about its limits:
-## the host sends reliable full snapshots of a tiny greybox world after
-## authoritative changes. Interest-based deltas are a later optimisation,
-## not something to invent before state sizes and access patterns exist.
+## Owns the runtime relationship between DefinitionRegistry, WorldState,
+## SimulationScheduler, SaveStore and SessionTransport. Solo and networked
+## play share the same host intent pipeline; clients never mutate their
+## mirrored WorldState or write campaign saves.
 
 signal session_started(status: Dictionary)
 signal session_stopped
@@ -88,9 +72,10 @@ func _process(_delta: float) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if not auto_tick_enabled or not _running or not _is_host_authority():
+	if not _running or not _is_host_authority() or delta <= 0.0:
 		return
-	if delta <= 0.0 or game_minutes_per_real_second <= 0.0:
+	advance_disconnect_grace(delta)
+	if not auto_tick_enabled or game_minutes_per_real_second <= 0.0:
 		return
 	_simulation_accumulator_minutes += delta * game_minutes_per_real_second
 	var whole_minutes := int(floor(_simulation_accumulator_minutes))
@@ -359,6 +344,16 @@ func poll_transport() -> void:
 		_transport.poll()
 
 
+func advance_disconnect_grace(seconds: float) -> Array[Dictionary]:
+	if not _running or not _is_host_authority():
+		return []
+	var sheltered := _participants_state.advance_disconnect_grace(_world, seconds)
+	if not sheltered.is_empty():
+		_world_dirty = true
+		_broadcast_snapshot(true)
+	return sheltered
+
+
 func save_world(slot_id: String) -> Dictionary:
 	if not _running or not _is_host_authority():
 		return _failure(["only the authoritative host can save the world"])
@@ -399,6 +394,7 @@ func session_status() -> Dictionary:
 		"entity_count": _world.entity_ids().size() if world_initialized else 0,
 		"greybox_object_entity_id": _greybox_object_entity_id,
 		"participants": _public_participants(),
+		"disconnect_grace": _participants_state.disconnect_grace_summary(),
 		"pending_intents": _pending_intents.size(),
 		"transport_peer_id": _transport.get_unique_id() if _transport != null else 0,
 		"transport_peers": _transport_peer_ids(),

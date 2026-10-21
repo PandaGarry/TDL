@@ -3,9 +3,12 @@ extends RefCounted
 ## Runtime participant-to-body membership for one GameSession.
 ##
 ## Participant identity and body ownership are persisted indirectly in
-## WorldState body components. Peer IDs, connection state and the last
-## consumed client sequence are runtime-only facts and therefore live
-## here instead of being written into the campaign save.
+## WorldState body components. Peer IDs, connection state, the 90-second
+## emergency disconnect grace window and the last consumed client
+## sequence are runtime-only facts and therefore live here instead of
+## being written into the campaign save.
+
+const EMERGENCY_DISCONNECT_GRACE_SECONDS := 90.0
 
 var _records: Dictionary = {}
 var _peer_to_participant: Dictionary = {}
@@ -31,6 +34,9 @@ func rebuild_from_world(world: WorldState) -> void:
 			"display_name": String(body_record.get("display_name", "")),
 			"connected": bool(old_record.get("connected", false)),
 			"last_client_sequence": int(old_record.get("last_client_sequence", 0)),
+			"disconnect_grace_remaining_sec":
+			float(old_record.get("disconnect_grace_remaining_sec", 0.0)),
+			"sheltered_after_disconnect": bool(old_record.get("sheltered_after_disconnect", false)),
 		}
 		if peer_id > 0:
 			_peer_to_participant[peer_id] = participant_id
@@ -47,6 +53,10 @@ func upsert_record(
 		"display_name": display_name,
 		"connected": connected,
 		"last_client_sequence": int(existing.get("last_client_sequence", 0)),
+		"disconnect_grace_remaining_sec":
+		0.0 if connected else float(existing.get("disconnect_grace_remaining_sec", 0.0)),
+		"sheltered_after_disconnect":
+		false if connected else bool(existing.get("sheltered_after_disconnect", false)),
 	}
 	_records[participant_id] = record
 	if peer_id > 0:
@@ -90,6 +100,9 @@ func set_connected(participant_id: String, connected: bool) -> void:
 		return
 	var stored := record(participant_id)
 	stored["connected"] = connected
+	if connected:
+		stored["disconnect_grace_remaining_sec"] = 0.0
+		stored["sheltered_after_disconnect"] = false
 	_records[participant_id] = stored
 
 
@@ -100,9 +113,69 @@ func disconnect_peer(peer_id: int) -> Dictionary:
 	var stored := record(participant_id)
 	stored["peer_id"] = 0
 	stored["connected"] = false
+	stored["disconnect_grace_remaining_sec"] = EMERGENCY_DISCONNECT_GRACE_SECONDS
+	stored["sheltered_after_disconnect"] = false
 	_records[participant_id] = stored
 	_peer_to_participant.erase(peer_id)
 	return stored.duplicate(true)
+
+
+func advance_disconnect_grace(world: WorldState, seconds: float) -> Array[Dictionary]:
+	var sheltered_list: Array[Dictionary] = []
+	if seconds <= 0.0 or not is_finite(seconds):
+		return sheltered_list
+	var ids: Array = _records.keys()
+	ids.sort()
+	for raw_id in ids:
+		var participant_id := String(raw_id)
+		var stored := record(participant_id)
+		if bool(stored.get("connected", false)):
+			continue
+		var remaining := float(stored.get("disconnect_grace_remaining_sec", 0.0))
+		var already_sheltered := bool(stored.get("sheltered_after_disconnect", false))
+		if remaining <= 0.0 or already_sheltered:
+			continue
+		var next_remaining := maxf(0.0, remaining - seconds)
+		stored["disconnect_grace_remaining_sec"] = next_remaining
+		if next_remaining == 0.0:
+			stored["sheltered_after_disconnect"] = true
+			var body_entity_id := int(stored.get("body_entity_id", -1))
+			if world != null and world.is_initialized():
+				(
+					world
+					. fact_log()
+					. append_fact(
+						"participant_sheltered",
+						world.clock().total_minutes(),
+						{
+							"participant_id": participant_id,
+							"entity_id": body_entity_id,
+							"grace_seconds": int(EMERGENCY_DISCONNECT_GRACE_SECONDS),
+						},
+						body_entity_id,
+						GreyboxWorld.BODY_DEFINITION_ID
+					)
+				)
+			sheltered_list.append(stored.duplicate(true))
+		_records[participant_id] = stored
+	return sheltered_list
+
+
+func disconnect_grace_summary() -> Dictionary:
+	var summary: Dictionary = {}
+	var ids: Array = _records.keys()
+	ids.sort()
+	for raw_id in ids:
+		var participant_id := String(raw_id)
+		var stored := record(participant_id)
+		if bool(stored.get("connected", false)):
+			continue
+		summary[participant_id] = {
+			"remaining_sec": float(stored.get("disconnect_grace_remaining_sec", 0.0)),
+			"sheltered": bool(stored.get("sheltered_after_disconnect", false)),
+			"body_entity_id": int(stored.get("body_entity_id", -1)),
+		}
+	return summary
 
 
 func authenticated_peer_ids() -> Array[int]:

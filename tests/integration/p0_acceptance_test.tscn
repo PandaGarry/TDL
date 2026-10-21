@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/integration/p0_acceptance_test.gd" id="1_p0_acceptance"]
+
+[node name="P0AcceptanceTest" type="Node"]
+script = ExtResource("1_p0_acceptance")

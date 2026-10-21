@@ -13,6 +13,7 @@ extends Node
 ##   godot --headless --path . --scene res://tests/smoke/project_validation.tscn
 
 const SCRIPT_ROOT := "res://scripts"
+const TEST_ROOT := "res://tests"
 
 var _failures: Array[String] = []
 
@@ -24,6 +25,7 @@ func _ready() -> void:
 func _run_validation() -> void:
 	var paths: Array[String] = []
 	_collect_scripts(SCRIPT_ROOT, paths)
+	_collect_scripts(TEST_ROOT, paths)
 	paths.sort()
 
 	if paths.is_empty():

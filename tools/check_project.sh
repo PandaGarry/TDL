@@ -78,6 +78,14 @@ run_step "session_tests" 180 "$GODOT_BIN" --headless --path . --scene "res://tes
 #     intents, debug overlay and networked host/client presentation sync.
 run_step "presentation_tests" 180 "$GODOT_BIN" --headless --path . --scene "res://tests/unit/presentation_test.tscn" --quit-after 1200
 
+# 2f) P0-G end-to-end acceptance tests: fixed-seed replay, simulated crash
+#     during world save, corrupt JSON resilience, two-process OS.create_process
+#     ENet host/client convergence, 90-second disconnect grace and BugBundle.
+run_step "p0_acceptance_tests" 180 "$GODOT_BIN" --headless --path . --scene "res://tests/integration/p0_acceptance_test.tscn" --quit-after 2400
+
+# 2g) P0-G full-season headless soak-smoke tests (3 seeds x 30 in-game days).
+run_step "p0_soak_smoke_tests" 180 "$GODOT_BIN" --headless --path . --scene "res://tests/soak/p0_soak_smoke_test.tscn" --quit-after 300
+
 # 4) Smoke-запуск: главная сцена должна прожить 30 итераций без ошибок
 #    скриптов (меню, автозагрузки, загрузка ресурсов).
 run_step "smoke" 120 "$GODOT_BIN" --headless --path . --quit-after 30
@@ -88,7 +96,7 @@ echo "Поиск фатальных маркеров ошибок в логах.
 # отдельно ищем ошибки скриптов и загрузки ресурсов в текстах логов.
 # Обычные ERROR системы CI не валят: в headless CI без GPU допустимы
 # предупреждения драйверов; скриптовые же ошибки не допустимы.
-if grep -RniE 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load resource|PROJECT_VALIDATION_FAILED|CORE_FOUNDATION_TESTS_FAILED|PERSISTENCE_TESTS_FAILED|SESSION_TESTS_FAILED|PRESENTATION_TESTS_FAILED' "$LOG_DIR" ; then
+if grep -RniE 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load resource|PROJECT_VALIDATION_FAILED|CORE_FOUNDATION_TESTS_FAILED|PERSISTENCE_TESTS_FAILED|SESSION_TESTS_FAILED|PRESENTATION_TESTS_FAILED|P0_ACCEPTANCE_TESTS_FAILED|P0_SOAK_SMOKE_FAILED' "$LOG_DIR" ; then
 	echo "!! В логах найдены ошибки скриптов или загрузки ресурсов (см. выше)."
 	FAILED=1
 fi
@@ -98,7 +106,9 @@ for required_pair in \
 	"core_foundation_tests.log:CORE_FOUNDATION_TESTS_OK" \
 	"persistence_tests.log:PERSISTENCE_TESTS_OK" \
 	"session_tests.log:SESSION_TESTS_OK" \
-	"presentation_tests.log:PRESENTATION_TESTS_OK" ; do
+	"presentation_tests.log:PRESENTATION_TESTS_OK" \
+	"p0_acceptance_tests.log:P0_ACCEPTANCE_TESTS_OK" \
+	"p0_soak_smoke_tests.log:P0_SOAK_SMOKE_OK" ; do
 	log_file="${required_pair%%:*}"
 	marker="${required_pair#*:}"
 	if ! grep -Fq "$marker" "$LOG_DIR/$log_file" ; then
