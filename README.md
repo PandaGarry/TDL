@@ -59,7 +59,11 @@ Godot **4.7.2**, проверяет сумму SHA512, импортирует п
 Стратегические основания и причинная рамка одобрены в раундах 4–5;
 Act I должен стабилизировать долину-убежище за целевой ориентир 20–40
 часов, после чего новая беда открывает Act II. В раунде 6 автор одобрил
-гибридный путь игрока A → C → B; его развёрнутая кандидатная концепция:
-[`docs/design/act1_hybrid_experience_concept.md`](docs/design/act1_hybrid_experience_concept.md).
+гибридный путь игрока A → C → B. В раунде 7 заданы весенний старт,
+средневековая племенная эпоха и множество поселений; рабочая первая
+долина Талицы и NPC описаны в
+[`docs/design/first_valley_spring_tribes.md`](docs/design/first_valley_spring_tribes.md),
+а рекомендуемая модель боя — в
+[`docs/design/personal_combat_and_leadership.md`](docs/design/personal_combat_and_leadership.md).
 Источник истины по одобрениям — [`docs/production/decisions.md`](docs/production/decisions.md),
 план — в [`docs/production/roadmap.md`](docs/production/roadmap.md).

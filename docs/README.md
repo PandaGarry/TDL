@@ -9,25 +9,27 @@
 1. [`production/decisions.md`](production/decisions.md) — подробный журнал
    одобренных решений. Для стратегических оснований H1 это источник
    истины: что принято, почему, что отвергнуто и где граница одобрения.
-2. [`design/act1_hybrid_experience_concept.md`](design/act1_hybrid_experience_concept.md) —
-   **текущая расширенная концепция Act I:** одобренный автором гибрид
-   A → C → B, режиссёрская партитура начала, вложенные циклы, умные NPC,
-   живой меняющийся дом, пейзажи, лор-тайны и экспедиции. Детали внутри
-   остаются кандидатными до отдельных одобрений.
-3. [`design/round6_core_loop_variants.md`](design/round6_core_loop_variants.md) —
-   исторический документ трёх исходных вариантов раунда 6 и их сравнения.
-4. [`design/core_generation_and_consequences.md`](design/core_generation_and_consequences.md) —
-   Core как ядро разработки, No Man’s Sky vs Starfield, якорные разломы,
-   наследие, золотая середина необратимости, одобренный каскад кризиса и
-   арка Act I; конкретные детали ещё обсуждаются.
-5. [`design/home_world_and_core_concept.md`](design/home_world_and_core_concept.md) — разбор
-   выбранного направления H1 о родном мире на общем игровом ядре:
-   потенциал, риски и предлагаемые границы первого продукта.
-6. [`lore/open_questions.md`](lore/open_questions.md) — ответы автора по
+2. [`design/first_valley_spring_tribes.md`](design/first_valley_spring_tribes.md) —
+   **текущая рабочая конкретизация раунда 7:** весенняя долина Талицы,
+   средневековые племенные поселения, вожди, 24 якорных NPC,
+   межпоселенческие отношения и динамический баланс.
+3. [`design/personal_combat_and_leadership.md`](design/personal_combat_and_leadership.md) —
+   рекомендуемая агентом модель боя и прокачки: личный персонаж всегда,
+   лидерство и отряд как социальная прогрессия; ждёт подтверждения.
+4. [`design/act1_hybrid_experience_concept.md`](design/act1_hybrid_experience_concept.md) —
+   расширенная концепция Act I: одобренный гибрид A → C → B, партитура
+   начала, циклы, NPC, живой дом, пейзажи, лор-тайны и экспедиции.
+5. [`design/round6_core_loop_variants.md`](design/round6_core_loop_variants.md) —
+   исторический документ трёх исходных вариантов раунда 6.
+6. [`design/core_generation_and_consequences.md`](design/core_generation_and_consequences.md) —
+   Core, генерация, якорные разломы, наследие, необратимость, каскад
+   кризиса и арка Act I.
+7. [`design/home_world_and_core_concept.md`](design/home_world_and_core_concept.md) — разбор
+   выбранного направления H1 о родном мире на общем игровом ядре.
+8. [`lore/open_questions.md`](lore/open_questions.md) — ответы автора по
    раундам исследования, протокол одобрений и оставшиеся вопросы.
-7. [`design/gdd.md`](design/gdd.md) — игровой дизайн-документ; пока шаблон,
-   заполняется только одобренными деталями после следующих раундов.
-8. [`lore/world_bible.md`](lore/world_bible.md) — библия мира.
+9. [`design/gdd.md`](design/gdd.md) — игровой дизайн-документ; пока шаблон.
+10. [`lore/world_bible.md`](lore/world_bible.md) — библия мира v0.1.
 
 ## Дизайн (`design/`)
 
@@ -38,6 +40,8 @@
 | [`core_generation_and_consequences.md`](design/core_generation_and_consequences.md) | Раунды 3–5: Core по аналогии с The Seed, процедурная генерация, No Man’s Sky/Starfield, одобренные наследие, смерть, вымирание, каскад кризиса и Act I |
 | [`round6_core_loop_variants.md`](design/round6_core_loop_variants.md) | Раунд 6: исторические три варианта ввода игрока и игрового цикла, сравнение и путь к выбранному гибриду |
 | [`act1_hybrid_experience_concept.md`](design/act1_hybrid_experience_concept.md) | Одобренная структура A → C → B и её кандидатная режиссёрская разработка: начало, циклы, NPC, живой дом, пейзажи, лор и экспедиции |
+| [`first_valley_spring_tribes.md`](design/first_valley_spring_tribes.md) | Раунд 7: рабочая долина Талицы, весна, средневековые поселения, вожди, NPC, интриги и динамический баланс |
+| [`personal_combat_and_leadership.md`](design/personal_combat_and_leadership.md) | Рекомендуемая модель боя, прокачки, уникальных техник, отряда и племенного лидерства |
 
 ## Лор (`lore/`)
 
