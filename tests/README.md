@@ -1,14 +1,21 @@
 # Тесты
 
-## Что есть сейчас: smoke-валидация
+## Что есть сейчас: smoke-валидация и P0 foundation tests
 
 `tests/smoke/project_validation.tscn` — валидационная сцена. Запускается
 как обычная сцена проекта (с активными автозагрузками) и загружает каждый
 GDScript из `scripts/` через ResourceLoader: движок компилирует скрипты в
 реальном контексте проекта, и CI валится на любой ошибке компиляции.
 
+`tests/unit/core_foundation_test.tscn` — собственный лёгкий runner P0.
+Он проверяет пересобранные InputMap/2D-слои, StableId, WorldClock,
+RngStreams, FactLog, StateHash и DefinitionRegistry на официальном
+пакете `data/core`, включая отказ на дубликатах и битых ссылках.
+
 Запуск: `tools/check_project.sh [godot]`, автоматически — GitHub Actions
 при каждом пуше (`.github/workflows/godot-validate.yml`, Godot 4.7.2).
+CI также гоняет закреплённый gdtoolkit 4.5.0 (`gdformat --check` и
+`gdlint`) по новым P0-путям `scripts/core` и `tests/unit`.
 
 ## Что будет позже
 
@@ -21,11 +28,12 @@ soak-тесты экологии/поселений и проверка один
 
 План подключения (этап прототипа/продакшена):
 
-1. Baseline Lock: основной кандидат — **GdUnit4 6.2.x**
-   (https://github.com/godot-gdunit-labs/gdUnit4). Устанавливаем только
-   после зелёной проверки на Godot 4.7.2; fallback — собственный
-   headless runner или GUT.
+1. Первый слой уже работает собственным headless runner без плагина.
+   **GdUnit4 6.2.x** остаётся кандидатом на отдельный спайк перед
+   сценовыми/input/mock-тестами; устанавливаем только после зелёной
+   проверки на Godot 4.7.2. GUT — альтернативный fallback.
 2. Тесты — в этой папке, зеркально структуре `scripts/`
    (например `tests/autoloads/test_save_system.gd`).
-3. Первый набор: круг `save -> load` даёт те же данные; битый файл
-   сейва не роняет игру; настройки переживают перезапуск.
+3. Следующий набор P0-D: круг `save -> load` даёт те же данные; битый
+   файл сейва не роняет игру; fixture старой схемы мигрирует вперёд;
+   настройки переживают перезапуск.

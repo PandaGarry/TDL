@@ -62,6 +62,15 @@ jobs:
       - name: Версия Godot
         run: ~/.cache/tdl-godot/godot --version
 
+      - name: GDScript style (P0 Core paths)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/tdl-gdtoolkit
+          /tmp/tdl-gdtoolkit/bin/pip install --disable-pip-version-check 'gdtoolkit==4.5.0'
+          /tmp/tdl-gdtoolkit/bin/gdformat --check scripts/core tests/unit
+          /tmp/tdl-gdtoolkit/bin/gdlint scripts/core tests/unit
+
       - name: Проверить проект (импорт + скрипты + smoke)
         shell: bash
         run: bash tools/check_project.sh ~/.cache/tdl-godot/godot

@@ -33,7 +33,7 @@
 
 | Плагин | Решение |
 |---|---|
-| **GdUnit4 6.2.x** — https://github.com/godot-gdunit-labs/gdUnit4 | Основной кандидат тестов при старте P0. Установить закреплённую версию только после зелёной проверки на Godot 4.7.2 в CI; fallback — собственный runner/GUT |
+| **GdUnit4 6.2.x** — https://github.com/godot-gdunit-labs/gdUnit4 | Пока не установлен: первые P0-контракты покрывает собственный headless runner. Остаётся основным кандидатом на спайк перед сценовыми/input/mock-тестами; устанавливать только закреплённую версию после зелёной проверки на Godot 4.7.2 |
 | **GUT** — https://github.com/bitwes/Gut | Fallback тестового стека, если GdUnit4 не пройдёт проверку или окажется неудобным |
 | **LimboAI** — https://github.com/limbonaut/limboai | Только отдельным спайком, если собственный планировщик задач NPC станет нечитаемым; сначала load-test GDExtension на 4.7.2 |
 | **Beehave** — https://github.com/bitbrain/beehave | Не базовая зависимость; рассматривать только если LimboAI и собственные состояния не подойдут |

@@ -92,8 +92,9 @@ Baseline Lock раунда 12 принимает последовательно�
 модели C. Состав и критерии приёмки — в
 `docs/production/round12_baseline_lock.md`.
 
-- [ ] P0: InputMap/слои, DefinitionRegistry, WorldClock/RNG/FactLog,
-      ENet-хост с двумя телами и crash-safe раздельные сейвы
+- [~] P0: InputMap/слои, DefinitionRegistry и WorldClock/RNG/FactLog
+      реализованы и проверены в CI; дальше WorldState/crash-safe сейвы,
+      авторитетная GameSession и ENet-хост с двумя телами
 - [ ] P1: одна полная экологическая цепочка и Кевар/Кевалу/карантин
 - [ ] P2: два поселения, взрослый резерв, вакансия вождя и автономные
       прогоны нескольких сезонов на разных сидах
