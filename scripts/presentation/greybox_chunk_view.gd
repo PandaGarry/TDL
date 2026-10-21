@@ -13,6 +13,9 @@ var _width_tiles: int = 32
 var _height_tiles: int = 24
 var _local_body_entity_id: int = -1
 var _local_tile: Vector2i = Vector2i(-1, -1)
+var _hour_of_day: int = 8
+var _basin_summary: Dictionary = {}
+var _npcs_summary: Array[Dictionary] = []
 var _actor_views_by_entity: Dictionary = {}
 var _crate_views_by_entity: Dictionary = {}
 var _entities_root: Node2D
@@ -59,6 +62,9 @@ func sync_from_session(session: GameSession) -> Dictionary:
 	var active_registry: DefinitionRegistry = session.registry()
 	var connected_by_participant := _connected_lookup(status)
 	_local_tile = _resolve_entity_tile(world, _local_body_entity_id)
+	_hour_of_day = world.clock().hour_of_day()
+	_basin_summary = SevaraEcoChain.basin_summary(world)
+	_npcs_summary = SevaraP1Npcs.npcs_summary(world)
 
 	var seen_actors: Dictionary = {}
 	var seen_crates: Dictionary = {}
@@ -97,6 +103,9 @@ func dehydrate_all() -> void:
 	_crate_views_by_entity.clear()
 	_local_body_entity_id = -1
 	_local_tile = Vector2i(-1, -1)
+	_hour_of_day = 8
+	_basin_summary = {}
+	_npcs_summary = []
 	queue_redraw()
 
 
@@ -149,6 +158,7 @@ func presentation_summary() -> Dictionary:
 			actors.append(view.view_summary())
 
 	var crate := supply_crate_view()
+	var light := SevaraVisualTheme.lighting_for_hour(_hour_of_day)
 	return {
 		"width_tiles": _width_tiles,
 		"height_tiles": _height_tiles,
@@ -160,6 +170,9 @@ func presentation_summary() -> Dictionary:
 		"actor_count": actors.size(),
 		"actors": actors,
 		"supply_crate": crate.view_summary() if crate != null else {},
+		"p1_basin_nodes_count": int(_basin_summary.get("node_count", 0)),
+		"p1_npcs_count": _npcs_summary.size(),
+		"ambient_phase": String(light.get("phase", "morning")),
 		"graphics_profile": SettingsManager.graphics_profile(),
 	}
 
@@ -170,7 +183,16 @@ func _draw() -> void:
 		_width_tiles, _height_tiles, resolved_tile
 	)
 	var field_rect := Rect2(Vector2.ZERO, field_size)
-	draw_rect(field_rect, Color(0.11, 0.14, 0.12, 1.0), true)
+	SevaraVisualTheme.draw_chunk_landscape(
+		self,
+		_width_tiles,
+		_height_tiles,
+		resolved_tile,
+		_basin_summary,
+		_hour_of_day,
+		SettingsManager.graphics_profile()
+	)
+	_draw_p1_npcs(resolved_tile)
 
 	if _local_tile.x >= 0:
 		var local_origin := GreyboxGridMetrics.tile_to_world_origin(_local_tile, resolved_tile)
@@ -190,8 +212,28 @@ func _draw() -> void:
 		)
 		draw_rect(Rect2(crate_origin, Vector2.ONE * resolved_tile), highlight, true)
 
-	_draw_grid_lines(resolved_tile, field_size)
+	if SettingsManager.texture_quality == SettingsManager.TEXTURE_QUALITY_GREYBOX:
+		_draw_grid_lines(resolved_tile, field_size)
 	draw_rect(field_rect, Color(0.46, 0.56, 0.48, 0.9), false, 2.5)
+
+
+func _draw_p1_npcs(resolved_tile: float) -> void:
+	for npc in _npcs_summary:
+		var npc_id := String(npc.get("npc_id", ""))
+		var tx := clampi(int(npc.get("tile_x", 12)), 0, _width_tiles - 1)
+		var ty := clampi(int(npc.get("tile_y", 10)), 0, _height_tiles - 1)
+		var center := GreyboxGridMetrics.tile_to_world_center(Vector2i(tx, ty), resolved_tile)
+		draw_set_transform(center, 0.0, Vector2.ONE)
+		SevaraVisualTheme.draw_humanoid_6_5_heads(
+			self,
+			resolved_tile,
+			SevaraVisualTheme.npc_visual_palette(npc_id),
+			Vector2.DOWN,
+			false,
+			{},
+			_hour_of_day
+		)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _draw_grid_lines(resolved_tile: float, field_size: Vector2) -> void:
@@ -220,6 +262,7 @@ func _build_actor_view_model(
 	var inventory: Dictionary = world.get_entity_component(
 		entity_id, GreyboxWorld.INVENTORY_COMPONENT
 	)
+	var vitals: Dictionary = world.get_entity_component(entity_id, BodyVitals.VITALS_COMPONENT)
 	var participant_id := String(body.get("participant_id", ""))
 	var display_name := String(body.get("display_name", participant_id))
 	var definition: Dictionary = (
@@ -239,6 +282,8 @@ func _build_actor_view_model(
 		"is_local_body": entity_id == _local_body_entity_id,
 		"connected": bool(connected_by_participant.get(participant_id, true)),
 		"inventory": inventory,
+		"vitals": vitals,
+		"hour_of_day": _hour_of_day,
 	}
 
 

@@ -372,6 +372,31 @@ func _test_input_actions_and_debug_overlay() -> void:
 			8,
 			"debug overlay snapshot reports 8 active P1 anchor NPCs"
 		)
+		var chunk_summary: Dictionary = loaded_stage.chunk_view().presentation_summary()
+		_check_equal(
+			int(chunk_summary.get("p1_basin_nodes_count", 0)),
+			4,
+			"chunk presentation summary reports 4 P1 basin nodes"
+		)
+		_check_equal(
+			int(chunk_summary.get("p1_npcs_count", 0)),
+			8,
+			"chunk presentation summary reports 8 P1 anchor NPCs"
+		)
+		var pebble_tex := SevaraVisualTheme.load_canvas_texture("tex_riverbed_pebbles", true)
+		_check(
+			pebble_tex is CanvasTexture,
+			"SevaraVisualTheme loads CanvasTexture with diffuse + normal map"
+		)
+		var zoom_step_1 := loaded_stage.cycle_camera_zoom()
+		_check(
+			is_equal_approx(zoom_step_1, 1.45), "stage camera cycles to close inspection zoom 1.45x"
+		)
+		var zoom_step_2 := loaded_stage.cycle_camera_zoom()
+		_check(
+			is_equal_approx(zoom_step_2, 0.65),
+			"stage camera cycles to overview tactical zoom 0.65x"
+		)
 		_destroy_node(loaded_stage)
 
 

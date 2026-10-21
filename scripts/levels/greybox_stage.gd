@@ -28,6 +28,7 @@ var _session: GameSession
 var _owns_session: bool = false
 var _chunk_view: GreyboxChunkView
 var _camera: Camera2D
+var _camera_zoom_index: int = 1
 var _hud_layer: CanvasLayer
 var _debug_overlay: GreyboxDebugOverlay
 var _header_title_label: Label
@@ -141,6 +142,15 @@ func cycle_texture_quality_preset() -> String:
 	return next_preset
 
 
+func cycle_camera_zoom() -> float:
+	var presets: Array = SevaraVisualTheme.CAMERA_ZOOM_PRESETS
+	_camera_zoom_index = (_camera_zoom_index + 1) % presets.size()
+	var z := float(presets[_camera_zoom_index])
+	if _camera != null:
+		_camera.zoom = Vector2(z, z)
+	return z
+
+
 func apply_lobby_rules_patch(patch: Dictionary) -> Dictionary:
 	if _session == null:
 		return {"ok": false, "errors": ["no game session is bound to the stage"]}
@@ -202,6 +212,7 @@ func stage_status() -> Dictionary:
 		"session_bound": _session != null,
 		"owns_session": _owns_session,
 		"camera_position": {"x": _camera.position.x, "y": _camera.position.y},
+		"camera_zoom": _camera.zoom.x if _camera != null else 1.0,
 		"local_actor_position":
 		(
 			{"x": local_actor.position.x, "y": local_actor.position.y}

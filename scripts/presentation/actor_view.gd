@@ -19,6 +19,8 @@ var facing_direction: Vector2 = Vector2.DOWN
 var is_local_body: bool = false
 var is_participant_connected: bool = true
 var inventory: Dictionary = {}
+var vitals: Dictionary = {}
+var hour_of_day: int = 8
 var total_inventory_items: int = 0
 
 var _tile_size_px: float = GreyboxGridMetrics.DEFAULT_TILE_SIZE_PX
@@ -65,6 +67,13 @@ func apply_view_model(model: Dictionary, tile_size_px: float) -> void:
 		if typeof(raw_inventory) == TYPE_DICTIONARY
 		else {}
 	)
+	var raw_vitals: Variant = model.get("vitals", {})
+	vitals = (
+		(JsonValue.duplicate_safe(raw_vitals) as Dictionary)
+		if typeof(raw_vitals) == TYPE_DICTIONARY
+		else {}
+	)
+	hour_of_day = int(model.get("hour_of_day", 8))
 	total_inventory_items = _sum_inventory(inventory)
 	name = "ActorView_%d_%s" % [entity_id, participant_id]
 	position = GreyboxGridMetrics.tile_to_world_center(tile_position, _tile_size_px)
@@ -104,6 +113,17 @@ func view_summary() -> Dictionary:
 
 
 func _draw() -> void:
+	if SettingsManager.texture_quality != SettingsManager.TEXTURE_QUALITY_GREYBOX:
+		var palette := {
+			"cloak":
+			Color(0.32, 0.39, 0.27, 1.0) if is_local_body else Color(0.24, 0.42, 0.50, 1.0),
+			"tunic": Color(0.72, 0.66, 0.56, 1.0),
+			"trim": _body_rim_color(),
+		}
+		SevaraVisualTheme.draw_humanoid_6_5_heads(
+			self, _tile_size_px, palette, facing_direction, is_local_body, vitals, hour_of_day
+		)
+		return
 	var radius := _tile_size_px * DEFAULT_BODY_RADIUS_RATIO
 	draw_circle(Vector2(0.0, radius * 0.35), radius * 0.92, Color(0.02, 0.03, 0.04, 0.45))
 	var fill_color := _body_fill_color()
