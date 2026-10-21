@@ -9,18 +9,21 @@
 1. [`production/decisions.md`](production/decisions.md) — подробный журнал
    одобренных решений. Для стратегических оснований H1 это источник
    истины: что принято, почему, что отвергнуто и где граница одобрения.
-2. [`design/core_generation_and_consequences.md`](design/core_generation_and_consequences.md) —
+2. [`design/round6_core_loop_variants.md`](design/round6_core_loop_variants.md) —
+   **текущий вопрос:** три неутверждённых варианта ввода игрока и
+   игрового цикла открытого мира, подготовленные для выбора автора.
+3. [`design/core_generation_and_consequences.md`](design/core_generation_and_consequences.md) —
    Core как ядро разработки, No Man’s Sky vs Starfield, якорные разломы,
    наследие, золотая середина необратимости, одобренный каскад кризиса и
    арка Act I; конкретные детали ещё обсуждаются.
-3. [`design/home_world_and_core_concept.md`](design/home_world_and_core_concept.md) — разбор
+4. [`design/home_world_and_core_concept.md`](design/home_world_and_core_concept.md) — разбор
    выбранного направления H1 о родном мире на общем игровом ядре:
    потенциал, риски и предлагаемые границы первого продукта.
-4. [`lore/open_questions.md`](lore/open_questions.md) — ответы автора по
+5. [`lore/open_questions.md`](lore/open_questions.md) — ответы автора по
    раундам исследования, протокол одобрений и оставшиеся вопросы.
-5. [`design/gdd.md`](design/gdd.md) — игровой дизайн-документ; пока шаблон,
+6. [`design/gdd.md`](design/gdd.md) — игровой дизайн-документ; пока шаблон,
    заполняется только одобренными деталями после следующих раундов.
-6. [`lore/world_bible.md`](lore/world_bible.md) — библия мира.
+7. [`lore/world_bible.md`](lore/world_bible.md) — библия мира.
 
 ## Дизайн (`design/`)
 
@@ -29,6 +32,7 @@
 | [`gdd.md`](design/gdd.md) | Главный дизайн-документ: питч, жанр, кор-цикл, механики, прогрессия, scope |
 | [`home_world_and_core_concept.md`](design/home_world_and_core_concept.md) | Выбранное направление H1: конечный живой дом, экспедиции через якорные разломы, общее игровое ядро и последствия между мирами |
 | [`core_generation_and_consequences.md`](design/core_generation_and_consequences.md) | Раунды 3–5: Core по аналогии с The Seed, процедурная генерация, No Man’s Sky/Starfield, одобренные наследие, смерть, вымирание, каскад кризиса и Act I |
+| [`round6_core_loop_variants.md`](design/round6_core_loop_variants.md) | Раунд 6: три неутверждённых варианта ввода игрока и игрового цикла в открытом мире, сравнение и рекомендация агента |
 
 ## Лор (`lore/`)
 
