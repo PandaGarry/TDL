@@ -213,9 +213,7 @@ func _test_package_pin_rejection() -> void:
 	var registry_report := registry.load_package("res://data/core/manifest.json")
 	_check(bool(registry_report.get("ok", false)), "bad-pin fixture registry loads")
 	var world := WorldState.new()
-	var pins: Array = [
-		{"package_id": "core", "version": "9.9.9", "manifest_hash": "a".repeat(64)}
-	]
+	var pins: Array = [{"package_id": "core", "version": "9.9.9", "manifest_hash": "a".repeat(64)}]
 	_check(world.setup_campaign("p0e_bad_pin", 7, pins), "bad-pin fixture world initializes")
 	world.create_entity("core:species/navelu", {})
 	var store := SaveStore.new(TEST_SAVE_ROOT, 2)
