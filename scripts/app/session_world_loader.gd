@@ -115,7 +115,7 @@ static func package_pin_for_registry(active_registry: DefinitionRegistry) -> Dic
 	return {
 		"package_id": active_registry.package_id(),
 		"version": active_registry.package_version(),
-		"manifest_sha256": active_registry.manifest_hash(),
+		"manifest_hash": active_registry.manifest_hash(),
 	}
 
 

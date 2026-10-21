@@ -214,7 +214,7 @@ func _test_package_pin_rejection() -> void:
 	_check(bool(registry_report.get("ok", false)), "bad-pin fixture registry loads")
 	var world := WorldState.new()
 	var pins: Array = [
-		{"package_id": "core", "version": "9.9.9", "manifest_sha256": "a".repeat(64)}
+		{"package_id": "core", "version": "9.9.9", "manifest_hash": "a".repeat(64)}
 	]
 	_check(world.setup_campaign("p0e_bad_pin", 7, pins), "bad-pin fixture world initializes")
 	world.create_entity("core:species/navelu", {})
@@ -262,7 +262,7 @@ func _test_legacy_package_reconciliation() -> void:
 		_check_equal(pins.size(), 1, "reconciled world has one active package pin")
 		if pins.size() == 1:
 			_check_equal(
-				String(pins[0].get("manifest_sha256", "")),
+				String(pins[0].get("manifest_hash", "")),
 				session.registry().manifest_hash(),
 				"reconciled pin matches the active registry"
 			)
