@@ -161,7 +161,7 @@ static func apply_intervention(
 			target_subject = "core:species/kevalu"
 		INTERVENTION_RELEASE_KEVALU_WILD:
 			channel["kevalu_wild_biomass"] = _round4(
-				clampf(float(channel.get("kevalu_wild_biomass", 0.0)) + 0.28, 0.0, 1.0)
+				clampf(float(channel.get("kevalu_wild_biomass", 0.0)) + 0.18, 0.0, 1.0)
 			)
 			target_subject = "core:species/kevalu"
 		INTERVENTION_PURGE_KEVALU_CHANNEL:
