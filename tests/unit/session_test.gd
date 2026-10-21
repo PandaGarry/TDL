@@ -299,7 +299,7 @@ func _test_enet_host_client() -> void:
 		"127.0.0.1", selected_port, "guest_1", "Guest"
 	)
 	_check(bool(client_report.get("ok", false)), "ENet client join starts: %s" % str(client_report))
-	var ready := await _wait_until(Callable(self, "_network_client_ready"), 10000)
+	var ready: bool = await _wait_until(Callable(self, "_network_client_ready"), 10000)
 	_check(ready, "ENet client receives welcome and authoritative snapshot")
 	if not ready:
 		_destroy_session(_network_client)
