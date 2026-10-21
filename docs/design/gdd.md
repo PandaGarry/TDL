@@ -15,6 +15,7 @@
 `docs/design/personal_combat_and_leadership.md`,
 `docs/design/social_simulation_succession_and_culture.md`,
 `docs/design/adaptive_settlements_leadership_and_coop.md`,
+`docs/design/leadership_succession_reputation_roles.md`,
 `docs/lore/naming_and_localization.md` и
 `docs/production/decisions.md`. Они не перенесены сюда как заполненный
 питч, кор-цикл и набор механик: финальные виды, бой, параметры
