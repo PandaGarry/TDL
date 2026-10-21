@@ -1,0 +1,10 @@
+{
+  "format": "tdl.content_package",
+  "schema_version": 1,
+  "package_id": "core",
+  "version": "0.1.0",
+  "definition_files": [
+    "definitions/species.json",
+    "definitions/materials.json"
+  ]
+}

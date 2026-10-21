@@ -1,0 +1,36 @@
+{
+  "format": "tdl.definitions",
+  "schema_version": 1,
+  "definitions": [
+    {
+      "id": "core:material/torava_wood",
+      "kind": "material",
+      "name_key": "material.torava_wood.name",
+      "tags": [
+        "wood",
+        "building",
+        "tool_material"
+      ],
+      "visual_profile": "core:visual/material_torava_wood",
+      "properties": {
+        "flammable": true,
+        "renewable": true
+      }
+    },
+    {
+      "id": "core:material/reed_fiber",
+      "kind": "material",
+      "name_key": "material.reed_fiber.name",
+      "tags": [
+        "fiber",
+        "wetland",
+        "lightweight"
+      ],
+      "visual_profile": "core:visual/material_reed_fiber",
+      "properties": {
+        "flammable": true,
+        "renewable": true
+      }
+    }
+  ]
+}

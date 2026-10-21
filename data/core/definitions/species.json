@@ -1,0 +1,81 @@
+{
+  "format": "tdl.definitions",
+  "schema_version": 1,
+  "definitions": [
+    {
+      "id": "core:species/navelu",
+      "kind": "species",
+      "name_key": "species.navelu.name",
+      "tags": [
+        "animal",
+        "semi_aquatic",
+        "ecosystem_engineer"
+      ],
+      "visual_profile": "core:visual/species_navelu",
+      "references": [
+        "core:species/selave"
+      ],
+      "properties": {
+        "diet": "herbivore",
+        "habitats": [
+          "wetland",
+          "side_pond"
+        ],
+        "ecological_roles": [
+          "slows_water",
+          "creates_side_ponds"
+        ]
+      }
+    },
+    {
+      "id": "core:species/selave",
+      "kind": "species",
+      "name_key": "species.selave.name",
+      "tags": [
+        "plant",
+        "wetland",
+        "filtration_vegetation"
+      ],
+      "visual_profile": "core:visual/species_selave",
+      "references": [
+        "core:species/navelu",
+        "core:species/murela"
+      ],
+      "properties": {
+        "habitats": [
+          "wetland",
+          "shallow_water"
+        ],
+        "ecological_roles": [
+          "filters_silt",
+          "shelters_juveniles",
+          "seasonal_pollinator_signal"
+        ]
+      }
+    },
+    {
+      "id": "core:species/murela",
+      "kind": "species",
+      "name_key": "species.murela.name",
+      "tags": [
+        "animal",
+        "fish",
+        "food_species"
+      ],
+      "visual_profile": "core:visual/species_murela",
+      "references": [
+        "core:species/selave"
+      ],
+      "properties": {
+        "habitats": [
+          "lowland_water",
+          "side_pond"
+        ],
+        "ecological_roles": [
+          "feeds_people",
+          "feeds_predators"
+        ]
+      }
+    }
+  ]
+}
