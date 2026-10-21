@@ -37,15 +37,20 @@ func _ready() -> void:
 
 func apply_view_model(model: Dictionary, tile_size_px: float) -> void:
 	_tile_size_px = GreyboxGridMetrics.sanitized_tile_size(tile_size_px)
-	entity_id = int(model.get("entity_id", -1))
+	entity_id = int(GreyboxWorld.integral_value(model.get("entity_id", -1)).get("value", -1))
 	definition_id = String(model.get("definition_id", GreyboxWorld.OBJECT_DEFINITION_ID))
 	visual_profile = String(model.get("visual_profile", "core:visual/object_greybox_supply_crate"))
-	tile_position = Vector2i(int(model.get("tile_x", 0)), int(model.get("tile_y", 0)))
+	var parsed_x := int(GreyboxWorld.integral_value(model.get("tile_x", 0)).get("value", 0))
+	var parsed_y := int(GreyboxWorld.integral_value(model.get("tile_y", 0)).get("value", 0))
+	tile_position = Vector2i(parsed_x, parsed_y)
 	item_definition_id = String(
 		model.get("item_definition_id", GreyboxWorld.DEFAULT_CONTAINER_ITEM_DEFINITION_ID)
 	)
 	item_display_name = String(model.get("item_display_name", item_definition_id))
-	remaining_count = maxi(int(model.get("remaining_count", 0)), 0)
+	var parsed_count := int(
+		GreyboxWorld.integral_value(model.get("remaining_count", 0)).get("value", 0)
+	)
+	remaining_count = maxi(parsed_count, 0)
 	verb = String(model.get("verb", "take_one"))
 	adjacent_to_local_body = bool(model.get("adjacent_to_local_body", false))
 	name = "SupplyCrateView_%d" % entity_id

@@ -17,6 +17,7 @@ static var next_launch_load_slot_id: String = ""
 @export var load_existing_slot_on_start: bool = false
 @export var default_campaign_id: String = DEFAULT_CAMPAIGN_ID
 @export var default_slot_id: String = DEFAULT_SLOT_ID
+@export var save_root_dir: String = "user://saves/campaigns"
 @export var default_genesis_seed: int = DEFAULT_GENESIS_SEED
 @export var default_participant_id: String = "host"
 @export var default_display_name: String = "Host"
@@ -111,6 +112,14 @@ func load_offline_campaign(
 	var report: Dictionary = active_session.load_and_start_offline(
 		slot_id, participant_id, display_name
 	)
+	refresh_presentation()
+	return report
+
+
+func save_offline_campaign(slot_id: String = default_slot_id) -> Dictionary:
+	if _session == null:
+		return {"ok": false, "errors": ["no game session is bound to the stage"]}
+	var report: Dictionary = _session.save_world(slot_id)
 	refresh_presentation()
 	return report
 
@@ -268,10 +277,12 @@ func _apply_localized_labels() -> void:
 
 func _ensure_owned_session() -> GameSession:
 	if _session != null and _owns_session and is_instance_valid(_session):
+		_session.save_root_dir = save_root_dir
 		return _session
 	_unbind_session_signals(_session)
 	var created := GameSession.new()
 	created.name = "OwnedGameSession"
+	created.save_root_dir = save_root_dir
 	add_child(created)
 	_session = created
 	_owns_session = true
@@ -371,16 +382,13 @@ func _on_step_time_pressed() -> void:
 
 
 func _on_save_pressed() -> void:
-	if _session == null:
-		return
-	var report: Dictionary = _session.save_world(default_slot_id)
+	var report := save_offline_campaign(default_slot_id)
 	if _status_banner_label != null:
 		_status_banner_label.text = (
 			"Saved slot '%s'" % default_slot_id
 			if bool(report.get("ok", false))
 			else "Save failed: %s" % str(report.get("errors", []))
 		)
-	refresh_presentation()
 
 
 func _on_menu_pressed() -> void:

@@ -70,9 +70,11 @@ func _test_localization_and_ambience_settings() -> void:
 	var ambience_bus_idx := AudioServer.get_bus_index(AudioManager.BUS_AMBIENCE)
 	_check(ambience_bus_idx >= 0, "Ambience audio bus exists")
 	SettingsManager.set_ambience_volume(0.35)
+	SettingsManager.ambience_volume = 0.9
+	SettingsManager.load_settings()
 	_check(
 		is_equal_approx(SettingsManager.ambience_volume, 0.35),
-		"SettingsManager stores ambience_volume 0.35"
+		"SettingsManager persists and reloads ambience_volume 0.35"
 	)
 	_check(not AudioServer.is_bus_mute(ambience_bus_idx), "Ambience bus is unmuted at volume 0.35")
 	SettingsManager.set_ambience_volume(0.0)
@@ -272,7 +274,52 @@ func _test_input_actions_and_debug_overlay() -> void:
 		hash_before_toggle,
 		"debug_toggle does not mutate WorldState"
 	)
+
+	var echo_key := InputEventKey.new()
+	echo_key.pressed = true
+	echo_key.echo = true
+	echo_key.physical_keycode = KEY_W
+	_check_equal(
+		GreyboxInputController.resolve_action_from_event(echo_key),
+		&"",
+		"echo key event is ignored by GreyboxInputController"
+	)
+
+	var save_report: Dictionary = stage.save_offline_campaign("p0f_saved_slot")
+	_check(bool(save_report.get("ok", false)), "stage saves offline campaign slot")
+	var saved_hash: String = stage.session().domain_state_hash()
+
+	var unbind_status: Dictionary = stage.bind_session(null)
+	var unbind_overlay: Dictionary = unbind_status.get("debug_snapshot", {})
+	_check_equal(
+		String(unbind_overlay.get("role", "")),
+		"inactive",
+		"bind_session(null) resets overlay role to inactive"
+	)
+	_check(
+		stage.chunk_view().hydrated_entity_ids().is_empty(),
+		"bind_session(null) dehydrates chunk views"
+	)
 	_destroy_node(stage)
+
+	var loaded_stage := _instantiate_stage()
+	if loaded_stage != null:
+		var load_report: Dictionary = loaded_stage.load_offline_campaign(
+			"p0f_saved_slot", "host", "Host"
+		)
+		_check(bool(load_report.get("ok", false)), "new stage loads saved campaign slot")
+		_check_equal(
+			loaded_stage.session().domain_state_hash(),
+			saved_hash,
+			"loaded stage restores exact domain_state_hash"
+		)
+		if loaded_stage.chunk_view().local_actor_view() != null:
+			_check_equal(
+				loaded_stage.chunk_view().local_actor_view().tile_position,
+				Vector2i(2, 3),
+				"loaded stage hydrates actor at saved tile (2,3)"
+			)
+		_destroy_node(loaded_stage)
 
 
 func _test_networked_two_stage_presentation() -> void:
@@ -378,6 +425,7 @@ func _instantiate_stage() -> GreyboxStage:
 	if stage == null:
 		return null
 	stage.auto_start_offline = false
+	stage.save_root_dir = TEST_SAVE_ROOT
 	add_child(stage)
 	return stage
 

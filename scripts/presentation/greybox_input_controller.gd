@@ -18,7 +18,7 @@ const SUPPORTED_ACTIONS: Array[StringName] = [
 
 
 static func resolve_action_from_event(event: InputEvent) -> StringName:
-	if event == null or event.is_echo():
+	if event == null or not event.is_pressed() or event.is_echo():
 		return &""
 	for action_name in SUPPORTED_ACTIONS:
 		if InputMap.has_action(action_name) and event.is_action_pressed(action_name, false):

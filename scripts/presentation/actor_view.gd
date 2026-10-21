@@ -44,12 +44,14 @@ func _ready() -> void:
 func apply_view_model(model: Dictionary, tile_size_px: float) -> void:
 	var previous_tile := tile_position
 	_tile_size_px = GreyboxGridMetrics.sanitized_tile_size(tile_size_px)
-	entity_id = int(model.get("entity_id", -1))
+	entity_id = int(GreyboxWorld.integral_value(model.get("entity_id", -1)).get("value", -1))
 	definition_id = String(model.get("definition_id", GreyboxWorld.BODY_DEFINITION_ID))
 	visual_profile = String(model.get("visual_profile", "core:visual/actor_greybox_body"))
 	participant_id = String(model.get("participant_id", ""))
 	display_name = String(model.get("display_name", participant_id))
-	var next_tile := Vector2i(int(model.get("tile_x", 0)), int(model.get("tile_y", 0)))
+	var parsed_x := int(GreyboxWorld.integral_value(model.get("tile_x", 0)).get("value", 0))
+	var parsed_y := int(GreyboxWorld.integral_value(model.get("tile_y", 0)).get("value", 0))
+	var next_tile := Vector2i(parsed_x, parsed_y)
 	if previous_tile.x >= 0 and next_tile != previous_tile:
 		var delta := Vector2(next_tile - previous_tile)
 		if delta.length_squared() > 0.0:
