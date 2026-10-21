@@ -476,6 +476,7 @@ func _wait_until(predicate: Callable, timeout_msec: int) -> bool:
 		if bool(predicate.call()):
 			return true
 		_pump_network_sessions()
+		OS.delay_msec(2)
 		await get_tree().process_frame
 	return bool(predicate.call())
 

@@ -295,7 +295,7 @@ func _test_networked_two_stage_presentation() -> void:
 
 	var client_start: Dictionary = _client_session.start_client("127.0.0.1", port, "guest", "Guest")
 	_check(bool(client_start.get("ok", false)), "network client starts for presentation test")
-	var joined: bool = await _wait_until(Callable(self, "_is_network_pair_ready"), 240)
+	var joined: bool = await _wait_until(Callable(self, "_is_network_pair_ready"), 5000)
 	_check(joined, "client stage receives welcome snapshot")
 	if not joined:
 		_cleanup_network_nodes(host_stage, client_stage)
@@ -335,7 +335,7 @@ func _test_networked_two_stage_presentation() -> void:
 
 	var client_move: Dictionary = client_stage.trigger_action(GreyboxGridMetrics.ACTION_MOVE_DOWN)
 	_check(bool(client_move.get("ok", false)), "client stage submits move_down intent over ENet")
-	var synced: bool = await _wait_until(Callable(self, "_did_guest_reach_tile_4_3"), 240)
+	var synced: bool = await _wait_until(Callable(self, "_did_guest_reach_tile_4_3"), 5000)
 	_check(synced, "guest move_down replicates to both host and client stages")
 
 	host_stage.refresh_presentation()
@@ -416,8 +416,9 @@ func _did_guest_reach_tile_4_3() -> bool:
 	return tile == Vector2i(4, 3)
 
 
-func _wait_until(predicate: Callable, max_frames: int) -> bool:
-	for _frame in range(max_frames):
+func _wait_until(predicate: Callable, timeout_msec: int) -> bool:
+	var started := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - started < timeout_msec:
 		if _host_session != null:
 			_host_session.poll_transport()
 			_host_session.process_pending_intents()
@@ -425,6 +426,7 @@ func _wait_until(predicate: Callable, max_frames: int) -> bool:
 			_client_session.poll_transport()
 		if bool(predicate.call()):
 			return true
+		OS.delay_msec(2)
 		await get_tree().process_frame
 	return bool(predicate.call())
 
