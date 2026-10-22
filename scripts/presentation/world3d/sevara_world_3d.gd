@@ -5,7 +5,7 @@ extends Node3D
 ## custom spatial shaders, smooth character locomotion, and scenic valley camera lookpoints.
 
 ## Step-by-step Look-Dev progression:
-## LOOKDEV_STEP = 1 -> Step 1 Foundation: Terrain relief, calm velvety 3D grass, earthen path & lighting ONLY.
+## LOOKDEV_STEP = 1 -> Step 1: Terrain relief, calm velvety 3D grass, path & lighting.
 const LOOKDEV_STEP := 1
 
 const CAMERA_LOOKPOINTS: Array[String] = [
