@@ -41,7 +41,7 @@ static func create_tree_3d(variant: int = 0, is_stump: bool = false) -> Node3D:
 		{
 			"color_dark": Color(0.11, 0.27, 0.12) if is_pine else Color(0.15, 0.34, 0.12),
 			"color_light": Color(0.28, 0.50, 0.22) if is_pine else Color(0.42, 0.64, 0.22),
-			"texture_color_mix": 0.32,
+			"texture_color_mix": 0.82,
 			"snow_cover": 0.14 if is_pine else 0.04,
 		},
 	}
@@ -116,7 +116,7 @@ static func create_talina_willow_3d(variant: int = 0) -> Node3D:
 		{
 			"color_dark": Color(0.14, 0.32, 0.18),
 			"color_light": Color(0.42, 0.62, 0.34),
-			"texture_color_mix": 0.36,
+			"texture_color_mix": 0.82,
 			"snow_cover": 0.02,
 		},
 	}
@@ -223,62 +223,122 @@ static func create_hearth_3d() -> Node3D:
 static func create_bridge_3d(length_m: float = 7.2, width_m: float = 2.4) -> Node3D:
 	var root := Node3D.new()
 	root.name = "TimberBridge3D"
-	var wood_mat := SevaraVisualTheme.create_structural_material3d(Color(0.54, 0.41, 0.28), 0.84)
-	var stone_mat := SevaraVisualTheme.create_structural_material3d(Color(0.50, 0.49, 0.47), 0.90)
+	var wood_mat := SevaraAssetLibrary3D._make_arch_shader_material(
+		"pbr_aged_timber",
+		Color(0.56, 0.40, 0.26),
+		Color(0.38, 0.26, 0.16),
+		0.52,
+		0.48,
+		0.78,
+		0.78,
+		0.0,
+		0.45,
+		0.26
+	)
+	var dark_beam_mat := SevaraAssetLibrary3D._make_arch_shader_material(
+		"pbr_aged_timber",
+		Color(0.40, 0.28, 0.18),
+		Color(0.26, 0.18, 0.11),
+		0.48,
+		0.45,
+		0.80,
+		0.82,
+		0.0,
+		0.52,
+		0.24
+	)
+	var stone_mat := SevaraAssetLibrary3D._make_arch_shader_material(
+		"pbr_cliff_rock",
+		Color(0.54, 0.54, 0.52),
+		Color(0.38, 0.39, 0.38),
+		0.46,
+		0.45,
+		0.82,
+		0.80,
+		0.0,
+		0.62,
+		0.32
+	)
 
-	# Heavy stone bridge abutments on both banks
+	# Heavy stone bridge abutments & wing walls on both banks
 	for side in [-1.0, 1.0]:
 		var side_f := float(side)
 		var abut := MeshInstance3D.new()
 		var abut_box := BoxMesh.new()
-		abut_box.size = Vector3(1.15, 1.1, width_m + 0.55)
+		abut_box.size = Vector3(1.35, 1.25, width_m + 0.65)
 		abut.mesh = abut_box
-		abut.position = Vector3(side_f * (length_m * 0.46), -0.15, 0.0)
+		abut.position = Vector3(side_f * (length_m * 0.46), -0.22, 0.0)
 		abut.material_override = stone_mat
 		root.add_child(abut)
 
-	# Arched timber stringers and plank deck
-	var plank_count := maxi(int(length_m / 0.36), 10)
+	# Submerged timber pilings supporting the central span
+	for pier_x in [-length_m * 0.20, length_m * 0.20]:
+		for side_z in [-1.0, 1.0]:
+			var piling := MeshInstance3D.new()
+			var p_cyl := CylinderMesh.new()
+			p_cyl.top_radius = 0.13
+			p_cyl.bottom_radius = 0.16
+			p_cyl.height = 1.65
+			piling.mesh = p_cyl
+			piling.position = Vector3(pier_x, -0.25, float(side_z) * (width_m * 0.42))
+			piling.material_override = dark_beam_mat
+			root.add_child(piling)
+
+	# Arched longitudinal carrier beams + timber plank deck
+	var plank_count := maxi(int(length_m / 0.32), 12)
 	for i in range(plank_count):
 		var t := float(i) / float(plank_count - 1)
 		var px := lerpf(-length_m * 0.46, length_m * 0.46, t)
-		var arch_y := sin(t * PI) * 0.42 + 0.14
+		var arch_y := sin(t * PI) * 0.44 + 0.14
+		var slope_z := -cos(t * PI) * (0.44 * PI / length_m)
 		var plank := MeshInstance3D.new()
 		var pmesh := BoxMesh.new()
-		pmesh.size = Vector3(0.30, 0.10, width_m)
+		var jitter_w := width_m + sin(float(i) * 2.3) * 0.06
+		pmesh.size = Vector3(0.28, 0.11, jitter_w)
 		plank.mesh = pmesh
 		plank.position = Vector3(px, arch_y, 0.0)
-		plank.material_override = wood_mat
+		plank.rotation.z = slope_z * 0.55
+		plank.material_override = wood_mat if (i % 3 != 0) else dark_beam_mat
 		root.add_child(plank)
 
-	# Timber posts and double railings
+	# Timber posts, diagonal knee braces, and arched top/mid rails
 	for side_z in [-1.0, 1.0]:
 		var sz := float(side_z) * (width_m * 0.46)
 		for p in range(5):
 			var pt := float(p) / 4.0
 			var post_x := lerpf(-length_m * 0.44, length_m * 0.44, pt)
-			var post_y := sin(pt * PI) * 0.42 + 0.58
+			var post_y := sin(pt * PI) * 0.44 + 0.62
 			var post := MeshInstance3D.new()
 			var post_mesh := BoxMesh.new()
-			post_mesh.size = Vector3(0.14, 0.92, 0.14)
+			post_mesh.size = Vector3(0.16, 1.02, 0.16)
 			post.mesh = post_mesh
 			post.position = Vector3(post_x, post_y, sz)
-			post.material_override = wood_mat
+			post.material_override = dark_beam_mat
 			root.add_child(post)
-		var rail := MeshInstance3D.new()
-		var rail_mesh := BoxMesh.new()
-		rail_mesh.size = Vector3(length_m * 0.92, 0.10, 0.10)
-		rail.mesh = rail_mesh
-		rail.position = Vector3(0.0, 0.96, sz)
-		rail.material_override = wood_mat
-		root.add_child(rail)
+			if p < 4:
+				var next_pt := float(p + 1) / 4.0
+				var next_x := lerpf(-length_m * 0.44, length_m * 0.44, next_pt)
+				var next_y := sin(next_pt * PI) * 0.44 + 0.62
+				var seg_len := Vector2(next_x - post_x, next_y - post_y).length()
+				var seg_ang := atan2(next_y - post_y, next_x - post_x)
+				for rail_h in [0.38, 0.08]:
+					var rail := MeshInstance3D.new()
+					var rmesh := BoxMesh.new()
+					rmesh.size = Vector3(seg_len + 0.08, 0.09, 0.10)
+					rail.mesh = rmesh
+					rail.position = Vector3(
+						(post_x + next_x) * 0.5, (post_y + next_y) * 0.5 + float(rail_h), sz
+					)
+					rail.rotation.z = seg_ang
+					rail.material_override = wood_mat
+					root.add_child(rail)
 
 	for end_x in [-1.0, 1.0]:
 		var tx := float(end_x) * (length_m * 0.44)
 		var torch := SevaraAssetLibrary3D.instantiate_model(
-			SevaraAssetLibrary3D.ITEMS_DIR + "WoodenTorch_Fire.glb", 0.58, {}, false
+			SevaraAssetLibrary3D.ITEMS_DIR + "WoodenTorch_Fire.glb", 0.62, {}, false
 		)
-		torch.position = Vector3(tx, 1.04, -width_m * 0.46)
+		torch.position = Vector3(tx, 1.12, -width_m * 0.46)
 		root.add_child(torch)
 	return root
 
@@ -286,31 +346,53 @@ static func create_bridge_3d(length_m: float = 7.2, width_m: float = 2.4) -> Nod
 static func create_weir_barrier_3d(width_m: float = 4.6) -> Node3D:
 	var root := Node3D.new()
 	root.name = "WeirBarrier3D"
-	var wood_mat := SevaraVisualTheme.create_structural_material3d(Color(0.46, 0.34, 0.22), 0.88)
+	var wood_mat := SevaraAssetLibrary3D._make_arch_shader_material(
+		"pbr_aged_timber",
+		Color(0.44, 0.32, 0.20),
+		Color(0.28, 0.19, 0.12),
+		0.55,
+		0.46,
+		0.80,
+		0.84,
+		0.0,
+		0.58,
+		0.22
+	)
 	var stake_count := maxi(int(width_m / 0.34), 8)
 	for i in range(stake_count):
 		var sx := -width_m * 0.5 + float(i) * (width_m / float(stake_count - 1))
 		var stake := MeshInstance3D.new()
 		var smesh := CylinderMesh.new()
-		smesh.top_radius = 0.07
+		smesh.top_radius = 0.065
 		smesh.bottom_radius = 0.09
-		smesh.height = 0.92
+		smesh.height = 0.94
 		stake.mesh = smesh
-		stake.position = Vector3(sx, 0.28, sin(float(i) * 1.4) * 0.05)
-		stake.rotation.z = sin(float(i) * 2.1) * 0.08
+		stake.position = Vector3(sx, 0.26, sin(float(i) * 1.4) * 0.08)
+		stake.rotation.z = sin(float(i) * 2.1) * 0.10
 		stake.material_override = wood_mat
 		root.add_child(stake)
 	for r in range(3):
 		var wattle := MeshInstance3D.new()
 		var wmesh := CylinderMesh.new()
 		wmesh.top_radius = 0.05
-		wmesh.bottom_radius = 0.05
+		wmesh.bottom_radius = 0.055
 		wmesh.height = width_m
 		wattle.mesh = wmesh
 		wattle.rotation.z = PI * 0.5
-		wattle.position = Vector3(0.0, 0.14 + float(r) * 0.18, 0.0)
+		wattle.position = Vector3(0.0, 0.12 + float(r) * 0.18, sin(float(r)) * 0.04)
 		wattle.material_override = wood_mat
 		root.add_child(wattle)
+	# Add mossy logs & river boulders anchored against the weir
+	for side_i in [-1, 1]:
+		var log_node := SevaraAssetLibrary3D.instantiate_model(
+			SevaraAssetLibrary3D.NATURE_DIR + "WoodLog_Moss.glb", 0.42, {}, true
+		)
+		log_node.position = Vector3(float(side_i) * (width_m * 0.26), 0.05, 0.18)
+		log_node.rotation.y = float(side_i) * 0.35
+		root.add_child(log_node)
+		var rock_node := create_boulder_3d(Vector3(0.55, 0.42, 0.52), true)
+		rock_node.position = Vector3(float(side_i) * (width_m * 0.42), -0.02, -0.14)
+		root.add_child(rock_node)
 	return root
 
 

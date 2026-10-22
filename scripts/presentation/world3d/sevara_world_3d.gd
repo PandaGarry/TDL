@@ -38,6 +38,7 @@ var _terrain_greybox_mat: StandardMaterial3D
 var _water_greybox_mat: StandardMaterial3D
 
 var _settlement_root: Node3D
+var _vfx_root: Node3D
 var _meadow_multimesh_root: Node3D
 var _ecology_root: Node3D
 var _actors_root: Node3D
@@ -265,46 +266,49 @@ func _build_environment_and_lights() -> void:
 	_environment = Environment.new()
 	_environment.background_mode = Environment.BG_SKY
 	var sky := Sky.new()
-	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color(0.32, 0.50, 0.72)
-	sky_mat.sky_horizon_color = Color(0.68, 0.78, 0.86)
-	sky_mat.ground_bottom_color = Color(0.18, 0.24, 0.20)
-	sky_mat.ground_horizon_color = Color(0.58, 0.68, 0.74)
-	sky_mat.sun_angle_max = 28.0
-	sky.sky_material = sky_mat
+	var sky_shader := SevaraAssetLibrary3D.load_shader("sevara_sky_3d.gdshader")
+	if sky_shader != null:
+		var sky_smat := ShaderMaterial.new()
+		sky_smat.shader = sky_shader
+		sky.sky_material = sky_smat
+	else:
+		var sky_mat := ProceduralSkyMaterial.new()
+		sky_mat.sky_top_color = Color(0.24, 0.46, 0.70)
+		sky_mat.sky_horizon_color = Color(0.84, 0.86, 0.82)
+		sky.sky_material = sky_mat
 	_environment.sky = sky
 
 	_environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	_environment.ambient_light_color = Color(0.56, 0.66, 0.76)
-	_environment.ambient_light_sky_contribution = 0.55
-	_environment.ambient_light_energy = 0.72
+	_environment.ambient_light_color = Color(0.62, 0.70, 0.78)
+	_environment.ambient_light_sky_contribution = 0.52
+	_environment.ambient_light_energy = 0.76
 	_environment.tonemap_mode = Environment.TONE_MAPPER_ACES
-	_environment.tonemap_exposure = 0.96
+	_environment.tonemap_exposure = 1.02
 	_environment.fog_enabled = true
-	_environment.fog_light_color = Color(0.62, 0.74, 0.86)
-	_environment.fog_light_energy = 0.42
-	_environment.fog_density = 0.00085
-	_environment.fog_sky_affect = 0.15
+	_environment.fog_light_color = Color(0.76, 0.83, 0.88)
+	_environment.fog_light_energy = 0.46
+	_environment.fog_density = 0.00075
+	_environment.fog_sky_affect = 0.14
 	_environment.glow_enabled = false
 	_env_node.environment = _environment
 	add_child(_env_node)
 
 	_sun_light = DirectionalLight3D.new()
 	_sun_light.name = "SunDirectionalLight3D"
-	_sun_light.rotation_degrees = Vector3(-44.0, -34.0, 0.0)
-	_sun_light.light_color = Color(1.0, 0.95, 0.86)
-	_sun_light.light_energy = 1.12
+	_sun_light.rotation_degrees = Vector3(-42.0, -34.0, 0.0)
+	_sun_light.light_color = Color(1.0, 0.94, 0.82)
+	_sun_light.light_energy = 1.18
 	_sun_light.shadow_enabled = true
-	_sun_light.shadow_opacity = 0.72
-	_sun_light.shadow_blur = 1.25
-	_sun_light.directional_shadow_max_distance = 140.0
+	_sun_light.shadow_opacity = 0.76
+	_sun_light.shadow_blur = 1.35
+	_sun_light.directional_shadow_max_distance = 145.0
 	add_child(_sun_light)
 
 	_fill_light = DirectionalLight3D.new()
 	_fill_light.name = "SkyFillLight3D"
 	_fill_light.rotation_degrees = Vector3(-52.0, 145.0, 0.0)
-	_fill_light.light_color = Color(0.58, 0.72, 0.88)
-	_fill_light.light_energy = 0.28
+	_fill_light.light_color = Color(0.62, 0.75, 0.90)
+	_fill_light.light_energy = 0.32
 	_fill_light.shadow_enabled = false
 	add_child(_fill_light)
 
@@ -329,36 +333,33 @@ func _build_terrain_and_water() -> void:
 	var t_shader := SevaraAssetLibrary3D.load_shader("sevara_terrain_3d.gdshader")
 	_terrain_shader_mat = ShaderMaterial.new()
 	_terrain_shader_mat.shader = t_shader
-	_terrain_shader_mat.set_shader_parameter(
-		"tex_meadow", SevaraVisualTheme.load_diffuse_texture("tex_meadow_moss_and_snow")
-	)
-	_terrain_shader_mat.set_shader_parameter(
-		"tex_meadow_normal", SevaraVisualTheme.load_normal_texture("tex_meadow_moss_and_snow")
-	)
-	_terrain_shader_mat.set_shader_parameter(
-		"tex_mud", SevaraVisualTheme.load_diffuse_texture("tex_spring_mud_and_silt")
-	)
-	_terrain_shader_mat.set_shader_parameter(
-		"tex_mud_normal", SevaraVisualTheme.load_normal_texture("tex_spring_mud_and_silt")
-	)
-	_terrain_shader_mat.set_shader_parameter(
-		"tex_pebbles", SevaraVisualTheme.load_diffuse_texture("tex_riverbed_pebbles")
-	)
-	_terrain_shader_mat.set_shader_parameter(
-		"tex_pebbles_normal", SevaraVisualTheme.load_normal_texture("tex_riverbed_pebbles")
-	)
-	_terrain_shader_mat.set_shader_parameter(
-		"tex_stone", SevaraVisualTheme.load_diffuse_texture("pbr_cliff_rock")
-	)
-	_terrain_shader_mat.set_shader_parameter(
-		"tex_stone_normal", SevaraVisualTheme.load_normal_texture("pbr_cliff_rock")
-	)
-	_terrain_shader_mat.set_shader_parameter(
-		"tex_flagstone", SevaraVisualTheme.load_diffuse_texture("pbr_flagstone_path")
-	)
-	_terrain_shader_mat.set_shader_parameter(
-		"tex_flagstone_normal", SevaraVisualTheme.load_normal_texture("pbr_flagstone_path")
-	)
+	var meadow_alb := SevaraVisualTheme.load_diffuse_texture("tex_meadow_moss_and_snow")
+	var meadow_nrm := SevaraVisualTheme.load_normal_texture("tex_meadow_moss_and_snow")
+	var mud_alb := SevaraVisualTheme.load_diffuse_texture("tex_spring_mud_and_silt")
+	var mud_nrm := SevaraVisualTheme.load_normal_texture("tex_spring_mud_and_silt")
+	var peb_alb := SevaraVisualTheme.load_diffuse_texture("tex_riverbed_pebbles")
+	var peb_nrm := SevaraVisualTheme.load_normal_texture("tex_riverbed_pebbles")
+	var cliff_alb := SevaraVisualTheme.load_diffuse_texture("pbr_cliff_rock")
+	var cliff_nrm := SevaraVisualTheme.load_normal_texture("pbr_cliff_rock")
+	var path_alb := SevaraVisualTheme.load_diffuse_texture("pbr_flagstone_path")
+	var path_nrm := SevaraVisualTheme.load_normal_texture("pbr_flagstone_path")
+
+	_terrain_shader_mat.set_shader_parameter("tex_meadow", meadow_alb)
+	_terrain_shader_mat.set_shader_parameter("tex_meadow_nrm", meadow_nrm)
+	_terrain_shader_mat.set_shader_parameter("tex_forest", meadow_alb)
+	_terrain_shader_mat.set_shader_parameter("tex_forest_nrm", meadow_nrm)
+	_terrain_shader_mat.set_shader_parameter("tex_mud", mud_alb)
+	_terrain_shader_mat.set_shader_parameter("tex_mud_nrm", mud_nrm)
+	_terrain_shader_mat.set_shader_parameter("tex_pebbles", peb_alb)
+	_terrain_shader_mat.set_shader_parameter("tex_pebbles_nrm", peb_nrm)
+	_terrain_shader_mat.set_shader_parameter("tex_stone", cliff_alb)
+	_terrain_shader_mat.set_shader_parameter("tex_stone_nrm", cliff_nrm)
+	_terrain_shader_mat.set_shader_parameter("tex_snow", meadow_alb)
+	_terrain_shader_mat.set_shader_parameter("tex_snow_nrm", meadow_nrm)
+	_terrain_shader_mat.set_shader_parameter("tex_cliff", cliff_alb)
+	_terrain_shader_mat.set_shader_parameter("tex_cliff_nrm", cliff_nrm)
+	_terrain_shader_mat.set_shader_parameter("tex_path", path_alb)
+	_terrain_shader_mat.set_shader_parameter("tex_path_nrm", path_nrm)
 
 	_terrain_greybox_mat = StandardMaterial3D.new()
 	_terrain_greybox_mat.albedo_color = Color(0.32, 0.36, 0.34)
@@ -374,12 +375,6 @@ func _build_terrain_and_water() -> void:
 	var w_shader := SevaraAssetLibrary3D.load_shader("sevara_water_3d.gdshader")
 	_water_shader_mat = ShaderMaterial.new()
 	_water_shader_mat.shader = w_shader
-	_water_shader_mat.set_shader_parameter(
-		"riverbed_tex", SevaraVisualTheme.load_diffuse_texture("tex_riverbed_pebbles")
-	)
-	_water_shader_mat.set_shader_parameter(
-		"riverbed_normal", SevaraVisualTheme.load_normal_texture("tex_riverbed_pebbles")
-	)
 	_water_greybox_mat = StandardMaterial3D.new()
 	_water_greybox_mat.albedo_color = Color(0.18, 0.34, 0.44, 0.82)
 	_water_greybox_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -392,6 +387,9 @@ func _build_containers() -> void:
 	_settlement_root = Node3D.new()
 	_settlement_root.name = "SettlementStructures3D"
 	add_child(_settlement_root)
+
+	_vfx_root = SevaraVfx3D.build_valley_vfx_root()
+	add_child(_vfx_root)
 
 	_meadow_multimesh_root = Node3D.new()
 	_meadow_multimesh_root.name = "MeadowMultiMeshContainer3D"
@@ -541,7 +539,7 @@ func _rebuild_ecology_and_npcs(
 
 	var willow_coords: Array[Vector2] = [
 		Vector2(-11.8, 12.2),
-		Vector2(11.4, 6.8),
+		Vector2(14.2, 9.6),
 		Vector2(-9.6, 17.8),
 		Vector2(9.8, 15.8),
 		Vector2(-5.4, 24.5),

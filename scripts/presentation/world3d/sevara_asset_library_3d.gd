@@ -456,80 +456,97 @@ static func _enhance_materials_recursive(
 				var orig := mi.get_active_material(s)
 				if orig == null and mi.mesh != null:
 					orig = mi.mesh.surface_get_material(s)
-				var std := StandardMaterial3D.new()
 				var mname := orig.resource_name if orig != null else ""
-				var base_col := Color(0.62, 0.56, 0.48)
+				var raw_col := Color(0.62, 0.56, 0.48)
+				var orig_tex: Texture2D = null
 				if orig is BaseMaterial3D:
-					base_col = (orig as BaseMaterial3D).albedo_color
-					std.albedo_texture = (orig as BaseMaterial3D).albedo_texture
-				if std.albedo_texture == null:
-					base_col = Color(
-						clampf(pow(maxf(base_col.r, 0.02), 0.52) * 1.16, 0.08, 0.98),
-						clampf(pow(maxf(base_col.g, 0.02), 0.52) * 1.16, 0.08, 0.98),
-						clampf(pow(maxf(base_col.b, 0.02), 0.52) * 1.16, 0.08, 0.98),
-						base_col.a
-					)
+					raw_col = (orig as BaseMaterial3D).albedo_color
+					orig_tex = (orig as BaseMaterial3D).albedo_texture
 				var has_override := false
 				for key: String in palette_overrides.keys():
 					if mname == key or mname.to_lower().contains(key.to_lower()):
-						base_col = palette_overrides[key] as Color
+						raw_col = palette_overrides[key] as Color
 						has_override = true
 						break
-				std.albedo_color = base_col
-				std.roughness = 0.82
-				std.specular = 0.24
-				_apply_pbr_surface_style(
-					std, mname, base_col, model_hint, has_override, apply_structural_textures
+				var styled_mat := _create_styled_surface_material(
+					mname, raw_col, orig_tex, model_hint, has_override, apply_structural_textures
 				)
-				mi.set_surface_override_material(s, std)
+				mi.set_surface_override_material(s, styled_mat)
 	for child: Node in node.get_children():
 		_enhance_materials_recursive(
 			child, palette_overrides, apply_structural_textures, model_hint
 		)
 
 
-static func _bind_triplanar_pbr(
-	std: StandardMaterial3D, stem: String, uv_scale: float, nrm_scale: float, tint: Color
-) -> void:
-	std.albedo_texture = load_texture(PBR_TEX_DIR + stem + ".png")
-	std.normal_enabled = true
-	std.normal_texture = load_texture(PBR_TEX_DIR + stem + "_normal.png")
-	std.normal_scale = nrm_scale
-	std.uv1_triplanar = true
-	std.uv1_world_triplanar = true
-	std.uv1_triplanar_sharpness = 4.0
-	std.uv1_scale = Vector3(uv_scale, uv_scale, uv_scale)
-	std.albedo_color = tint
+static func _make_arch_shader_material(
+	stem: String,
+	primary_col: Color,
+	secondary_col: Color,
+	scale_val: float,
+	detail_mix_val: float,
+	nrm_strength: float,
+	rough_val: float,
+	metal_val: float = 0.0,
+	moss_str: float = 0.45,
+	bevel_str: float = 0.24
+) -> ShaderMaterial:
+	var sm := ShaderMaterial.new()
+	sm.shader = load_shader("sevara_architecture_3d.gdshader")
+	sm.set_shader_parameter("detail_albedo_tex", load_texture(PBR_TEX_DIR + stem + ".png"))
+	sm.set_shader_parameter("detail_normal_tex", load_texture(PBR_TEX_DIR + stem + "_normal.png"))
+	sm.set_shader_parameter(
+		"moss_albedo_tex", load_texture(PBR_TEX_DIR + "tex_meadow_moss_and_snow.png")
+	)
+	sm.set_shader_parameter("primary_tint", primary_col)
+	sm.set_shader_parameter("secondary_tint", secondary_col)
+	sm.set_shader_parameter("triplanar_scale", scale_val)
+	sm.set_shader_parameter("detail_mix", detail_mix_val)
+	sm.set_shader_parameter("normal_strength", nrm_strength)
+	sm.set_shader_parameter("base_roughness", rough_val)
+	sm.set_shader_parameter("base_metallic", metal_val)
+	sm.set_shader_parameter("moss_strength", moss_str)
+	sm.set_shader_parameter("bevel_highlight_strength", bevel_str)
+	return sm
 
 
-static func _apply_pbr_surface_style(
-	std: StandardMaterial3D,
-	mname: String,
+static func _make_creature_shader_material(
 	base_col: Color,
+	under_col: Color,
+	rim_col: Color,
+	rough_val: float,
+	rim_str: float = 0.28,
+	grain_str: float = 0.07,
+	h_span: float = 1.8
+) -> ShaderMaterial:
+	var sm := ShaderMaterial.new()
+	sm.shader = load_shader("sevara_creature_3d.gdshader")
+	sm.set_shader_parameter("base_color", base_col)
+	sm.set_shader_parameter("underbelly_color", under_col)
+	sm.set_shader_parameter("rim_tint", rim_col)
+	sm.set_shader_parameter("base_roughness", rough_val)
+	sm.set_shader_parameter("rim_strength", rim_str)
+	sm.set_shader_parameter("micro_grain_strength", grain_str)
+	sm.set_shader_parameter("height_span", h_span)
+	return sm
+
+
+static func _create_styled_surface_material(
+	mname: String,
+	raw_col: Color,
+	orig_tex: Texture2D,
 	model_hint: String,
 	has_override: bool,
 	apply_structural_textures: bool
-) -> void:
+) -> Material:
 	var ml := mname.to_lower()
-	if ml.contains("fire") or ml.contains("yellow") or ml.contains("orange"):
-		if model_hint.contains("torch") or model_hint.contains("bonfire") or ml.contains("fire"):
-			std.albedo_color = Color(1.0, 0.72, 0.30)
-			std.emission_enabled = true
-			std.emission = Color(0.98, 0.52, 0.16)
-			std.emission_energy_multiplier = 1.75
-			return
-	if ml.contains("window"):
-		std.albedo_color = Color(0.32, 0.26, 0.20)
-		std.roughness = 0.26
-		std.emission_enabled = true
-		std.emission = Color(0.86, 0.60, 0.28)
-		std.emission_energy_multiplier = 0.62
-		return
-	if ml.contains("eye") or ml.contains("nose") or ml.contains("hoov"):
-		std.roughness = 0.28 if ml.contains("eye") else 0.68
-		return
-	if not apply_structural_textures or std.albedo_texture != null:
-		return
+
+	# If original mesh already carries an embedded UV texture, keep it cleanly
+	if orig_tex != null:
+		var tmat := StandardMaterial3D.new()
+		tmat.albedo_texture = orig_tex
+		tmat.albedo_color = raw_col
+		tmat.roughness = 0.78
+		return tmat
 
 	var is_animal := (
 		model_hint.contains("stag")
@@ -540,103 +557,196 @@ static func _apply_pbr_surface_style(
 	var is_character := model_hint.contains("viking")
 	var is_tent := model_hint.contains("tent")
 
-	if is_animal:
-		var fur_tint := base_col.lerp(Color(0.96, 0.92, 0.86), 0.34)
-		_bind_triplanar_pbr(std, "pbr_animal_fur", 1.35, 1.22, fur_tint)
-		std.roughness = 0.84
-		std.rim_enabled = true
-		std.rim = 0.28
-		std.rim_tint = 0.65
-		return
+	# 1. Emissive fire / torch / bonfire cores
+	if ml.contains("fire") or ml.contains("yellow") or ml.contains("orange"):
+		if model_hint.contains("torch") or model_hint.contains("bonfire") or ml.contains("fire"):
+			var fmat := StandardMaterial3D.new()
+			fmat.albedo_color = Color(1.0, 0.76, 0.34)
+			fmat.emission_enabled = true
+			fmat.emission = Color(1.0, 0.56, 0.16)
+			fmat.emission_energy_multiplier = 2.2
+			return fmat
 
+	# 2. Warm glowing medieval windows (Tiny Glade lantern-lit cottage interior feel)
+	if ml.contains("window"):
+		var wmat := StandardMaterial3D.new()
+		wmat.albedo_color = Color(0.96, 0.72, 0.36)
+		wmat.roughness = 0.22
+		wmat.emission_enabled = true
+		wmat.emission = Color(0.98, 0.66, 0.26)
+		wmat.emission_energy_multiplier = 1.35
+		return wmat
+
+	# 3. Eyes, noses, hooves, horns & antlers
+	if ml.contains("eye") or ml.contains("nose") or ml.contains("face"):
+		var emat := StandardMaterial3D.new()
+		emat.albedo_color = Color(0.11, 0.09, 0.08)
+		emat.roughness = 0.22 if (ml.contains("eye") or ml.contains("face")) else 0.55
+		return emat
+	if ml.contains("hoov") or ml.contains("horn"):
+		return _make_creature_shader_material(
+			raw_col.lerp(Color(0.32, 0.26, 0.20), 0.35),
+			Color(0.16, 0.13, 0.10),
+			Color(0.85, 0.78, 0.66),
+			0.52,
+			0.18,
+			0.05,
+			2.0
+		)
+
+	# 4. Characters (Viking_Male / Viking_Female): natural northern skin, hair & woven garments
 	if is_character:
 		if ml.contains("skin"):
-			std.roughness = 0.72
-			return
-		if ml.contains("hair"):
-			_bind_triplanar_pbr(
-				std, "pbr_animal_fur", 1.6, 1.15, base_col.lerp(Color(0.9, 0.85, 0.8), 0.28)
+			var skin_col := raw_col if has_override else Color(0.82, 0.62, 0.49)
+			return _make_creature_shader_material(
+				skin_col, skin_col.darkened(0.16), Color(0.96, 0.78, 0.64), 0.64, 0.22, 0.02, 2.3
 			)
-			return
-		var cloth_tint := (
-			base_col.lerp(Color(0.96, 0.94, 0.90), 0.32)
+		if ml.contains("hair"):
+			var hair_col := raw_col if has_override else Color(0.28, 0.19, 0.12)
+			return _make_creature_shader_material(
+				hair_col.lightened(0.06),
+				hair_col.darkened(0.22),
+				Color(0.88, 0.72, 0.48),
+				0.72,
+				0.26,
+				0.09,
+				2.4
+			)
+		var garment_col := (
+			raw_col
 			if has_override
-			else base_col.lerp(Color(0.92, 0.88, 0.82), 0.38)
+			else Color(
+				clampf(pow(maxf(raw_col.r, 0.02), 0.68), 0.12, 0.88),
+				clampf(pow(maxf(raw_col.g, 0.02), 0.68), 0.12, 0.88),
+				clampf(pow(maxf(raw_col.b, 0.02), 0.68), 0.12, 0.88)
+			)
 		)
-		_bind_triplanar_pbr(std, "pbr_woven_fabric", 1.25, 1.12, cloth_tint)
-		std.roughness = 0.86
-		return
+		return _make_creature_shader_material(
+			garment_col, garment_col.darkened(0.26), Color(0.92, 0.84, 0.68), 0.78, 0.28, 0.08, 2.2
+		)
 
+	# 5. Wildlife (Stag, Deer, Wolf, Fox): anatomical fur shading + velvet rim light
+	if is_animal:
+		var fur_col := (
+			raw_col
+			if has_override
+			else Color(
+				clampf(pow(maxf(raw_col.r, 0.02), 0.66) * 1.05, 0.10, 0.92),
+				clampf(pow(maxf(raw_col.g, 0.02), 0.66) * 1.05, 0.10, 0.92),
+				clampf(pow(maxf(raw_col.b, 0.02), 0.66) * 1.05, 0.10, 0.92)
+			)
+		)
+		return _make_creature_shader_material(
+			fur_col, fur_col.darkened(0.28), Color(0.95, 0.82, 0.62), 0.76, 0.34, 0.09, 1.9
+		)
+
+	if not apply_structural_textures:
+		var pmat := StandardMaterial3D.new()
+		pmat.albedo_color = raw_col
+		pmat.roughness = 0.78
+		return pmat
+
+	# 6. Medieval Village Architecture & Props (Tiny Glade / Manor Lords shader)
 	if ml.contains("roof") or (ml == "red" and not is_tent):
-		var is_red_roof := ml.contains("red")
-		var roof_tint := Color(1.06, 0.72, 0.64) if is_red_roof else Color(0.78, 0.92, 0.98)
-		_bind_triplanar_pbr(std, "pbr_roof_slate", 0.56, 1.35, roof_tint)
-		std.roughness = 0.74
-		return
+		var is_terracotta := ml.contains("red")
+		var roof_pri := Color(0.68, 0.34, 0.24) if is_terracotta else Color(0.28, 0.35, 0.40)
+		var roof_sec := Color(0.48, 0.22, 0.16) if is_terracotta else Color(0.18, 0.23, 0.28)
+		return _make_arch_shader_material(
+			"pbr_roof_slate", roof_pri, roof_sec, 0.48, 0.46, 0.85, 0.70, 0.0, 0.32, 0.28
+		)
 
 	if ml.contains("plaster") or ml.contains("beige") or ml == "white":
-		var wall_tint := base_col.lerp(Color(0.98, 0.95, 0.89), 0.62)
-		_bind_triplanar_pbr(std, "pbr_lime_plaster", 0.46, 1.20, wall_tint)
-		std.roughness = 0.88
-		return
+		var wall_pri := Color(0.92, 0.85, 0.73)
+		var wall_sec := Color(0.78, 0.70, 0.58)
+		return _make_arch_shader_material(
+			"pbr_lime_plaster", wall_pri, wall_sec, 0.42, 0.45, 0.65, 0.86, 0.0, 0.48, 0.18
+		)
 
 	if ml.contains("stone") or ml.contains("grey") or ml.contains("gray"):
+		# Use clean granite cliff detail (no fake grid mortar lines crossing 3D stone blocks!)
 		var is_light := ml.contains("light")
-		var st_tint := Color(0.98, 0.98, 1.02) if is_light else Color(0.76, 0.80, 0.86)
-		_bind_triplanar_pbr(std, "tex_stone_and_timber", 0.48, 1.36, st_tint)
-		std.roughness = 0.84
-		return
+		var st_pri := Color(0.68, 0.67, 0.64) if is_light else Color(0.50, 0.51, 0.50)
+		var st_sec := Color(0.52, 0.50, 0.47) if is_light else Color(0.36, 0.37, 0.38)
+		return _make_arch_shader_material(
+			"pbr_cliff_rock", st_pri, st_sec, 0.46, 0.42, 0.78, 0.80, 0.0, 0.55, 0.30
+		)
 
 	if ml.contains("metal") or ml.contains("steel") or ml.contains("gold"):
-		var met_tint := Color(1.02, 0.86, 0.48) if ml.contains("gold") else Color(0.74, 0.78, 0.84)
-		_bind_triplanar_pbr(std, "pbr_cliff_rock", 1.15, 0.58, met_tint)
-		std.metallic = 0.78
-		std.roughness = 0.32
-		return
+		var is_gold := ml.contains("gold")
+		var met_pri := Color(0.88, 0.70, 0.34) if is_gold else Color(0.42, 0.45, 0.49)
+		var met_sec := Color(0.64, 0.48, 0.20) if is_gold else Color(0.26, 0.28, 0.32)
+		return _make_arch_shader_material(
+			"pbr_cliff_rock", met_pri, met_sec, 0.85, 0.25, 0.40, 0.34, 0.82, 0.0, 0.34
+		)
 
-	if ml.contains("hay"):
-		_bind_triplanar_pbr(std, "tex_meadow_moss_and_snow", 0.85, 1.22, Color(1.22, 1.04, 0.58))
-		std.roughness = 0.90
-		return
-
-	if ml.contains("green") or ml.contains("pink"):
+	if ml.contains("green") or ml.contains("pink") or is_tent:
 		if is_tent:
-			var tent_tint := (
-				Color(0.92, 0.90, 0.74) if ml.contains("light") else Color(0.78, 0.84, 0.64)
+			var tent_pri := (
+				Color(0.78, 0.74, 0.58) if ml.contains("light") else Color(0.54, 0.62, 0.44)
 			)
-			_bind_triplanar_pbr(std, "pbr_woven_fabric", 0.78, 1.18, tent_tint)
-		elif ml.contains("pink"):
-			_bind_triplanar_pbr(std, "pbr_foliage_canopy", 1.2, 0.95, Color(1.06, 0.68, 0.80))
-		else:
-			var leaf_tint := (
-				Color(0.82, 0.94, 0.72) if ml.contains("dark") else Color(0.92, 1.02, 0.80)
+			return _make_arch_shader_material(
+				"pbr_woven_fabric",
+				tent_pri,
+				tent_pri.darkened(0.22),
+				0.75,
+				0.40,
+				0.65,
+				0.86,
+				0.0,
+				0.35,
+				0.16
 			)
-			_bind_triplanar_pbr(std, "pbr_foliage_canopy", 0.68, 1.22, leaf_tint)
-			std.backlight_enabled = true
-			std.backlight = Color(0.22, 0.32, 0.14)
-		return
+		var leaf_pri := (
+			Color(0.84, 0.48, 0.58)
+			if ml.contains("pink")
+			else (Color(0.24, 0.46, 0.20) if ml.contains("dark") else Color(0.36, 0.58, 0.26))
+		)
+		return _make_arch_shader_material(
+			"pbr_foliage_canopy",
+			leaf_pri,
+			leaf_pri.darkened(0.25),
+			0.65,
+			0.55,
+			0.75,
+			0.74,
+			0.0,
+			0.20,
+			0.18
+		)
 
-	if ml.contains("bag") or ml.contains("brown") or ml.contains("darkred"):
-		var stem := "pbr_woven_fabric" if ml.contains("bag") else "pbr_animal_fur"
-		var b_tint := base_col.lerp(Color(0.96, 0.88, 0.74), 0.45)
-		_bind_triplanar_pbr(std, stem, 0.95, 1.18, b_tint)
-		return
-
-	if ml.contains("wood") or ml.contains("mushroom"):
-		var w_tint := Color(0.88, 0.76, 0.64)
-		if ml.contains("side"):
-			w_tint = Color(1.06, 0.95, 0.78)
-		elif ml.contains("light"):
-			w_tint = Color(0.98, 0.86, 0.72)
+	if ml.contains("wood") or ml.contains("brown") or ml.contains("bag"):
+		var w_pri := Color(0.56, 0.40, 0.26)
+		var w_sec := Color(0.40, 0.27, 0.17)
+		if ml.contains("side") or ml.contains("light"):
+			w_pri = Color(0.72, 0.55, 0.37)
+			w_sec = Color(0.54, 0.39, 0.25)
 		elif ml.contains("dark"):
-			w_tint = Color(0.68, 0.56, 0.48)
-		_bind_triplanar_pbr(std, "pbr_aged_timber", 0.54, 1.28, w_tint)
-		std.roughness = 0.82
-		return
+			w_pri = Color(0.38, 0.26, 0.17)
+			w_sec = Color(0.25, 0.17, 0.11)
+		return _make_arch_shader_material(
+			"pbr_aged_timber", w_pri, w_sec, 0.48, 0.48, 0.75, 0.78, 0.0, 0.42, 0.25
+		)
 
-	# Universal fallback for any remaining material
-	_bind_triplanar_pbr(
-		std, "pbr_aged_timber", 0.65, 1.10, base_col.lerp(Color(0.92, 0.88, 0.82), 0.42)
+	var fallback_col := (
+		raw_col
+		if has_override
+		else Color(
+			clampf(pow(maxf(raw_col.r, 0.02), 0.65), 0.14, 0.88),
+			clampf(pow(maxf(raw_col.g, 0.02), 0.65), 0.14, 0.88),
+			clampf(pow(maxf(raw_col.b, 0.02), 0.65), 0.14, 0.88)
+		)
+	)
+	return _make_arch_shader_material(
+		"pbr_aged_timber",
+		fallback_col,
+		fallback_col.darkened(0.22),
+		0.52,
+		0.38,
+		0.60,
+		0.80,
+		0.0,
+		0.30,
+		0.20
 	)
 
 
