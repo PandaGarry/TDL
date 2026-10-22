@@ -315,10 +315,27 @@ func _build_hud_controls() -> void:
 	vbox.add_theme_constant_override("separation", 8)
 	root.add_child(vbox)
 
+	var top_panel := PanelContainer.new()
+	top_panel.name = "TopBarPanel"
+	var bar_style := StyleBoxFlat.new()
+	bar_style.bg_color = Color(0.05, 0.08, 0.10, 0.80)
+	bar_style.border_color = Color(0.56, 0.49, 0.34, 0.65)
+	bar_style.border_width_bottom = 1
+	bar_style.corner_radius_top_left = 6
+	bar_style.corner_radius_top_right = 6
+	bar_style.corner_radius_bottom_left = 6
+	bar_style.corner_radius_bottom_right = 6
+	bar_style.content_margin_left = 12.0
+	bar_style.content_margin_right = 12.0
+	bar_style.content_margin_top = 6.0
+	bar_style.content_margin_bottom = 6.0
+	top_panel.add_theme_stylebox_override("panel", bar_style)
+	vbox.add_child(top_panel)
+
 	var top_bar := HBoxContainer.new()
 	top_bar.name = "TopBar"
 	top_bar.add_theme_constant_override("separation", 12)
-	vbox.add_child(top_bar)
+	top_panel.add_child(top_bar)
 
 	_header_title_label = Label.new()
 	_header_title_label.add_theme_font_size_override("font_size", 16)

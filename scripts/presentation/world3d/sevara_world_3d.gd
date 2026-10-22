@@ -404,115 +404,7 @@ func _build_containers() -> void:
 
 
 func _populate_static_settlement() -> void:
-	var houses: Array[Dictionary] = [
-		{"file": "House_1.glb", "pos": Vector2(-19.5, -12.2), "h": 4.8, "rot": 0.28},
-		{"file": "House_2.glb", "pos": Vector2(-11.4, -14.6), "h": 4.5, "rot": -0.18},
-		{"file": "House_3.glb", "pos": Vector2(-22.2, -3.4), "h": 4.6, "rot": 0.65},
-		{"file": "House_4.glb", "pos": Vector2(-14.5, 1.8), "h": 4.4, "rot": 2.45},
-		{"file": "Blacksmith.glb", "pos": Vector2(-24.0, -8.2), "h": 4.3, "rot": 1.15},
-		{"file": "Stable.glb", "pos": Vector2(-18.8, 5.2), "h": 3.9, "rot": 0.42},
-	]
-	for hspec: Dictionary in houses:
-		var p2: Vector2 = hspec["pos"]
-		var node := SevaraAssetLibrary3D.instantiate_model(
-			SevaraAssetLibrary3D.VILLAGE_DIR + String(hspec["file"]), float(hspec["h"]), {}, true
-		)
-		node.position = Vector3(p2.x, SevaraTerrainGen3D.get_height_at(p2.x, p2.y) - 0.06, p2.y)
-		node.rotation.y = float(hspec["rot"])
-		_settlement_root.add_child(node)
-
-	var sawmill_pos := Vector2(-4.8, -12.6)
-	var sawmill := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.VILLAGE_DIR + "Sawmill.glb", 4.4, {}, true
-	)
-	sawmill.position = Vector3(
-		sawmill_pos.x,
-		SevaraTerrainGen3D.get_height_at(sawmill_pos.x, sawmill_pos.y) - 0.08,
-		sawmill_pos.y
-	)
-	sawmill.rotation.y = -0.35
-	_settlement_root.add_child(sawmill)
-
-	var mill_pos := Vector2(6.8, -15.2)
-	var mill := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.VILLAGE_DIR + "Mill.glb", 5.4, {}, true
-	)
-	mill.position = Vector3(
-		mill_pos.x, SevaraTerrainGen3D.get_height_at(mill_pos.x, mill_pos.y) - 0.06, mill_pos.y
-	)
-	mill.rotation.y = -0.55
-	_settlement_root.add_child(mill)
-
-	var pav_pos := Vector2(-9.2, -8.8)
-	var pavilion := SevaraPropsFactory3D.create_chronicle_pavilion_3d()
-	pavilion.position = Vector3(
-		pav_pos.x, SevaraTerrainGen3D.get_height_at(pav_pos.x, pav_pos.y) - 0.03, pav_pos.y
-	)
-	pavilion.rotation.y = 0.22
-	_settlement_root.add_child(pavilion)
-
-	var hearth_pos := Vector2(-14.2, -7.6)
-	var hearth := SevaraPropsFactory3D.create_hearth_3d()
-	hearth.position = Vector3(
-		hearth_pos.x, SevaraTerrainGen3D.get_height_at(hearth_pos.x, hearth_pos.y), hearth_pos.y
-	)
-	_settlement_root.add_child(hearth)
-
-	var well_pos := Vector2(-16.2, -4.8)
-	var well := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.VILLAGE_DIR + "Well.glb", 2.35, {}, true
-	)
-	well.position = Vector3(
-		well_pos.x, SevaraTerrainGen3D.get_height_at(well_pos.x, well_pos.y) - 0.03, well_pos.y
-	)
-	_settlement_root.add_child(well)
-
-	var village_props: Array[Dictionary] = [
-		{"file": "MarketStand_1.glb", "pos": Vector2(-8.8, 4.8), "h": 2.4, "rot": 0.45},
-		{"file": "MarketStand_2.glb", "pos": Vector2(-11.2, 6.2), "h": 2.3, "rot": 0.85},
-		{"file": "Cart.glb", "pos": Vector2(-17.5, -1.2), "h": 1.35, "rot": -0.55},
-		{"file": "Barrel.glb", "pos": Vector2(-12.6, -11.5), "h": 0.95, "rot": 0.0},
-		{"file": "Hay.glb", "pos": Vector2(-16.4, 5.8), "h": 1.45, "rot": 0.3},
-		{"file": "Fence.glb", "pos": Vector2(-7.2, 1.5), "h": 1.15, "rot": 1.35},
-		{"file": "Fence.glb", "pos": Vector2(-7.8, -1.2), "h": 1.15, "rot": 1.42},
-	]
-	for p: Dictionary in village_props:
-		var v2: Vector2 = p["pos"]
-		var prop_node := SevaraAssetLibrary3D.instantiate_model(
-			SevaraAssetLibrary3D.VILLAGE_DIR + String(p["file"]), float(p["h"]), {}, true
-		)
-		prop_node.position = Vector3(
-			v2.x, SevaraTerrainGen3D.get_height_at(v2.x, v2.y) - 0.02, v2.y
-		)
-		prop_node.rotation.y = float(p["rot"])
-		_settlement_root.add_child(prop_node)
-
-	var bridge_z := -4.6
-	var bridge_x := SevaraTerrainGen3D.river_center_x(bridge_z)
-	var bridge := SevaraPropsFactory3D.create_bridge_3d(8.6, 2.6)
-	bridge.position = Vector3(bridge_x, SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14, bridge_z)
-	bridge.rotation.y = -0.24
-	_settlement_root.add_child(bridge)
-
-	var weir1_z := -10.2
-	var weir1 := SevaraPropsFactory3D.create_weir_barrier_3d(5.2)
-	weir1.position = Vector3(
-		SevaraTerrainGen3D.river_center_x(weir1_z),
-		SevaraTerrainGen3D.WATER_SURFACE_Y - 0.05,
-		weir1_z
-	)
-	weir1.rotation.y = 0.22
-	_settlement_root.add_child(weir1)
-
-	var weir2_z := 5.8
-	var weir2 := SevaraPropsFactory3D.create_weir_barrier_3d(5.8)
-	weir2.position = Vector3(
-		SevaraTerrainGen3D.river_center_x(weir2_z),
-		SevaraTerrainGen3D.WATER_SURFACE_Y - 0.05,
-		weir2_z
-	)
-	weir2.rotation.y = -0.18
-	_settlement_root.add_child(weir2)
+	SevaraPropsFactory3D.populate_static_settlement(_settlement_root)
 
 
 func _rebuild_ecology_and_npcs(
@@ -635,6 +527,36 @@ func _rebuild_ecology_and_npcs(
 		var reed := SevaraPropsFactory3D.create_reed_clump_3d(ri)
 		reed.position = Vector3(rc.x, SevaraTerrainGen3D.get_height_at(rc.x, rc.y) - 0.05, rc.y)
 		_ecology_root.add_child(reed)
+
+	var willow_coords: Array[Vector2] = [
+		Vector2(-5.4, 2.8),
+		Vector2(5.8, -1.6),
+		Vector2(-6.5, 13.5),
+		Vector2(6.8, 12.2),
+		Vector2(-2.2, 22.4),
+		Vector2(11.5, 19.5),
+	]
+	for wi in range(willow_coords.size()):
+		var wc: Vector2 = willow_coords[wi]
+		var willow := SevaraPropsFactory3D.create_talina_willow_3d(wi)
+		willow.position = Vector3(wc.x, SevaraTerrainGen3D.get_height_at(wc.x, wc.y) - 0.06, wc.y)
+		_ecology_root.add_child(willow)
+
+	var lily_coords: Array[Vector2] = [
+		Vector2(-5.2, 11.2),
+		Vector2(-3.8, 13.6),
+		Vector2(2.4, 11.4),
+		Vector2(4.2, 15.2),
+		Vector2(1.2, 18.8),
+	]
+	for li in range(lily_coords.size()):
+		var lc: Vector2 = lily_coords[li]
+		var lily := SevaraAssetLibrary3D.instantiate_model(
+			SevaraAssetLibrary3D.NATURE_DIR + "Lilypad.glb", 0.22, {}, false
+		)
+		lily.position = Vector3(lc.x, SevaraTerrainGen3D.WATER_SURFACE_Y + 0.01, lc.y)
+		lily.rotation.y = float(li) * 1.37
+		_ecology_root.add_child(lily)
 
 	var kevar_coords: Array[Vector2] = [
 		Vector2(-6.8, 7.8),
@@ -784,8 +706,8 @@ func _sync_entities_from_world(
 			var tile := GreyboxWorld.position_from_component(
 				pos_comp, session.greybox_width_tiles, session.greybox_height_tiles
 			)
-			var rem := int(crate_comp.get("remaining_count", 0))
-			var mx := maxi(int(crate_comp.get("max_count", 3)), 1)
+			var rem := int(GreyboxWorld.integral_value(crate_comp.get("count", 0)).get("value", 0))
+			var mx := GreyboxWorld.DEFAULT_CONTAINER_COUNT
 			var adj := (
 				local_tile.x >= 0
 				and (absi(local_tile.x - tile.x) + absi(local_tile.y - tile.y)) <= 1

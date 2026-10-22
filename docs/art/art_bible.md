@@ -260,25 +260,31 @@ Compatibility renderer, CanvasTexture Normal/Specular Maps, 2D-шейдеры)**
      извилистым руслом реки Ниварель, заводями Мулане на юге, солнечными
      холмами луга Хераво на востоке и двумя процедурными кольцами заснеженных
      гор (`DistantMountains3D` на `175` и `310` м).
-2. **Коллекция открытых CC0 3D-моделей (`assets/nature/` и `assets/models/`):**
+2. **Курируемая коллекция открытых CC0 3D-моделей (`assets/nature/` и `assets/models/`):**
    - Природа (`assets/nature/`): сосны `Pine_1..5`, лиственные и вековые
-     деревья `CommonTree_1..5`, `TwistedTree_1..3`, `BirchTree_1..2`,
-     `Willow_1..2`, мшистые пни и валежник `TreeStump_Moss.glb`,
-     `WoodLog_Moss.glb`, скальные глыбы `Rock_Medium_1..3`, `Rock_Moss_1..5`,
-     галька `Pebble_Round_1..5`, папоротники `Fern_1`, клевер `Clover_1..2`,
-     полевые цветы `Flower_3_Group`, `Flower_4_Group`, кусты
-     `Bush_Common_Flowers` и пучки травы `Grass_Common_Tall`,
+     деревья `CommonTree_1..4`, `TwistedTree_1..2`, прибрежные плакучие ивы
+     Талина `Willow_1.glb`, мшистые пни и валежник `TreeStump_Moss.glb`,
+     `WoodLog_Moss.glb`, скальные глыбы `Rock_Medium_1..3`, прибрежная галька
+     `Pebble_Round_1`, папоротники `Fern_1`, клевер `Clover_1`, полевые цветы
+     `Flower_3_Group`, `Flower_4_Group`, кусты Кевара/Кевалу (`Bush_Common`,
+     `Bush_Common_Flowers`), лесные грибы `Mushroom_Common`, плавающие
+     кувшинки `Lilypad.glb` и пучки травы `Grass_Common_Tall`,
      `Grass_Wispy_Tall`.
-   - Поселение (`assets/models/village/`): средневековые дома `House_1..4.glb`,
-     кузница `Blacksmith.glb`, лесопилка `Sawmill.glb`, мельница `Mill.glb`,
-     павильон хроники `Gazebo.glb`, колодец `Well.glb`, очаг `Bonfire_Lit.glb`
-     с котлом `Cauldron.glb`, лавки `Bench_1..2.glb`, телеги, бочки и изгороди.
+   - Поселение (`assets/models/village/` и `items/`): средневековые дома
+     `House_1..4.glb` с натуральными сланцевыми и терракотовыми крышами,
+     кузница `Blacksmith.glb`, конюшня `Stable.glb`, лесопилка `Sawmill.glb`,
+     мельница `Mill.glb`, павильон хроники `Gazebo.glb` с открытым фолиантом
+     `Book1_Open.glb`, колодец `Well.glb`, очаг `Bonfire_Lit.glb` с котлом
+     `Cauldron.glb`, лавки `Bench_1..2.glb`, мост с горящими факелами
+     `WoodenTorch_Fire.glb`, походный шатёр стража `Tent.glb`, ящики с
+     мешками провизии `Bags.glb`, телега, бочки и изгороди.
    - Живые существа (`assets/models/animals/` и `characters/`): скелетно
      анимированные олени и лани `Stag.glb` / `Deer.glb` (`tal_har`), волки и
      лисы `Wolf.glb` / `Fox.glb` (`kor_varn`), а также средневековые фигуры
      людей `Viking_Male.gltf` / `Viking_Female.gltf` в пропорциях `6.5–7 голов`
-     с навесным 3D-снаряжением (`Backpack.glb`, `Pouch.glb`, `Bow_Wooden.glb`,
-     `Axe_small.glb`) и 17 скелетными анимациями (`Idle`, `Walk`, `Run` и др.).
+     с полными средневековыми туниками (`Shirt`), навесным 3D-снаряжением
+     (`Backpack.glb`, `Pouch.glb`, `Bow_Wooden.glb`, `Axe_small.glb`) и 17
+     скелетными анимациями (`Idle`, `Walk`, `Run` и др.).
 3. **Семь специализированных 3D-шейдеров (`assets/shaders/sevara_*_3d.gdshader`):**
    - `sevara_terrain_3d.gdshader` — трипланарный 3D-рельеф с луговой травой,
      речным илом (`silt_stain`), галькой, каменными тропами и скальным гранитом;

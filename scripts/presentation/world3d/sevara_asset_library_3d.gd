@@ -478,9 +478,15 @@ static func _enhance_materials_recursive(
 						std.uv1_triplanar = true
 						std.uv1_scale = Vector3(0.42, 0.42, 0.42)
 						std.albedo_color = base_col.lerp(Color(0.60, 0.58, 0.55), 0.35)
-					elif mname.contains("Roof"):
-						std.albedo_color = base_col.lerp(Color(0.30, 0.34, 0.38), 0.35)
-						std.roughness = 0.76
+					elif mname.contains("Roof") or mname.contains("Blue"):
+						std.albedo_color = Color(0.27, 0.32, 0.36)
+						std.roughness = 0.78
+					elif mname.contains("DarkRed") or mname.contains("Red"):
+						std.albedo_color = base_col.lerp(Color(0.44, 0.29, 0.23), 0.55)
+						std.roughness = 0.78
+					elif mname.contains("White") or mname.contains("Beige"):
+						std.albedo_color = Color(0.80, 0.75, 0.66)
+						std.roughness = 0.88
 				mi.set_surface_override_material(s, std)
 	for child: Node in node.get_children():
 		_enhance_materials_recursive(child, palette_overrides, apply_structural_textures)

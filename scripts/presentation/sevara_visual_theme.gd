@@ -220,7 +220,7 @@ static func draw_chunk_landscape(
 	width_tiles: int,
 	height_tiles: int,
 	tile_size_px: float,
-	basin_summary: Dictionary,
+	_basin_summary: Dictionary,
 	hour_of_day: int,
 	graphics_profile: Dictionary
 ) -> void:
@@ -235,54 +235,6 @@ static func draw_chunk_landscape(
 	var light := lighting_for_hour(hour_of_day)
 	var ambient := _color_or(light.get("ambient"), Color.WHITE)
 	var meadow_tex := load_canvas_texture("tex_meadow_moss_and_snow", include_normals)
-	var outer_rect := field_rect.grow(tile_size_px * 18.0)
-	if meadow_tex != null:
-		var patch_px := 384.0
-		var y := outer_rect.position.y
-		while y < outer_rect.end.y:
-			var x := outer_rect.position.x
-			while x < outer_rect.end.x:
-				canvas.draw_texture_rect(
-					meadow_tex,
-					Rect2(Vector2(x, y), Vector2(patch_px, patch_px)),
-					false,
-					ambient.darkened(0.24)
-				)
-				x += patch_px
-			y += patch_px
-	else:
-		canvas.draw_rect(outer_rect, Color(0.16, 0.21, 0.15, 1.0) * ambient, true)
-
-	var chunk_clean_tex := load_canvas_texture("chunk_nivara_clean", include_normals)
-	var chunk_silted_tex := load_canvas_texture("chunk_nivara_silted_dusk", false)
-	var wetland: Variant = basin_summary.get("mulane_wetland", {})
-	var channel: Variant = basin_summary.get("nivarel_channel", {})
-	var avg_silt := (
-		float((wetland as Dictionary).get("silt_load", 0.28))
-		if typeof(wetland) == TYPE_DICTIONARY
-		else 0.28
-	)
-	var kevalu_wild := (
-		float((channel as Dictionary).get("kevalu_wild_biomass", 0.0)) > 0.05
-		if typeof(channel) == TYPE_DICTIONARY
-		else false
-	)
-	var phase := String(light.get("phase", "morning"))
-
-	if chunk_clean_tex != null:
-		canvas.draw_texture_rect(chunk_clean_tex, field_rect, false, ambient)
-		if chunk_silted_tex != null:
-			var silt_blend := clampf((avg_silt - 0.24) / 0.42, 0.0, 1.0)
-			if kevalu_wild:
-				silt_blend = maxf(silt_blend, 0.65)
-			if phase == "evening" or phase == "night":
-				silt_blend = maxf(silt_blend, 0.55)
-			if silt_blend > 0.02:
-				canvas.draw_texture_rect(
-					chunk_silted_tex, field_rect, false, Color(1.0, 1.0, 1.0, silt_blend)
-				)
-		return
-
 	if meadow_tex != null:
 		canvas.draw_texture_rect(meadow_tex, field_rect, true, ambient)
 	else:

@@ -90,7 +90,8 @@ static func create_kevar_bush_3d(is_kevalu: bool = false) -> Node3D:
 			"texture_color_mix": 0.45,
 		}
 	}
-	var base_mesh := SevaraAssetLibrary3D.nature_mesh("Bush_Common_Flowers", bush_style)
+	var bush_model := "Bush_Common_Flowers" if is_kevalu else "Bush_Common"
+	var base_mesh := SevaraAssetLibrary3D.nature_mesh(bush_model, bush_style)
 	var base_mi := MeshInstance3D.new()
 	base_mi.mesh = base_mesh
 	base_mi.scale = Vector3(0.68, 0.68, 0.68)
@@ -103,6 +104,26 @@ static func create_kevar_bush_3d(is_kevalu: bool = false) -> Node3D:
 	spike_mi.scale = Vector3(0.95, 0.95, 0.95)
 	root.add_child(spike_mi)
 	return root
+
+
+static func create_talina_willow_3d(variant: int = 0) -> Node3D:
+	var h := 5.2 + float(posmod(variant, 3)) * 0.45
+	var willow := (
+		SevaraAssetLibrary3D
+		. instantiate_model(
+			SevaraAssetLibrary3D.NATURE_DIR + "Willow_1.glb",
+			h,
+			{
+				"Green": Color(0.24, 0.46, 0.24),
+				"DarkGreen": Color(0.16, 0.34, 0.18),
+				"Wood": Color(0.38, 0.30, 0.22),
+			},
+			false
+		)
+	)
+	willow.name = "TalinaWillow3D"
+	willow.rotation.y = float(variant) * 1.28
+	return willow
 
 
 static func create_reed_clump_3d(variant: int = 0) -> Node3D:
@@ -247,6 +268,14 @@ static func create_bridge_3d(length_m: float = 7.2, width_m: float = 2.4) -> Nod
 		rail.position = Vector3(0.0, 0.96, sz)
 		rail.material_override = wood_mat
 		root.add_child(rail)
+
+	for end_x in [-1.0, 1.0]:
+		var tx := float(end_x) * (length_m * 0.44)
+		var torch := SevaraAssetLibrary3D.instantiate_model(
+			SevaraAssetLibrary3D.ITEMS_DIR + "WoodenTorch_Fire.glb", 0.58, {}, false
+		)
+		torch.position = Vector3(tx, 1.04, -width_m * 0.46)
+		root.add_child(torch)
 	return root
 
 
@@ -420,6 +449,18 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 	_scatter_river_pebbles_multimesh(
 		root, "RiverPebblesMM", pebble_mesh, int(round(260.0 * dens)), 202608
 	)
+
+	# 6. Forest floor mushrooms under the Toramek pines
+	var mushroom_mesh := SevaraAssetLibrary3D.nature_mesh("Mushroom_Common")
+	_scatter_botanical_multimesh(
+		root,
+		"ForestMushroomsMM",
+		mushroom_mesh,
+		int(round(65.0 * dens)),
+		202609,
+		Vector2(0.45, 0.85),
+		false
+	)
 	return root
 
 
@@ -528,3 +569,127 @@ static func _align_up_with_yaw(normal: Vector3, yaw: float, uniform_scale: float
 		right = Vector3.RIGHT
 	fwd = right.cross(up).normalized()
 	return Basis(right * uniform_scale, up * uniform_scale, fwd * uniform_scale)
+
+
+static func populate_static_settlement(settlement_root: Node3D) -> void:
+	var houses: Array[Dictionary] = [
+		{"file": "House_1.glb", "pos": Vector2(-19.5, -12.2), "h": 4.8, "rot": 0.28},
+		{"file": "House_2.glb", "pos": Vector2(-11.4, -14.6), "h": 4.5, "rot": -0.18},
+		{"file": "House_3.glb", "pos": Vector2(-22.2, -3.4), "h": 4.6, "rot": 0.65},
+		{"file": "House_4.glb", "pos": Vector2(-14.5, 1.8), "h": 4.4, "rot": 2.45},
+		{"file": "Blacksmith.glb", "pos": Vector2(-24.0, -8.2), "h": 4.3, "rot": 1.15},
+		{"file": "Stable.glb", "pos": Vector2(-18.8, 5.2), "h": 3.9, "rot": 0.42},
+	]
+	for hspec: Dictionary in houses:
+		var p2: Vector2 = hspec["pos"]
+		var node := SevaraAssetLibrary3D.instantiate_model(
+			SevaraAssetLibrary3D.VILLAGE_DIR + String(hspec["file"]), float(hspec["h"]), {}, true
+		)
+		node.position = Vector3(p2.x, SevaraTerrainGen3D.get_height_at(p2.x, p2.y) - 0.06, p2.y)
+		node.rotation.y = float(hspec["rot"])
+		settlement_root.add_child(node)
+
+	var sawmill_pos := Vector2(-4.8, -12.6)
+	var sawmill := SevaraAssetLibrary3D.instantiate_model(
+		SevaraAssetLibrary3D.VILLAGE_DIR + "Sawmill.glb", 4.4, {}, true
+	)
+	sawmill.position = Vector3(
+		sawmill_pos.x,
+		SevaraTerrainGen3D.get_height_at(sawmill_pos.x, sawmill_pos.y) - 0.08,
+		sawmill_pos.y
+	)
+	sawmill.rotation.y = -0.35
+	settlement_root.add_child(sawmill)
+
+	var mill_pos := Vector2(6.8, -15.2)
+	var mill := SevaraAssetLibrary3D.instantiate_model(
+		SevaraAssetLibrary3D.VILLAGE_DIR + "Mill.glb", 5.4, {}, true
+	)
+	mill.position = Vector3(
+		mill_pos.x, SevaraTerrainGen3D.get_height_at(mill_pos.x, mill_pos.y) - 0.06, mill_pos.y
+	)
+	mill.rotation.y = -0.55
+	settlement_root.add_child(mill)
+
+	var pav_pos := Vector2(-9.2, -8.8)
+	var pavilion := create_chronicle_pavilion_3d()
+	pavilion.position = Vector3(
+		pav_pos.x, SevaraTerrainGen3D.get_height_at(pav_pos.x, pav_pos.y) - 0.03, pav_pos.y
+	)
+	pavilion.rotation.y = 0.22
+	settlement_root.add_child(pavilion)
+
+	var hearth_pos := Vector2(-14.2, -7.6)
+	var hearth := create_hearth_3d()
+	hearth.position = Vector3(
+		hearth_pos.x, SevaraTerrainGen3D.get_height_at(hearth_pos.x, hearth_pos.y), hearth_pos.y
+	)
+	settlement_root.add_child(hearth)
+
+	var well_pos := Vector2(-16.2, -4.8)
+	var well := SevaraAssetLibrary3D.instantiate_model(
+		SevaraAssetLibrary3D.VILLAGE_DIR + "Well.glb", 2.35, {}, true
+	)
+	well.position = Vector3(
+		well_pos.x, SevaraTerrainGen3D.get_height_at(well_pos.x, well_pos.y) - 0.03, well_pos.y
+	)
+	settlement_root.add_child(well)
+
+	var village_props: Array[Dictionary] = [
+		{"file": "MarketStand_1.glb", "pos": Vector2(-8.8, 4.8), "h": 2.4, "rot": 0.45},
+		{"file": "MarketStand_2.glb", "pos": Vector2(-11.2, 6.2), "h": 2.3, "rot": 0.85},
+		{"file": "Cart.glb", "pos": Vector2(-17.5, -1.2), "h": 1.35, "rot": -0.55},
+		{"file": "Barrel.glb", "pos": Vector2(-12.6, -11.5), "h": 0.95, "rot": 0.0},
+		{"file": "Hay.glb", "pos": Vector2(-16.4, 5.8), "h": 1.45, "rot": 0.3},
+		{"file": "Fence.glb", "pos": Vector2(-7.2, 1.5), "h": 1.15, "rot": 1.35},
+		{"file": "Fence.glb", "pos": Vector2(-7.8, -1.2), "h": 1.15, "rot": 1.42},
+	]
+	for p: Dictionary in village_props:
+		var v2: Vector2 = p["pos"]
+		var prop_node := SevaraAssetLibrary3D.instantiate_model(
+			SevaraAssetLibrary3D.VILLAGE_DIR + String(p["file"]), float(p["h"]), {}, true
+		)
+		prop_node.position = Vector3(
+			v2.x, SevaraTerrainGen3D.get_height_at(v2.x, v2.y) - 0.02, v2.y
+		)
+		prop_node.rotation.y = float(p["rot"])
+		settlement_root.add_child(prop_node)
+
+	var scout_tent_pos := Vector2(6.2, -5.8)
+	var scout_tent := SevaraAssetLibrary3D.instantiate_model(
+		SevaraAssetLibrary3D.ITEMS_DIR + "Tent.glb", 2.15, {}, true
+	)
+	scout_tent.position = Vector3(
+		scout_tent_pos.x,
+		SevaraTerrainGen3D.get_height_at(scout_tent_pos.x, scout_tent_pos.y) - 0.03,
+		scout_tent_pos.y
+	)
+	scout_tent.rotation.y = -0.65
+	settlement_root.add_child(scout_tent)
+
+	var bridge_z := -4.6
+	var bridge_x := SevaraTerrainGen3D.river_center_x(bridge_z)
+	var bridge := create_bridge_3d(8.6, 2.6)
+	bridge.position = Vector3(bridge_x, SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14, bridge_z)
+	bridge.rotation.y = -0.24
+	settlement_root.add_child(bridge)
+
+	var weir1_z := -10.2
+	var weir1 := create_weir_barrier_3d(5.2)
+	weir1.position = Vector3(
+		SevaraTerrainGen3D.river_center_x(weir1_z),
+		SevaraTerrainGen3D.WATER_SURFACE_Y - 0.05,
+		weir1_z
+	)
+	weir1.rotation.y = 0.22
+	settlement_root.add_child(weir1)
+
+	var weir2_z := 5.8
+	var weir2 := create_weir_barrier_3d(5.8)
+	weir2.position = Vector3(
+		SevaraTerrainGen3D.river_center_x(weir2_z),
+		SevaraTerrainGen3D.WATER_SURFACE_Y - 0.05,
+		weir2_z
+	)
+	weir2.rotation.y = -0.18
+	settlement_root.add_child(weir2)
