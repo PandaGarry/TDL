@@ -89,29 +89,25 @@ static func _south_branch_signed_dist(wx: float, wz: float) -> float:
 	return (wx - sx) / sqrt(1.0 + dx_dz * dx_dz)
 
 
+static func get_road_core_at(wx: float, wz: float) -> float:
+	var rz := _main_road_z(wx)
+	var d_main := absf(_main_road_signed_dist(wx, wz))
+	var fade_main := smoothstep(-64.0, -52.0, wx) * (1.0 - smoothstep(52.0, 64.0, wx))
+	var m_main := (1.0 - smoothstep(0.68, 1.05, d_main / 1.32)) * fade_main
+
+	var d_north := absf(_north_branch_signed_dist(wx, wz))
+	var fade_north := smoothstep(rz + 0.8, rz - 0.9, wz) * (1.0 - smoothstep(-42.0, -52.0, wz))
+	var m_north := (1.0 - smoothstep(0.66, 1.04, d_north / 0.96)) * fade_north
+
+	var d_south := absf(_south_branch_signed_dist(wx, wz))
+	var fade_south := smoothstep(rz - 0.8, rz + 0.9, wz) * (1.0 - smoothstep(20.0, 28.0, wz))
+	var m_south := (1.0 - smoothstep(0.66, 1.04, d_south / 0.90)) * fade_south
+	return clampf(maxf(m_main, maxf(m_north, m_south)), 0.0, 1.0)
+
+
 static func get_path_weight_at(wx: float, wz: float) -> float:
 	if STEP1_CLEAN_MEADOW:
-		# 1. Main two-track valley road running SW -> NE across the 110x80m CBT proving ground
-		var d_main := absf(_main_road_signed_dist(wx, wz))
-		var fade_main := smoothstep(-56.0, -46.0, wx) * (1.0 - smoothstep(46.0, 56.0, wx))
-		var w_main := exp(-pow(d_main / 1.48, 2.4)) * fade_main
-
-		# 2. NW Overlook terrace trail branching off the crossroads at (-3.5, -3.6)
-		var d_north := absf(_north_branch_signed_dist(wx, wz))
-		var rz_at_x := _main_road_z(wx)
-		var fade_north := (
-			smoothstep(rz_at_x + 0.6, rz_at_x - 1.2, wz) * (1.0 - smoothstep(-32.0, -39.0, wz))
-		)
-		var w_north := exp(-pow(d_north / 1.12, 2.2)) * fade_north
-
-		# 3. SE Meadow basin trail branching off at (+5.5, -1.8)
-		var d_south := absf(_south_branch_signed_dist(wx, wz))
-		var fade_south := (
-			smoothstep(rz_at_x - 0.6, rz_at_x + 1.2, wz) * (1.0 - smoothstep(20.0, 27.0, wz))
-		)
-		var w_south := exp(-pow(d_south / 1.05, 2.2)) * fade_south
-
-		return clampf(maxf(w_main, maxf(w_north, w_south)), 0.0, 1.0)
+		return get_road_core_at(wx, wz)
 
 	# Main stone-paved settlement courtyard & trails connecting the hearth, well, bridge, and meadow
 	var courtyard := exp(-pow(wx - (-14.5), 2.0) / 54.0 - pow(wz - (-7.5), 2.0) / 38.0)
@@ -138,26 +134,25 @@ static func get_height_at(wx: float, wz: float) -> float:
 		# northern/western hills, and physically carved two-track roadbeds.
 		var hill_a := sin(wx * 0.075 + 0.3) * cos(wz * 0.085 - 0.4) * 0.88
 		var hill_b := sin(wx * 0.15 - wz * 0.13 + 1.1) * 0.36
-		var nw_plateau := smoothstep(6.0, -34.0, wx * 0.42 + wz * 0.82) * 3.4
-		var ne_knoll := exp(-pow((wx - 24.0) / 18.0, 2.0) - pow((wz - (-20.0)) / 15.0, 2.0)) * 2.35
+		var nw_plateau := smoothstep(4.0, -38.0, wx * 0.38 + wz * 0.85) * 4.2
+		var ne_knoll := exp(-pow((wx - 22.0) / 19.0, 2.0) - pow((wz - (-22.0)) / 15.0, 2.0)) * 2.85
 
-		# Stepped natural terraces on the hillside slopes (creates crisp rock ledges & grassy shelves)
+		# Crisp stepped natural terraces on the hillside slopes (rock ledges & grassy shelves)
 		var raw_slope_h := nw_plateau + ne_knoll + maxf(hill_a + hill_b, 0.0)
-		var terrace_phase := raw_slope_h * 1.65
+		var terrace_phase := raw_slope_h * 1.35 + sin(wx * 0.12 + wz * 0.09) * 0.22
 		var terrace_floor := floorf(terrace_phase)
 		var terrace_fract := terrace_phase - terrace_floor
-		var terrace_shelf: float = (terrace_floor + smoothstep(0.18, 0.82, terrace_fract)) / 1.65
-		var terrace_blend := (
-			smoothstep(0.65, 2.4, raw_slope_h) * (1.0 - get_path_weight_at(wx, wz) * 0.85)
-		)
+		var terrace_shelf: float = (terrace_floor + smoothstep(0.08, 0.46, terrace_fract)) / 1.35
+		var road_c := get_road_core_at(wx, wz)
+		var terrace_blend := smoothstep(0.55, 2.1, raw_slope_h) * (1.0 - road_c * 0.90)
 		var sculpted_hills := lerpf(
 			hill_a + hill_b + nw_plateau + ne_knoll,
-			terrace_shelf + hill_b * 0.4,
-			terrace_blend * 0.58
+			terrace_shelf + hill_b * 0.28,
+			terrace_blend * 0.76
 		)
 
-		var rim_x := smoothstep(42.0, 76.0, absf(wx))
-		var rim_z := smoothstep(30.0, 56.0, absf(wz))
+		var rim_x := smoothstep(46.0, 76.0, absf(wx))
+		var rim_z := smoothstep(36.0, 56.0, absf(wz))
 		var rim_h := (
 			clampf(rim_x + rim_z - rim_x * rim_z * 0.4, 0.0, 1.0)
 			* (2.8 + 0.9 * sin(wx * 0.08 + 0.4))
@@ -167,10 +162,10 @@ static func get_height_at(wx: float, wz: float) -> float:
 		var d_main := absf(_main_road_signed_dist(wx, wz))
 		var rut_carve := (
 			(exp(-pow((d_main - 0.52) / 0.32, 2.0)) * 0.065 + exp(-pow(d_main / 1.35, 2.0)) * 0.045)
-			* smoothstep(-54.0, -44.0, wx)
-			* (1.0 - smoothstep(44.0, 54.0, wx))
+			* smoothstep(-62.0, -50.0, wx)
+			* (1.0 - smoothstep(50.0, 62.0, wx))
 		)
-		var branch_carve := get_path_weight_at(wx, wz) * 0.055
+		var branch_carve := road_c * 0.055
 		var micro := sin(wx * 0.42 + wz * 0.37) * 0.032 + cos(wx * 0.27 - wz * 0.49) * 0.026
 		return 0.82 + sculpted_hills + rim_h + micro - maxf(rut_carve, branch_carve)
 

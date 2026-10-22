@@ -1,12 +1,12 @@
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
-// Step 1 CBT Proving Ground Terrain Shader:
-// - Per-pixel analytical Signed Distance Field (SDF) road & trail network (zero vertex blur)
-// - Twin sunken wheel ruts, grassy/mossy center median, and natural eroded verges
-// - Procedural Voronoi embedded cobbles & flat stones with per-stone tint, bevels & crevice AO
-// - Rich 3D micro-normal soil, moss cushions & humus under the grass (finite-difference normal mapping)
-// - Stratified limestone ledges along stepped hillside terraces
+// Step 1 CBT Proving Ground Terrain Shader (v3):
+// - Per-pixel analytical SDF road network with twin wheel ruts, longitudinal rain/wheel grooves,
+//   mossy center median, and natural eroded humus verges.
+// - Isolated rounded embedded stones & gravel (zero hexagonal Voronoi cell-border lines!).
+// - High-definition 3D micro-normal soil, root thatch, and moss cushions under the grass.
+// - Crisp stratified limestone & moss ledges along stepped hillside terraces.
 
 uniform float silt_stain = 0.16;
 
@@ -50,37 +50,46 @@ float fbm(vec2 p) {
 	return v;
 }
 
-// Procedural Voronoi stone/cobble generator:
-// Returns vec3(stone_dome_height, stone_id_hash, crevice_border_ao)
-vec3 voronoi_stones(vec2 p) {
+// Isolated natural rounded pebbles/stones embedded in soil (NO Voronoi polygon cell lines!):
+// Returns vec3(stone_dome_height, stone_id_hash, stone_rim_ao)
+vec3 embedded_pebbles(vec2 p) {
 	vec2 n = floor(p);
 	vec2 f = fract(p);
-	float md1 = 8.0;
-	float md2 = 8.0;
+	float warp = (value_noise(p * 2.3) - 0.5) * 0.08;
+	float best_dome = 0.0;
 	float best_id = 0.0;
+	float rim_ao = 0.0;
 	for (int j = -1; j <= 1; j++) {
 		for (int i = -1; i <= 1; i++) {
 			vec2 g = vec2(float(i), float(j));
-			vec2 o = hash22(n + g);
-			vec2 r = g + (0.18 + 0.64 * o) - f;
-			// Slightly anisotropic flat stones
-			float d = length(r * vec2(1.0, 1.15));
-			if (d < md1) {
-				md2 = md1;
-				md1 = d;
-				best_id = hash12(n + g + vec2(7.1, 3.3));
-			} else if (d < md2) {
-				md2 = d;
+			vec2 cell = n + g;
+			float id = hash12(cell + vec2(7.1, 3.3));
+			// Sparse distribution so compacted earth dominates between stones
+			if (id < 0.54) {
+				continue;
+			}
+			vec2 o = 0.22 + 0.56 * hash22(cell);
+			vec2 r = g + o - f;
+			float ang = id * 6.283;
+			float ca = cos(ang);
+			float sa = sin(ang);
+			vec2 rot_r = vec2(ca * r.x - sa * r.y, sa * r.x + ca * r.y);
+			float d = length(rot_r * vec2(1.0, 1.28)) + warp;
+			float rad = 0.16 + fract(id * 13.7) * 0.15;
+			if (d < rad * 1.28) {
+				float norm_d = clamp(d / rad, 0.0, 1.0);
+				float dome = (1.0 - norm_d * norm_d);
+				dome = pow(dome, 0.75);
+				if (dome > best_dome) {
+					best_dome = dome;
+					best_id = id;
+				}
+				float collar = smoothstep(rad * 1.26, rad * 0.96, d) * smoothstep(rad * 0.68, rad * 0.96, d);
+				rim_ao = max(rim_ao, collar);
 			}
 		}
 	}
-	float edge_dist = md2 - md1;
-	// Only a subset of Voronoi cells contain a prominent stone so soil remains visible between them
-	float presence = smoothstep(0.32, 0.52, best_id);
-	float stone_shape = smoothstep(0.06, 0.22, edge_dist) * (1.0 - smoothstep(0.25, 0.58, md1));
-	float dome = pow(clamp(stone_shape, 0.0, 1.0), 0.65) * presence;
-	float crevice = smoothstep(0.14, 0.02, edge_dist) * presence;
-	return vec3(dome, best_id, crevice);
+	return vec3(best_dome, best_id, rim_ao);
 }
 
 vec3 meadow_ground_palette(vec2 xz) {
@@ -99,33 +108,31 @@ float main_road_z(float wx) {
 }
 
 // Per-pixel road network evaluation:
-// Returns vec4(road_core_mask, wheel_rut_intensity, median_strip_mask, verge_turf_mask)
+// Returns vec4(road_core_mask, wheel_rut_intensity, median_strip_mask, longitudinal_groove)
 vec4 eval_road_network(vec2 xz) {
 	float wx = xz.x;
 	float wz = xz.y;
 
-	// Organic edge warp for natural hand-trodden trail borders
-	float warp_a = (fbm(xz * 0.55) - 0.5) * 0.26 + (value_noise(xz * 2.1) - 0.5) * 0.09;
+	float warp_a = (fbm(xz * 0.55) - 0.5) * 0.24 + (value_noise(xz * 2.1) - 0.5) * 0.08;
 
 	// 1. Main valley two-track cart road
 	float rz = main_road_z(wx);
 	float dz_dx = cos(wx * 0.085 + 0.35) * 0.323 - sin(wx * 0.045 - 0.4) * 0.0855 - 0.06;
 	float d_main = abs(wz - rz) / sqrt(1.0 + dz_dx * dz_dx);
-	float fade_main = smoothstep(-56.0, -46.0, wx) * (1.0 - smoothstep(46.0, 56.0, wx));
+	float fade_main = smoothstep(-64.0, -52.0, wx) * (1.0 - smoothstep(52.0, 64.0, wx));
 
 	// 2. NW Overlook terrace trail
 	float bx = -3.5 + (wz + 3.6) * 0.55 + sin((wz + 3.6) * 0.16) * 2.2;
 	float dx_dz_n = 0.55 + cos((wz + 3.6) * 0.16) * 0.352;
 	float d_north = abs(wx - bx) / sqrt(1.0 + dx_dz_n * dx_dz_n);
-	float fade_north = smoothstep(rz + 0.8, rz - 0.9, wz) * (1.0 - smoothstep(-32.0, -39.0, wz));
+	float fade_north = smoothstep(rz + 0.8, rz - 0.9, wz) * (1.0 - smoothstep(-42.0, -52.0, wz));
 
 	// 3. SE Meadow basin trail
 	float sx = 5.5 + (wz + 1.8) * 0.48 + sin((wz + 1.8) * 0.18) * 1.8;
 	float dx_dz_s = 0.48 + cos((wz + 1.8) * 0.18) * 0.324;
 	float d_south = abs(wx - sx) / sqrt(1.0 + dx_dz_s * dx_dz_s);
-	float fade_south = smoothstep(rz - 0.8, rz + 0.9, wz) * (1.0 - smoothstep(20.0, 27.0, wz));
+	float fade_south = smoothstep(rz - 0.8, rz + 0.9, wz) * (1.0 - smoothstep(20.0, 28.0, wz));
 
-	// Effective distance to nearest road centerline (normalized so 1.0 = outer edge of roadbed)
 	float u_main = (d_main + warp_a) / 1.32;
 	float u_north = (d_north + warp_a * 0.85) / 0.96;
 	float u_south = (d_south + warp_a * 0.85) / 0.90;
@@ -136,50 +143,49 @@ vec4 eval_road_network(vec2 xz) {
 	float road_core = clamp(max(m_main, max(m_north, m_south)), 0.0, 1.0);
 
 	// Distinct twin wheel ruts on the main road & footpaths
-	float rut_main = exp(-pow((d_main - 0.52 + warp_a * 0.35) / 0.26, 2.0)) * fade_main;
-	float rut_north = exp(-pow((d_north - 0.30 + warp_a * 0.30) / 0.22, 2.0)) * fade_north;
-	float rut_south = exp(-pow((d_south - 0.28 + warp_a * 0.30) / 0.21, 2.0)) * fade_south;
+	float rut_main = exp(-pow((d_main - 0.52 + warp_a * 0.30) / 0.25, 2.0)) * fade_main;
+	float rut_north = exp(-pow((d_north - 0.30 + warp_a * 0.25) / 0.21, 2.0)) * fade_north;
+	float rut_south = exp(-pow((d_south - 0.28 + warp_a * 0.25) / 0.20, 2.0)) * fade_south;
 	float ruts = clamp(max(rut_main, max(rut_north * 0.85, rut_south * 0.85)), 0.0, 1.0);
 
 	// Center grassy/mossy crown between the two wheel ruts on the main road
 	float median_noise = fbm(xz * 0.95 + vec2(2.1, -1.4));
-	float median = exp(-pow(d_main / 0.26, 2.0)) * fade_main * smoothstep(0.28, 0.72, median_noise);
-	// Suppress median right inside the crossroads intersection so tracks merge cleanly
+	float median = exp(-pow(d_main / 0.25, 2.0)) * fade_main * smoothstep(0.26, 0.70, median_noise);
 	median *= (1.0 - max(m_north, m_south) * 0.85);
 
-	// Outer trampled humus/moss verge along the road shoulders
-	float v_main = smoothstep(0.55, 0.88, u_main) * (1.0 - smoothstep(0.95, 1.38, u_main)) * fade_main;
-	float v_north = smoothstep(0.54, 0.86, u_north) * (1.0 - smoothstep(0.94, 1.35, u_north)) * fade_north;
-	float v_south = smoothstep(0.54, 0.86, u_south) * (1.0 - smoothstep(0.94, 1.35, u_south)) * fade_south;
-	float verge = clamp(max(v_main, max(v_north, v_south)), 0.0, 1.0);
+	// Longitudinal wheel/rain groove pattern running along the trail direction
+	float groove_main = sin(d_main * 22.0 + fbm(vec2(wx * 0.45, wz * 1.8)) * 3.2) * 0.5 + 0.5;
+	float groove_branch = sin(min(d_north, d_south) * 24.0 + fbm(vec2(wx * 1.6, wz * 0.45)) * 3.2) * 0.5 + 0.5;
+	float groove = mix(groove_branch, groove_main, step(max(m_north, m_south), m_main));
 
-	return vec4(road_core, ruts, median, verge);
+	return vec4(road_core, ruts, median, groove);
 }
 
-// Micro-heightfield used for analytical per-pixel 3D normal mapping (soil clods, cobbles, ruts, rock ledges)
+// Micro-heightfield used for analytical per-pixel 3D normal mapping
 float eval_micro_height(vec2 xz, vec4 road_info, float slope) {
 	float road_core = road_info.x;
 	float ruts = road_info.y;
 	float median = road_info.z;
+	float groove = road_info.w;
 
-	// 1. Soil clods, roots & mossy cushions under grass and on open slopes
-	float moss_pillow = fbm(xz * 1.65);
-	float soil_clods = fbm(xz * 5.2 + vec2(3.7, 1.9));
-	float fine_grit = value_noise(xz * 16.0);
-	float turf_h = moss_pillow * 0.032 + soil_clods * 0.016 + fine_grit * 0.005;
+	// 1. Rich forest-meadow soil clods, root network & mossy cushions under grass
+	float moss_pillow = fbm(xz * 1.85);
+	float soil_clods = fbm(xz * 5.6 + vec2(3.7, 1.9));
+	float fine_grit = value_noise(xz * 18.0);
+	float turf_h = moss_pillow * 0.036 + soil_clods * 0.018 + fine_grit * 0.006;
 
-	// 2. Road profile: sunken ruts, raised center crown, and embedded 3D Voronoi cobbles
-	vec3 cobble_a = voronoi_stones(xz * 2.8);
-	vec3 cobble_b = voronoi_stones(xz * 6.4 + vec2(11.3, 4.7));
-	float stone_density = clamp(ruts * 0.85 + road_core * 0.45 - median * 0.65, 0.0, 1.0);
-	float stone_h = (cobble_a.x * 0.036 + cobble_b.x * 0.016) * stone_density;
-	float rut_depression = -ruts * 0.038 + median * 0.022;
-	float road_h = rut_depression + stone_h + soil_clods * 0.010 + fine_grit * 0.004;
+	// 2. Road profile: sunken ruts with longitudinal wheel grooves + sparse embedded rounded stones
+	vec3 peb_a = embedded_pebbles(xz * 2.6);
+	vec3 peb_b = embedded_pebbles(xz * 5.8 + vec2(11.3, 4.7));
+	float stone_zone = clamp(ruts * 0.78 + road_core * 0.32 - median * 0.75, 0.0, 1.0);
+	float stone_h = (peb_a.x * 0.024 + peb_b.x * 0.012) * stone_zone;
+	float rut_depression = -ruts * 0.042 + (groove - 0.5) * ruts * 0.014 + median * 0.024;
+	float road_h = rut_depression + stone_h + soil_clods * 0.012 + fine_grit * 0.005;
 
-	// 3. Stratified limestone ledges on steeper hillside terrace breaks
-	float ledge_mask = smoothstep(0.15, 0.34, slope) * (1.0 - road_core);
-	float strata_bands = sin(xz.x * 1.4 + xz.y * 1.8 + fbm(xz * 0.9) * 3.5);
-	float rock_h = (smoothstep(-0.3, 0.5, strata_bands) * 0.055 + cobble_a.x * 0.028) * ledge_mask;
+	// 3. Stratified limestone ledges on hillside terrace breaks
+	float ledge_mask = smoothstep(0.11, 0.26, slope) * (1.0 - road_core);
+	float strata_bands = sin(xz.x * 1.2 + xz.y * 1.6 + fbm(xz * 0.85) * 3.8);
+	float rock_h = (smoothstep(-0.35, 0.45, strata_bands) * 0.065 + soil_clods * 0.022) * ledge_mask;
 
 	return mix(turf_h, road_h, road_core) + rock_h;
 }
@@ -198,103 +204,101 @@ void fragment() {
 	float road_core = road_info.x;
 	float ruts = road_info.y;
 	float median = road_info.z;
-	float verge = road_info.w;
+	float groove = road_info.w;
 
-	// --- 1. Analytical 3D Micro-Normal Mapping (finite difference over micro-heightfield) ---
-	float eps = 0.024;
+	// --- 1. Analytical 3D Micro-Normal Mapping ---
+	float eps = 0.022;
 	float h0 = eval_micro_height(xz, road_info, slope);
 	float hx = eval_micro_height(xz + vec2(eps, 0.0), road_info, slope);
 	float hz = eval_micro_height(xz + vec2(0.0, eps), road_info, slope);
 	vec3 d_h = vec3((h0 - hx) / eps, 0.0, (h0 - hz) / eps);
-	float dist_atten = 1.0 - smoothstep(22.0, 58.0, length(xz));
-	vec3 world_nrm = normalize(v_world_nrm + d_h * (1.15 * dist_atten + 0.25));
+	float dist_atten = 1.0 - smoothstep(26.0, 68.0, length(xz));
+	vec3 world_nrm = normalize(v_world_nrm + d_h * (1.25 * dist_atten + 0.30));
 	NORMAL = normalize((VIEW_MATRIX * vec4(world_nrm, 0.0)).xyz);
 
-	// --- 2. Rich Multi-Layered Ground & Under-Grass Soil/Moss Palette ---
+	// --- 2. Rich Multi-Layered Under-Grass Soil, Humus, Root Litter & Moss Cushions ---
 	vec3 base_meadow = meadow_ground_palette(xz);
-	float moss_n = fbm(xz * 1.65);
-	float humus_n = fbm(xz * 4.8 + vec2(6.1, -2.3));
-	float grit_n = value_noise(xz * 15.0);
+	float moss_n = fbm(xz * 1.85);
+	float humus_n = fbm(xz * 5.2 + vec2(6.1, -2.3));
+	float grit_n = value_noise(xz * 16.0);
 
-	// Dark rich forest humus in micro-hollows + velvety moss cushions + warm dry root-litter specks
-	vec3 humus_dark = vec3(0.13, 0.16, 0.09);
-	vec3 moss_cushion = vec3(0.24, 0.38, 0.15);
-	vec3 dry_thatch = vec3(0.32, 0.31, 0.18);
-	vec3 detailed_turf = mix(humus_dark, base_meadow, smoothstep(0.18, 0.62, moss_n));
-	detailed_turf = mix(detailed_turf, moss_cushion, smoothstep(0.55, 0.86, moss_n) * 0.65);
-	detailed_turf = mix(detailed_turf, dry_thatch, smoothstep(0.68, 0.90, humus_n) * 0.35);
-	detailed_turf *= (0.93 + 0.14 * grit_n);
+	vec3 humus_dark = vec3(0.13, 0.15, 0.09);
+	vec3 moss_cushion = vec3(0.23, 0.37, 0.14);
+	vec3 dry_thatch = vec3(0.30, 0.27, 0.16);
+	vec3 detailed_turf = mix(humus_dark, base_meadow, smoothstep(0.20, 0.64, moss_n));
+	detailed_turf = mix(detailed_turf, moss_cushion, smoothstep(0.54, 0.85, moss_n) * 0.68);
+	detailed_turf = mix(detailed_turf, dry_thatch, smoothstep(0.64, 0.88, humus_n) * 0.42);
+	detailed_turf *= (0.90 + 0.20 * grit_n);
 
-	// Blend toward sunlit grass-tip tone in the far distance so distant hills match 3D grass seamlessly
 	float warm_patch = fbm(xz * 0.08 + vec2(3.1, 1.7));
 	vec3 far_tip_col = mix(vec3(0.24, 0.39, 0.15), vec3(0.33, 0.45, 0.18), smoothstep(0.28, 0.76, warm_patch));
-	float far_blend = smoothstep(34.0, 54.0, length(xz));
-	vec3 col = mix(detailed_turf, far_tip_col * (0.95 + 0.10 * moss_n), far_blend * 0.78);
+	float far_blend = smoothstep(42.0, 66.0, length(xz));
+	vec3 col = mix(detailed_turf, far_tip_col * (0.94 + 0.12 * moss_n), far_blend * 0.72);
 	float rough = 0.91;
 
 	// --- 3. Stratified Limestone & Mossy Rock Ledges on Hillside Terrace Slopes ---
-	float ledge_mask = smoothstep(0.14, 0.32, slope) * (1.0 - road_core);
+	float ledge_mask = smoothstep(0.11, 0.25, slope) * (1.0 - road_core);
 	if (ledge_mask > 0.01) {
-		vec3 rock_v = voronoi_stones(xz * 1.9);
-		float strata = sin(v_world_pos.y * 8.5 + fbm(xz * 0.8) * 2.8) * 0.5 + 0.5;
-		vec3 limestone_light = vec3(0.42, 0.41, 0.38);
-		vec3 slate_shadow = vec3(0.26, 0.28, 0.29);
-		vec3 rock_col = mix(slate_shadow, limestone_light, smoothstep(0.25, 0.78, strata * 0.65 + rock_v.x * 0.35));
-		// Crevice AO between rock blocks
-		rock_col *= (1.0 - rock_v.z * 0.42);
-		// Moss creeping over the upper shelves of the rock ledges
-		float ledge_moss = smoothstep(0.48, 0.78, moss_n) * (1.0 - smoothstep(0.24, 0.42, slope));
-		rock_col = mix(rock_col, moss_cushion, ledge_moss * 0.65);
-		col = mix(col, rock_col, ledge_mask * 0.90);
-		rough = mix(rough, 0.78, ledge_mask);
+		float strata = sin(v_world_pos.y * 9.5 + fbm(xz * 0.85) * 3.2) * 0.5 + 0.5;
+		float fracture = fbm(xz * 3.4);
+		vec3 limestone_warm = vec3(0.44, 0.41, 0.36);
+		vec3 slate_dark = vec3(0.25, 0.27, 0.27);
+		vec3 rock_col = mix(slate_dark, limestone_warm, smoothstep(0.22, 0.78, strata * 0.68 + fracture * 0.32));
+		rock_col *= (0.88 + 0.22 * grit_n);
+		float ledge_moss = smoothstep(0.45, 0.76, moss_n) * (1.0 - smoothstep(0.22, 0.38, slope));
+		rock_col = mix(rock_col, moss_cushion, ledge_moss * 0.62);
+		col = mix(col, rock_col, ledge_mask * 0.92);
+		rough = mix(rough, 0.76, ledge_mask);
 	}
 
-	// --- 4. Detailed Two-Track Earthen & Cobble Road Network ---
-	if (road_core > 0.01 || verge > 0.01) {
-		// 4a. Trampled humus, dry clover-earth & pebble shoulder along the road verge
-		vec3 verge_loam = mix(vec3(0.22, 0.24, 0.14), vec3(0.29, 0.26, 0.17), humus_n);
-		verge_loam *= (0.90 + 0.18 * grit_n);
-		col = mix(col, verge_loam, verge * 0.82);
+	// --- 4. Natural Two-Track Earthen Road with Wheel Grooves, Mossy Median & Earthy Pebbles ---
+	if (road_core > 0.01) {
+		// 4a. Earthy humus & trampled dry grass verge along road shoulders
+		float shoulder = smoothstep(0.05, 0.45, road_core) * (1.0 - smoothstep(0.45, 0.82, road_core));
+		vec3 verge_loam = mix(vec3(0.20, 0.23, 0.13), vec3(0.28, 0.24, 0.15), humus_n);
+		verge_loam *= (0.88 + 0.22 * grit_n);
 
-		// 4b. Compacted roadbed loam + darker damp wheel ruts + mossy/grassy center median
-		vec3 dry_loam = vec3(0.42, 0.34, 0.24) * (0.92 + 0.16 * humus_n);
-		vec3 damp_rut_soil = vec3(0.28, 0.22, 0.15) * (0.90 + 0.18 * grit_n);
-		vec3 road_soil = mix(dry_loam, damp_rut_soil, smoothstep(0.15, 0.78, ruts));
+		// 4b. Warm compacted loam + darker damp wheel ruts with longitudinal groove shading
+		vec3 dry_loam = vec3(0.39, 0.31, 0.21) * (0.91 + 0.18 * humus_n);
+		vec3 sandy_shoulder = vec3(0.44, 0.36, 0.25) * (0.92 + 0.16 * grit_n);
+		vec3 damp_rut = vec3(0.26, 0.20, 0.14) * (0.88 + 0.16 * groove + 0.10 * grit_n);
 
-		// Center median strip between the two wheel ruts (overgrown with low moss & turf)
-		vec3 median_turf = mix(vec3(0.23, 0.33, 0.15), vec3(0.31, 0.36, 0.18), moss_n);
-		road_soil = mix(road_soil, median_turf, clamp(median * 0.88, 0.0, 1.0));
+		vec3 road_soil = mix(sandy_shoulder, dry_loam, smoothstep(0.25, 0.65, road_core));
+		road_soil = mix(road_soil, damp_rut, smoothstep(0.15, 0.80, ruts));
+		road_soil = mix(road_soil, verge_loam, shoulder * 0.65);
 
-		// 4c. Embedded 3D Voronoi Cobbles & Gravel along wheel ruts and crossroads
-		vec3 cob1 = voronoi_stones(xz * 2.8);
-		vec3 cob2 = voronoi_stones(xz * 6.4 + vec2(11.3, 4.7));
-		float stone_zone = clamp(ruts * 0.92 + road_core * 0.48 - median * 0.70, 0.0, 1.0);
-		float big_stone_mask = smoothstep(0.12, 0.45, cob1.x) * stone_zone;
-		float small_pebble_mask = smoothstep(0.18, 0.55, cob2.x) * stone_zone * (1.0 - big_stone_mask);
+		// 4c. Overgrown mossy/grassy center median strip between the two wheel ruts
+		vec3 median_turf = mix(vec3(0.21, 0.32, 0.14), vec3(0.28, 0.35, 0.16), moss_n) * (0.90 + 0.18 * grit_n);
+		road_soil = mix(road_soil, median_turf, clamp(median * 0.90, 0.0, 1.0));
 
-		// Per-stone mineral color variation (warm sandstone, cool slate, pale limestone)
-		vec3 stone_warm = vec3(0.48, 0.42, 0.34);
-		vec3 stone_cool = vec3(0.36, 0.39, 0.41);
-		vec3 stone_pale = vec3(0.53, 0.50, 0.45);
-		vec3 s_col1 = mix(stone_warm, stone_cool, smoothstep(0.3, 0.7, cob1.y));
-		s_col1 = mix(s_col1, stone_pale, smoothstep(0.75, 0.95, cob1.y));
-		s_col1 *= (0.90 + 0.18 * grit_n);
+		// 4d. Sparse, natural earthy-ochre & weathered-slate pebbles embedded in the soil
+		vec3 peb1 = embedded_pebbles(xz * 2.6);
+		vec3 peb2 = embedded_pebbles(xz * 5.8 + vec2(11.3, 4.7));
+		float stone_zone = clamp(ruts * 0.82 + road_core * 0.35 - median * 0.80, 0.0, 1.0);
+		float m_peb1 = smoothstep(0.10, 0.45, peb1.x) * stone_zone;
+		float m_peb2 = smoothstep(0.15, 0.50, peb2.x) * stone_zone * (1.0 - m_peb1);
 
-		vec3 s_col2 = mix(stone_cool, stone_warm, fract(cob2.y * 7.3)) * (0.88 + 0.20 * grit_n);
+		vec3 peb_sandstone = vec3(0.43, 0.36, 0.27);
+		vec3 peb_weathered = vec3(0.34, 0.31, 0.26);
+		vec3 peb_ochre = vec3(0.46, 0.39, 0.29);
+		vec3 pcol1 = mix(peb_weathered, peb_sandstone, fract(peb1.y * 9.1));
+		pcol1 = mix(pcol1, peb_ochre, smoothstep(0.75, 0.95, peb1.y)) * (0.90 + 0.18 * grit_n);
+		vec3 pcol2 = mix(peb_weathered, peb_ochre, fract(peb2.y * 7.3)) * (0.88 + 0.20 * grit_n);
 
-		// Dark soil crevice AO around embedded stones
-		float crevice_ao = 1.0 - clamp((cob1.z * 0.52 + cob2.z * 0.28) * stone_zone, 0.0, 0.55);
-		road_soil *= crevice_ao;
-		road_soil = mix(road_soil, s_col1, big_stone_mask * 0.88);
-		road_soil = mix(road_soil, s_col2, small_pebble_mask * 0.72);
+		// Subtle soil collar AO around individual stones only (no cell borders!)
+		float collar_ao = 1.0 - clamp((peb1.z * 0.32 + peb2.z * 0.20) * stone_zone, 0.0, 0.38);
+		road_soil *= collar_ao;
+		road_soil = mix(road_soil, pcol1, m_peb1 * 0.78);
+		road_soil = mix(road_soil, pcol2, m_peb2 * 0.65);
 
-		col = mix(col, road_soil, road_core);
-		float road_rough = mix(0.92, 0.74, ruts * 0.65 + big_stone_mask * 0.55);
-		rough = mix(rough, road_rough, road_core);
+		float smooth_edge = smoothstep(0.05, 0.52, road_core);
+		col = mix(col, road_soil, smooth_edge);
+		float road_rough = mix(0.92, 0.76, ruts * 0.55 + m_peb1 * 0.45);
+		rough = mix(rough, road_rough, smooth_edge);
 	}
 
 	// --- 5. Distant Valley Rim Atmospheric Perspective ---
-	float rim_haze = smoothstep(56.0, 92.0, length(xz));
+	float rim_haze = smoothstep(62.0, 96.0, length(xz));
 	col = mix(col, vec3(0.32, 0.42, 0.35), rim_haze * 0.42);
 
 	ALBEDO = col;
