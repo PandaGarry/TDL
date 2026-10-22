@@ -48,42 +48,44 @@ static func raw_terrain_height(x: float, z: float) -> float:
 	var rw := river_half_width(z)
 	var dist_river := absf(x - rcx)
 
-	var north_slope := clampf((-z - 6.0) / 34.0, 0.0, 1.4) * 7.8
-	var far_west_ridge := clampf((-x - 20.0) / 28.0, 0.0, 1.5) * 11.5
-	var far_east_ridge := clampf((x - 24.0) / 28.0, 0.0, 1.5) * 9.5
-	var far_north_peaks := clampf((-z - 20.0) / 28.0, 0.0, 1.6) * 14.0
+	# Keep a wide valley corridor around the river so north mountains don't pinch into a spike
+	var corridor_mask := smoothstep(rw + 1.5, rw + 14.5, dist_river)
+	var north_slope := clampf((-z - 8.0) / 34.0, 0.0, 1.3) * 5.2 * (0.28 + 0.72 * corridor_mask)
+	var far_west_ridge := clampf((-x - 21.0) / 28.0, 0.0, 1.4) * 8.5
+	var far_east_ridge := clampf((x - 24.0) / 28.0, 0.0, 1.4) * 7.5
+	var far_north_peaks := clampf((-z - 22.0) / 28.0, 0.0, 1.4) * 8.5 * corridor_mask
 	var rolling := (
-		sin(x * 0.14 + z * 0.11) * 0.32
-		+ cos(x * 0.27 - z * 0.19) * 0.18
-		+ sin(x * 0.51 + z * 0.47) * 0.07
+		sin(x * 0.14 + z * 0.11) * 0.28
+		+ cos(x * 0.27 - z * 0.19) * 0.16
+		+ sin(x * 0.51 + z * 0.47) * 0.06
 	)
 
-	var base_y := 0.85 + north_slope + far_west_ridge + far_east_ridge + far_north_peaks + rolling
+	var base_y := 0.82 + north_slope + far_west_ridge + far_east_ridge + far_north_peaks + rolling
 
 	var dist_settlement := Vector2((x + 13.5) * 0.75, (z + 1.0) * 0.65).length()
 	if dist_settlement < 11.5:
 		var flat_blend := smoothstep(11.5, 4.5, dist_settlement)
-		base_y = lerpf(base_y, 1.25, flat_blend)
+		base_y = lerpf(base_y, 1.22, flat_blend)
 
 	var d_kevar := Vector2(x - KEVAR_POOL_CENTER.x, z - KEVAR_POOL_CENTER.y).length()
 	if d_kevar < KEVAR_POOL_RADIUS + 4.8:
 		if d_kevar < KEVAR_POOL_RADIUS:
 			var bowl := smoothstep(KEVAR_POOL_RADIUS, 1.2, d_kevar)
-			base_y = lerpf(1.75, 0.25, bowl)
+			base_y = lerpf(1.65, 0.25, bowl)
 		else:
 			var rim := sin(((d_kevar - KEVAR_POOL_RADIUS) / 4.8) * PI)
-			base_y += rim * 1.95
+			base_y += rim * 1.55
 
-	if dist_river < rw + 2.4:
-		var bank_t := smoothstep(rw + 2.4, rw * 0.55, dist_river)
-		var bed_y := -1.35 if z < 10.0 else -1.05
+	if dist_river < rw + 3.2:
+		var bank_t := smoothstep(rw + 3.2, rw * 0.55, dist_river)
+		var bed_y := -1.25 if z < 10.0 else -0.95
 		base_y = lerpf(base_y, bed_y, bank_t)
 
 	return base_y
 
 
 static func terrain_normal_at(x: float, z: float) -> Vector3:
-	var eps := 0.45
+	var eps := 0.5
 	var h_l := raw_terrain_height(x - eps, z)
 	var h_r := raw_terrain_height(x + eps, z)
 	var h_d := raw_terrain_height(x, z - eps)
@@ -113,7 +115,7 @@ static func biome_weights_at(x: float, y: float, z: float, normal: Vector3) -> C
 	var w_rock := clampf(smoothstep(0.24, 0.48, slope), 0.0, 1.0)
 	if d_kevar >= KEVAR_POOL_RADIUS - 0.6 and d_kevar <= KEVAR_POOL_RADIUS + 4.2:
 		w_rock = maxf(w_rock, 0.78)
-	var w_snow := clampf((y - 4.8) / 5.5, 0.0, 1.0)
+	var w_snow := clampf((y - 5.2) / 5.5, 0.0, 1.0)
 	return Color(w_river, w_path, w_rock, w_snow)
 
 

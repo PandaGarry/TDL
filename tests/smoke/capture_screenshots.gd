@@ -55,9 +55,9 @@ func _capture_stage_states(abs_dir: String) -> void:
 	stage.start_offline_campaign("sevara_p1_showcase", 4072026, "host", "Путник")
 	stage.enable_p1_slice()
 	stage.session().advance_simulation_minutes(480)
-	for _step in range(8):
-		stage.trigger_action(&"move_right", true)
+	for _step in range(3):
 		stage.trigger_action(&"move_down", true)
+		stage.trigger_action(&"move_right", true)
 	SettingsManager.set_texture_quality(SettingsManager.TEXTURE_QUALITY_HIGH)
 	stage.refresh_presentation()
 	stage.debug_overlay().visible = false

@@ -83,10 +83,10 @@ static func create_humanoid_3d(
 		lbl.position = Vector3(0.0, 2.15, 0.0)
 		lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		lbl.no_depth_test = true
-		lbl.fixed_size = false
-		lbl.pixel_size = 0.0085
-		lbl.font_size = 34
-		lbl.outline_size = 10
+		lbl.fixed_size = true
+		lbl.pixel_size = 0.00095
+		lbl.font_size = 22
+		lbl.outline_size = 8
 		lbl.modulate = (
 			Color(1.0, 0.92, 0.62, 1.0) if is_local_player else Color(0.95, 0.94, 0.88, 1.0)
 		)
@@ -126,9 +126,10 @@ static func create_supply_crate_3d(label_text: String, highlighted: bool) -> Nod
 		lbl.position = Vector3(0.0, 1.45, 0.0)
 		lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		lbl.no_depth_test = true
-		lbl.pixel_size = 0.008
-		lbl.font_size = 28
-		lbl.outline_size = 8
+		lbl.fixed_size = true
+		lbl.pixel_size = 0.0009
+		lbl.font_size = 20
+		lbl.outline_size = 7
 		lbl.modulate = Color(0.96, 0.88, 0.64, 1.0)
 		lbl.outline_modulate = Color(0.05, 0.06, 0.08, 0.94)
 		root.add_child(lbl)
