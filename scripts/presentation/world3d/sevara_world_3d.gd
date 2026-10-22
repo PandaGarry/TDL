@@ -120,7 +120,6 @@ func ensure_built() -> void:
 	_build_terrain_and_water()
 	_build_containers()
 	_populate_static_settlement()
-	_rebuild_ecology_and_flora(1.0)
 	_apply_camera_transform(true)
 
 
@@ -388,6 +387,7 @@ func _build_containers() -> void:
 
 
 func _populate_static_settlement() -> void:
+	_meadow_multimesh_root.add_child(SevaraPropsFactory3D.build_dense_meadow_multimeshes(1.0))
 	if LOOKDEV_STEP >= 4:
 		SevaraPropsFactory3D.populate_static_settlement(_settlement_root)
 
