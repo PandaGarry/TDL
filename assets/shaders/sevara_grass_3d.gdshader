@@ -9,11 +9,11 @@ render_mode blend_mix, depth_draw_opaque, cull_disabled, diffuse_burley, specula
 // 3. Soft, calm wind waves roll across the tips without noisy per-pixel speckles.
 
 uniform vec3 root_color : source_color = vec3(0.16, 0.30, 0.13);
-uniform vec3 tip_color : source_color = vec3(0.34, 0.54, 0.20);
-uniform vec3 tip_color_warm : source_color = vec3(0.48, 0.58, 0.22);
-uniform float blade_height : hint_range(0.15, 1.5) = 0.46;
+uniform vec3 tip_color : source_color = vec3(0.29, 0.47, 0.18);
+uniform vec3 tip_color_warm : source_color = vec3(0.39, 0.53, 0.21);
+uniform float blade_height : hint_range(0.15, 1.5) = 0.34;
 uniform vec2 wind_direction = vec2(0.88, 0.47);
-uniform float wind_strength : hint_range(0.0, 3.0) = 0.85;
+uniform float wind_strength : hint_range(0.0, 3.0) = 0.72;
 uniform vec3 player_pos = vec3(0.0, -100.0, 0.0);
 
 varying float v_t;
@@ -73,15 +73,16 @@ void vertex() {
 	vec3 world_v = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 
 	float clump = value_noise(world_v.xz * 0.18);
-	float h_scale = (0.78 + rnd.g * 0.42) * (0.82 + clump * 0.35) * max(INSTANCE_CUSTOM.a, 0.65);
+	float inst_h = clamp(INSTANCE_CUSTOM.a, 0.18, 1.35);
+	float h_scale = (0.80 + rnd.g * 0.36) * (0.85 + clump * 0.30) * inst_h;
 	float gust = wind_gust(world_v.xz, TIME);
-	float wave = sin(TIME * 1.6 - dot(world_v.xz, wind_direction) * 0.38 + rnd.a * 6.28) * 0.5 + 0.5;
-	float bend = (gust * 0.68 + wave * 0.32 + 0.10) * wind_strength;
+	float wave = sin(TIME * 1.5 - dot(world_v.xz, wind_direction) * 0.38 + rnd.a * 6.28) * 0.5 + 0.5;
+	float bend = (gust * 0.65 + wave * 0.35 + 0.08) * wind_strength;
 
 	float curve = t * t;
 	vec2 wdir = normalize(wind_direction);
-	vec2 rest_bend = vec2(cos(rnd.b * 6.283), sin(rnd.b * 6.283)) * 0.14;
-	vec2 total_xz = (wdir * bend * 0.38 + rest_bend) * curve * blade_height * h_scale;
+	vec2 rest_bend = vec2(cos(rnd.b * 6.283), sin(rnd.b * 6.283)) * 0.12;
+	vec2 total_xz = (wdir * bend * 0.34 + rest_bend) * curve * blade_height * h_scale;
 
 	VERTEX.y *= blade_height * h_scale;
 	VERTEX.x += total_xz.x;
@@ -106,16 +107,24 @@ void vertex() {
 
 void fragment() {
 	// Never flip the normal downward on backfaces: keep the smooth hill normal!
-	NORMAL = v_up_normal_view;
+	NORMAL = normalize(v_up_normal_view);
 
 	float t = v_t;
-	vec3 col = mix(v_root_col, v_tip_col, smoothstep(0.05, 0.92, t));
+	vec3 col = mix(v_root_col, v_tip_col, smoothstep(0.08, 0.95, t));
 	// Subtle sunlit sheen along rolling wind gusts
-	col += vec3(0.07, 0.09, 0.02) * v_gust * (t * t);
+	col += vec3(0.04, 0.06, 0.015) * v_gust * (t * t);
 
 	ALBEDO = col;
-	ROUGHNESS = 0.90;
-	SPECULAR = 0.08;
+	ROUGHNESS = 0.92;
+	SPECULAR = 0.06;
+}
+
+void light() {
+	float ndl = dot(NORMAL, LIGHT);
+	float diff = smoothstep(-0.22, 0.88, ndl) * 0.82 + 0.18;
+	float tip_sss = clamp(dot(VIEW, -LIGHT), 0.0, 1.0) * (v_t * v_t) * 0.10;
+	DIFFUSE_LIGHT += LIGHT_COLOR * ATTENUATION * (diff + tip_sss) / PI;
+	DIFFUSE_LIGHT += vec3(0.05, 0.08, 0.14) * (1.0 - clamp(ndl * ATTENUATION, 0.0, 1.0)) * 0.28;
 }
 
 void light() {

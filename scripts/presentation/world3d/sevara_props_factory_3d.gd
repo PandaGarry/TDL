@@ -434,44 +434,40 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 	# Step 1 Look-Dev Foundation: Unified velvety 3D grass carpet (zero noisy billboard cards).
 	# Uses a stratified jittered grid across the look-dev meadow so there are no bare patches,
 	# and tapers blade height smoothly along the earthen footpath and streambed edge.
-	var patch_mesh := SevaraAssetLibrary3D.build_grass_patch_mesh(108, 1.85, 0.065, 107)
+	var patch_mesh := SevaraAssetLibrary3D.build_grass_patch_mesh(86, 1.05, 0.036, 107)
 	var patch_transforms: Array[Transform3D] = []
 	var patch_customs: Array[Color] = []
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 4072026
 
-	var step := clampf(1.08 / sqrt(dens), 0.78, 1.45)
-	var x_min := -30.0
-	var x_max := 30.0
-	var z_min := -24.0
-	var z_max := 24.0
+	var step := clampf(0.62 / sqrt(dens), 0.48, 0.85)
+	var x_min := -26.0
+	var x_max := 26.0
+	var z_min := -20.0
+	var z_max := 16.0
 	var gx_count := int(round((x_max - x_min) / step))
 	var gz_count := int(round((z_max - z_min) / step))
 
 	for gz in range(gz_count):
 		for gx in range(gx_count):
-			var wx := x_min + (float(gx) + rng.randf_range(0.15, 0.85)) * step
-			var wz := z_min + (float(gz) + rng.randf_range(0.15, 0.85)) * step
+			var wx := x_min + (float(gx) + rng.randf_range(0.18, 0.82)) * step
+			var wz := z_min + (float(gz) + rng.randf_range(0.18, 0.82)) * step
 			var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
 			if wy < SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14 or wy > 4.2:
 				continue
 			var path_w := SevaraTerrainGen3D.get_path_weight_at(wx, wz)
-			if path_w > 0.36:
+			if path_w > 0.64:
 				continue
 			var gn := SevaraTerrainGen3D.get_ground_normal(wx, wz)
 			if gn.y < 0.78:
 				continue
-			var edge_taper := 1.0 - smoothstep(0.12, 0.36, path_w) * 0.58
-			var bank_taper := smoothstep(
-				SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14,
-				SevaraTerrainGen3D.WATER_SURFACE_Y + 0.55,
-				wy
+			var edge_taper := 1.0 - smoothstep(0.10, 0.64, path_w) * 0.76
+			var height_mult := clampf(edge_taper * rng.randf_range(0.86, 1.14), 0.22, 1.20)
+			var patch_scale := clampf(
+				(0.55 + 0.45 * edge_taper) * rng.randf_range(0.92, 1.12), 0.45, 1.15
 			)
-			var height_mult := clampf(
-				edge_taper * (0.55 + 0.45 * bank_taper) * rng.randf_range(0.88, 1.16), 0.38, 1.25
-			)
-			var basis := _align_up_with_yaw(gn, rng.randf() * TAU, rng.randf_range(0.92, 1.18))
-			patch_transforms.append(Transform3D(basis, Vector3(wx, wy - 0.02, wz)))
+			var basis := _align_up_with_yaw(gn, rng.randf() * TAU, patch_scale)
+			patch_transforms.append(Transform3D(basis, Vector3(wx, wy - 0.015, wz)))
 			patch_customs.append(Color(0.0, 0.0, 0.0, height_mult))
 
 	root.add_child(

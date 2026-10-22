@@ -8,6 +8,8 @@ const VALLEY_WIDTH_M := 160.0
 const VALLEY_DEPTH_M := 120.0
 const WATER_SURFACE_Y := -0.18
 const WORLD_SCALE := TILE_SIZE_M / 32.0
+## Step 1 Look-Dev mode: clean rolling meadow + single winding footpath (no dry river trench or courtyard blotch).
+const STEP1_CLEAN_MEADOW := true
 
 
 static func tile_to_world_3d(
@@ -66,6 +68,16 @@ static func get_ground_normal(wx: float, wz: float) -> Vector3:
 
 
 static func get_path_weight_at(wx: float, wz: float) -> float:
+	if STEP1_CLEAN_MEADOW:
+		# Single organic winding footpath gently curving across the sun-lit rolling hills
+		var trail_z := -3.5 + sin(wx * 0.14 + 0.4) * 2.8 + cos(wx * 0.07 - 0.3) * 1.4
+		var main_trail := (
+			exp(-pow((wz - trail_z) / 1.05, 2.0))
+			* smoothstep(-28.0, -21.0, wx)
+			* (1.0 - smoothstep(21.0, 28.0, wx))
+		)
+		return clampf(main_trail, 0.0, 1.0)
+
 	# Main stone-paved settlement courtyard & trails connecting the hearth, well, bridge, and meadow
 	var courtyard := exp(-pow(wx - (-14.5), 2.0) / 54.0 - pow(wz - (-7.5), 2.0) / 38.0)
 	# Trail from settlement (-15, -7.5) across the bridge (0, -4.5) into Heravo meadow (+16, -2)
@@ -86,6 +98,21 @@ static func get_path_weight_at(wx: float, wz: float) -> float:
 
 
 static func get_height_at(wx: float, wz: float) -> float:
+	if STEP1_CLEAN_MEADOW:
+		# Soft, harmonious rolling hills across the meadow look-dev sanctuary
+		var hill_a := sin(wx * 0.10 + 0.3) * cos(wz * 0.11 - 0.4) * 0.68
+		var hill_b := sin(wx * 0.19 - wz * 0.16 + 1.1) * 0.26
+		var north_rise := smoothstep(-6.0, -42.0, wz) * 2.8
+		var rim_x := smoothstep(28.0, 74.0, absf(wx))
+		var rim_z := smoothstep(22.0, 54.0, absf(wz))
+		var rim_h := (
+			clampf(rim_x + rim_z - rim_x * rim_z * 0.4, 0.0, 1.0)
+			* (2.8 + 0.9 * sin(wx * 0.08 + 0.4))
+		)
+		var path_dip := get_path_weight_at(wx, wz) * 0.07
+		var micro := sin(wx * 0.38 + wz * 0.33) * 0.03 + cos(wx * 0.25 - wz * 0.41) * 0.025
+		return 0.85 + hill_a + hill_b + north_rise + rim_h + micro - path_dip
+
 	# 1. Toramek NW mountain slope & rocky ridges
 	var nw_slope := smoothstep(4.0, -34.0, wx * 0.68 + wz * 0.74)
 	var nw_cliff := smoothstep(-14.0, -52.0, wx * 0.62 + wz * 0.78)
@@ -306,9 +333,12 @@ static func _add_terrain_vertex(
 	var w_mud := clampf(
 		wet_pool * 0.85 + exp(-pow((dist_river - r_hw) / 2.2, 2.0)) * 0.52, 0.0, 1.0
 	)
-	var w_stone := clampf(smoothstep(1.35, 3.4, pos.y), 0.0, 1.0)
+	if STEP1_CLEAN_MEADOW:
+		w_pebbles = 0.0
+		w_mud = 0.0
+	var w_stone := clampf(smoothstep(2.4, 4.6, pos.y), 0.0, 1.0)
 	var w_snow := clampf(
-		smoothstep(2.2, 5.2, pos.y) * (0.55 + 0.45 * sin(pos.x * 0.35 + pos.z * 0.42)), 0.0, 0.92
+		smoothstep(3.4, 6.2, pos.y) * (0.55 + 0.45 * sin(pos.x * 0.35 + pos.z * 0.42)), 0.0, 0.92
 	)
 
 	var path_w := get_path_weight_at(pos.x, pos.z)

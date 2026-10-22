@@ -149,7 +149,7 @@ static func build_grass_patch_mesh(
 		return _styled_meshes[key] as ArrayMesh
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_val
-	var segments := 3
+	var segments := 4
 	var verts := PackedVector3Array()
 	var normals := PackedVector3Array()
 	var uvs := PackedVector2Array()
@@ -157,25 +157,32 @@ static func build_grass_patch_mesh(
 	var indices := PackedInt32Array()
 
 	for _b in range(blade_count):
-		var rx := (rng.randf() - 0.5) * patch_size
-		var rz := (rng.randf() - 0.5) * patch_size
+		var pos_ang := rng.randf() * TAU
+		var pos_rad := sqrt(rng.randf()) * (patch_size * 0.5)
+		var rx := cos(pos_ang) * pos_rad
+		var rz := sin(pos_ang) * pos_rad
 		var ang := rng.randf() * TAU
 		var perp := Vector3(cos(ang), 0.0, sin(ang))
 		var facing := Vector3(-sin(ang), 0.0, cos(ang))
-		var w := blade_width * rng.randf_range(0.75, 1.32)
+		var lean := rng.randf_range(0.10, 0.28)
+		var w := blade_width * rng.randf_range(0.75, 1.25)
 		var rnd_col := Color(rng.randf(), rng.randf(), rng.randf(), rng.randf())
 		var base_idx := verts.size()
 		for s in range(segments):
 			var t := float(s) / float(segments)
-			var half_w := w * 0.5 * (1.0 - pow(t, 1.35))
+			var half_w := w * 0.5 * (1.0 - pow(t, 1.45))
+			var arch := facing * (t * t * lean)
 			for side in [-1.0, 1.0]:
 				var side_f := float(side)
-				verts.append(Vector3(rx, t, rz) + perp * (side_f * half_w))
-				normals.append((facing + perp * (side_f * 0.35)).normalized())
+				verts.append(Vector3(rx, t, rz) + arch + perp * (side_f * half_w))
+				normals.append(
+					(Vector3.UP * 1.6 + facing * 0.4 + perp * (side_f * 0.25)).normalized()
+				)
 				uvs.append(Vector2(side_f * 0.5 + 0.5, t))
 				colors.append(rnd_col)
-		verts.append(Vector3(rx, 1.0, rz))
-		normals.append(facing)
+		var tip_arch := facing * lean
+		verts.append(Vector3(rx, 1.0, rz) + tip_arch)
+		normals.append(Vector3.UP)
 		uvs.append(Vector2(0.5, 1.0))
 		colors.append(rnd_col)
 		for s in range(segments - 1):

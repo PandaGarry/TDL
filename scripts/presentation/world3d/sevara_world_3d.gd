@@ -331,7 +331,7 @@ func _build_terrain_and_water() -> void:
 
 	_terrain_mesh_inst = MeshInstance3D.new()
 	_terrain_mesh_inst.name = "ValleyTerrain3D"
-	_terrain_mesh_inst.mesh = SevaraTerrainGen3D.build_terrain_mesh(32, 24, 160, 120)
+	_terrain_mesh_inst.mesh = SevaraTerrainGen3D.build_terrain_mesh(32, 24, 220, 165)
 
 	var t_shader := SevaraAssetLibrary3D.load_shader("sevara_terrain_3d.gdshader")
 	_terrain_shader_mat = ShaderMaterial.new()
@@ -774,21 +774,21 @@ func _apply_camera_transform(immediate: bool = false) -> void:
 
 	match _camera_lookpoint:
 		"valley_panorama":
-			cam_pos = Vector3(11.5, 4.4, 7.8)
-			look_target = Vector3(16.8, 1.0, -5.2)
-			fov = 36.0
+			cam_pos = Vector3(-16.0, 5.2, 6.5)
+			look_target = Vector3(4.0, 1.2, -3.5)
+			fov = 38.0
 		"heravo_meadow":
-			cam_pos = Vector3(-11.2, 5.2, 1.8)
-			look_target = Vector3(-15.8, 1.0, -8.2)
-			fov = 35.0
+			cam_pos = Vector3(-12.5, 4.4, 5.0)
+			look_target = Vector3(6.5, 1.1, -2.5)
+			fov = 36.0
 		"nivarel_rapids":
-			cam_pos = Vector3(21.5, 3.8, 11.5)
-			look_target = Vector3(12.2, 0.9, -1.5)
-			fov = 34.0
+			cam_pos = Vector3(14.5, 4.8, 8.2)
+			look_target = Vector3(-4.0, 1.1, -3.2)
+			fov = 36.0
 		"settlement_hearth":
-			cam_pos = Vector3(-10.5, 3.6, -2.5)
-			look_target = Vector3(-15.2, 0.95, -7.8)
-			fov = 32.0
+			cam_pos = Vector3(-3.5, 4.6, 5.2)
+			look_target = Vector3(-1.0, 0.9, -2.2)
+			fov = 34.0
 		_:
 			var offset := Vector3(0.0, 12.2, 13.8)
 			fov = 38.0
