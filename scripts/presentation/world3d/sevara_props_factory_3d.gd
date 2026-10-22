@@ -107,7 +107,7 @@ static func create_kevar_bush_3d(is_kevalu: bool = false) -> Node3D:
 
 
 static func create_talina_willow_3d(variant: int = 0) -> Node3D:
-	var h := 5.2 + float(posmod(variant, 3)) * 0.45
+	var h := 4.2 + float(posmod(variant, 3)) * 0.35
 	var willow := (
 		SevaraAssetLibrary3D
 		. instantiate_model(
@@ -655,16 +655,16 @@ static func populate_static_settlement(settlement_root: Node3D) -> void:
 		prop_node.rotation.y = float(p["rot"])
 		settlement_root.add_child(prop_node)
 
-	var scout_tent_pos := Vector2(6.2, -5.8)
+	var scout_tent_pos := Vector2(9.4, -9.2)
 	var scout_tent := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.ITEMS_DIR + "Tent.glb", 2.15, {}, true
+		SevaraAssetLibrary3D.ITEMS_DIR + "Tent.glb", 2.05, {}, true
 	)
 	scout_tent.position = Vector3(
 		scout_tent_pos.x,
 		SevaraTerrainGen3D.get_height_at(scout_tent_pos.x, scout_tent_pos.y) - 0.03,
 		scout_tent_pos.y
 	)
-	scout_tent.rotation.y = -0.65
+	scout_tent.rotation.y = -0.55
 	settlement_root.add_child(scout_tent)
 
 	var bridge_z := -4.6
