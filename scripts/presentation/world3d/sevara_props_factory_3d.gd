@@ -123,9 +123,9 @@ static func create_talina_willow_3d(variant: int = 0) -> Node3D:
 	var mesh := SevaraAssetLibrary3D.nature_mesh(model_name, style)
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
-	var scale_f := 0.78 + float(posmod(variant, 3)) * 0.08
-	mi.scale = Vector3(scale_f * 1.08, scale_f * 0.92, scale_f * 1.08)
-	mi.rotation = Vector3(0.08, float(variant) * 1.28, -0.06)
+	var scale_f := 0.42 + float(posmod(variant, 3)) * 0.05
+	mi.scale = Vector3(scale_f * 1.05, scale_f * 0.92, scale_f * 1.05)
+	mi.rotation = Vector3(0.06, float(variant) * 1.28, -0.05)
 	root.add_child(mi)
 	return root
 

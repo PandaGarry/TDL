@@ -540,12 +540,12 @@ func _rebuild_ecology_and_npcs(
 		_ecology_root.add_child(reed)
 
 	var willow_coords: Array[Vector2] = [
-		Vector2(-8.8, 8.2),
-		Vector2(9.6, 5.4),
-		Vector2(-7.8, 16.5),
-		Vector2(8.4, 15.2),
-		Vector2(-3.8, 24.0),
-		Vector2(12.2, 21.5),
+		Vector2(-11.8, 12.2),
+		Vector2(11.4, 6.8),
+		Vector2(-9.6, 17.8),
+		Vector2(9.8, 15.8),
+		Vector2(-5.4, 24.5),
+		Vector2(12.8, 22.0),
 	]
 	for wi in range(willow_coords.size()):
 		var wc: Vector2 = willow_coords[wi]
