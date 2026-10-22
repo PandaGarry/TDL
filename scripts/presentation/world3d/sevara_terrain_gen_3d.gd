@@ -144,9 +144,9 @@ static func get_height_at(wx: float, wz: float) -> float:
 		# Stepped natural terraces on the hillside slopes (creates crisp rock ledges & grassy shelves)
 		var raw_slope_h := nw_plateau + ne_knoll + maxf(hill_a + hill_b, 0.0)
 		var terrace_phase := raw_slope_h * 1.65
-		var terrace_shelf := (
-			(floor(terrace_phase) + smoothstep(0.18, 0.82, fract(terrace_phase))) / 1.65
-		)
+		var terrace_floor := floorf(terrace_phase)
+		var terrace_fract := terrace_phase - terrace_floor
+		var terrace_shelf: float = (terrace_floor + smoothstep(0.18, 0.82, terrace_fract)) / 1.65
 		var terrace_blend := (
 			smoothstep(0.65, 2.4, raw_slope_h) * (1.0 - get_path_weight_at(wx, wz) * 0.85)
 		)
