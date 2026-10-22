@@ -246,3 +246,49 @@ Compatibility renderer, CanvasTexture Normal/Specular Maps, 2D-шейдеры)**
   травы, серёжек Талины и опавшей хвои вокруг ключевых узлов.
 - `wind_and_water_shaders` (`bool`) — включение вершинного покачивания
   листвы, преломления дна реки и шейдера ряби/heat-haze у Кевара.
+
+---
+
+## 8. Полноценный 3D-стек долины Севары (уровень NatureBlocks, Godot 4.7)
+
+На этапе **P1** мир долины Севары переведён из плоского 2D/примитивного
+прототипа в полноценное 3D-окружение (`scripts/presentation/world3d/`):
+
+1. **Просторная чаша долины (`160 × 120` м + два горных кольца горизонта):**
+   - `SevaraTerrainGen3D` генерирует непрерывный 3D-рельеф (`160 × 120` м)
+     с каменистым склоном Торамек на северо-западе, сухой террасой общины,
+     извилистым руслом реки Ниварель, заводями Мулане на юге, солнечными
+     холмами луга Хераво на востоке и двумя процедурными кольцами заснеженных
+     гор (`DistantMountains3D` на `175` и `310` м).
+2. **Коллекция открытых CC0 3D-моделей (`assets/nature/` и `assets/models/`):**
+   - Природа (`assets/nature/`): сосны `Pine_1..5`, лиственные и вековые
+     деревья `CommonTree_1..5`, `TwistedTree_1..3`, `BirchTree_1..2`,
+     `Willow_1..2`, мшистые пни и валежник `TreeStump_Moss.glb`,
+     `WoodLog_Moss.glb`, скальные глыбы `Rock_Medium_1..3`, `Rock_Moss_1..5`,
+     галька `Pebble_Round_1..5`, папоротники `Fern_1`, клевер `Clover_1..2`,
+     полевые цветы `Flower_3_Group`, `Flower_4_Group`, кусты
+     `Bush_Common_Flowers` и пучки травы `Grass_Common_Tall`,
+     `Grass_Wispy_Tall`.
+   - Поселение (`assets/models/village/`): средневековые дома `House_1..4.glb`,
+     кузница `Blacksmith.glb`, лесопилка `Sawmill.glb`, мельница `Mill.glb`,
+     павильон хроники `Gazebo.glb`, колодец `Well.glb`, очаг `Bonfire_Lit.glb`
+     с котлом `Cauldron.glb`, лавки `Bench_1..2.glb`, телеги, бочки и изгороди.
+   - Живые существа (`assets/models/animals/` и `characters/`): скелетно
+     анимированные олени и лани `Stag.glb` / `Deer.glb` (`tal_har`), волки и
+     лисы `Wolf.glb` / `Fox.glb` (`kor_varn`), а также средневековые фигуры
+     людей `Viking_Male.gltf` / `Viking_Female.gltf` в пропорциях `6.5–7 голов`
+     с навесным 3D-снаряжением (`Backpack.glb`, `Pouch.glb`, `Bow_Wooden.glb`,
+     `Axe_small.glb`) и 17 скелетными анимациями (`Idle`, `Walk`, `Run` и др.).
+3. **Семь специализированных 3D-шейдеров (`assets/shaders/sevara_*_3d.gdshader`):**
+   - `sevara_terrain_3d.gdshader` — трипланарный 3D-рельеф с луговой травой,
+     речным илом (`silt_stain`), галькой, каменными тропами и скальным гранитом;
+   - `sevara_water_3d.gdshader` — горная река Ниварель с течением, каустикой,
+     береговой пеной и реакцией на заиление (`silt_load`);
+   - `sevara_grass_3d.gdshader` — плотный `MultiMesh`-ковёр травы с ветровыми
+     волнами и приминанием травинок вокруг игрока (`player_pos`);
+   - `sevara_foliage_3d.gdshader` и `sevara_bark_3d.gdshader` — объёмные кроны
+     и кора деревьев с подповерхностным рассеиванием и ветром;
+   - `sevara_rock_3d.gdshader` — трипланарные валуны с шапками мха и влажностью;
+   - `sevara_mountains_3d.gdshader` — стратифицированные заснеженные хребты
+     горизонта с воздушной дымкой.
+
