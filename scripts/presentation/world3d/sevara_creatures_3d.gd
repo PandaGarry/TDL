@@ -99,11 +99,12 @@ static func set_human_motion_state(
 	if rig == null:
 		return
 	if is_moving:
-		var anims: Array[String] = ["Run", "Walk"] if is_running else ["Walk", "Run"]
-		SevaraAssetLibrary3D.play_best_animation(rig, anims, 1.15 if is_running else 1.0)
+		if is_running:
+			SevaraAssetLibrary3D.play_best_animation(rig, ["Run", "Walk"], 1.15)
+		else:
+			SevaraAssetLibrary3D.play_best_animation(rig, ["Walk", "Run"], 1.0)
 	else:
-		var idle_anims: Array[String] = ["Idle"]
-		SevaraAssetLibrary3D.play_best_animation(rig, idle_anims, 1.0)
+		SevaraAssetLibrary3D.play_best_animation(rig, ["Idle"], 1.0)
 
 
 static func create_tal_har_stag_3d(grazing: bool = true, variant: int = 0) -> Node3D:
@@ -116,10 +117,13 @@ static func create_tal_har_stag_3d(grazing: bool = true, variant: int = 0) -> No
 		SevaraAssetLibrary3D.ANIMALS_DIR + file_name, target_h, {}, false
 	)
 	root.add_child(animal)
-	var anims: Array[String] = (
-		["Eating", "Idle_Headlow", "Idle_2", "Idle"] if grazing else ["Walk", "Idle", "Eating"]
-	)
-	SevaraAssetLibrary3D.play_best_animation(animal, anims, 0.88 + float(posmod(variant, 3)) * 0.08)
+	var speed := 0.88 + float(posmod(variant, 3)) * 0.08
+	if grazing:
+		SevaraAssetLibrary3D.play_best_animation(
+			animal, ["Eating", "Idle_Headlow", "Idle_2", "Idle"], speed
+		)
+	else:
+		SevaraAssetLibrary3D.play_best_animation(animal, ["Walk", "Idle", "Eating"], speed)
 	return root
 
 
@@ -133,10 +137,13 @@ static func create_kor_varn_canid_3d(prowling: bool = true, variant: int = 0) ->
 		SevaraAssetLibrary3D.ANIMALS_DIR + file_name, target_h, {}, false
 	)
 	root.add_child(animal)
-	var anims: Array[String] = (
-		["Walk", "Idle_2_HeadLow", "Idle"] if prowling else ["Eating", "Idle_2_HeadLow", "Idle"]
-	)
-	SevaraAssetLibrary3D.play_best_animation(animal, anims, 0.92 + float(posmod(variant, 3)) * 0.08)
+	var speed := 0.92 + float(posmod(variant, 3)) * 0.08
+	if prowling:
+		SevaraAssetLibrary3D.play_best_animation(animal, ["Walk", "Idle_2_HeadLow", "Idle"], speed)
+	else:
+		SevaraAssetLibrary3D.play_best_animation(
+			animal, ["Eating", "Idle_2_HeadLow", "Idle"], speed
+		)
 	return root
 
 

@@ -221,7 +221,7 @@ static func instantiate_model(
 
 
 static func play_best_animation(
-	root: Node, preferred_names: Array[String], speed_scale: float = 1.0
+	root: Node, preferred_names: Array, speed_scale: float = 1.0
 ) -> bool:
 	var anim_player := _find_animation_player(root)
 	if anim_player == null:
@@ -230,7 +230,8 @@ static func play_best_animation(
 	if available.is_empty():
 		return false
 	var chosen := ""
-	for pref: String in preferred_names:
+	for raw_pref in preferred_names:
+		var pref := String(raw_pref)
 		for anim_name: String in available:
 			if (
 				anim_name == pref
