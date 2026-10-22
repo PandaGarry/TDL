@@ -55,13 +55,15 @@ func _test_localization_and_ambience_settings() -> void:
 
 	SettingsManager.set_language("en")
 	_check_equal(
-		tr("ui.main_menu.new_game"), "New Campaign (Greybox)", "EN translation for main menu"
+		tr("ui.main_menu.new_game"), "New Campaign (Sevara Valley)", "EN translation for main menu"
 	)
 	_check_equal(tr("material.torava_wood.name"), "Torava Wood", "EN translation for torava wood")
 
 	SettingsManager.set_language("ru")
 	_check_equal(
-		tr("ui.main_menu.new_game"), "Новая кампания (Greybox)", "RU translation for main menu"
+		tr("ui.main_menu.new_game"),
+		"Новая кампания (Долина Севары)",
+		"RU translation for main menu"
 	)
 	_check_equal(
 		tr("material.torava_wood.name"), "Древесина торавы", "RU translation for torava wood"
