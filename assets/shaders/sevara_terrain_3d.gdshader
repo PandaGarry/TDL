@@ -297,8 +297,8 @@ void fragment() {
 	vec3 col = mix(detailed_turf, far_tip_col * (0.94 + 0.12 * moss_n), far_blend * 0.68);
 	float rough = 0.92;
 
-	// --- 3. Stratified Limestone & Mossy Rock Ledges on Hillside Terrace Slopes ---
-	float ledge_mask = smoothstep(0.11, 0.25, slope) * (1.0 - road_core * 0.85) * (1.0 - river_bed);
+	// --- 3. Stratified Limestone & Mossy Rock Ledges on Steep Cliff Slopes ---
+	float ledge_mask = smoothstep(0.34, 0.52, slope) * (1.0 - road_core * 0.85) * (1.0 - river_bed);
 	if (ledge_mask > 0.01) {
 		float strata = sin(v_world_pos.y * 9.5 + fbm2(xz * 0.85) * 3.2) * 0.5 + 0.5;
 		float fracture = fbm2(xz * 3.4);
