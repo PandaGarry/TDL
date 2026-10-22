@@ -48,10 +48,10 @@ float noise2d(vec2 p) {
 }
 
 float ridge_profile(float a) {
-	float u = a / 6.2831853;
-	float n = noise1d(u * 7.0 + seed * 13.0) * 0.58;
-	n += noise1d(u * 19.0 + seed * 31.0) * 0.28;
-	n += noise1d(u * 43.0 + seed * 57.0) * 0.14;
+	vec2 dir = vec2(cos(a), sin(a));
+	float n = noise2d(dir * 2.2 + vec2(seed * 13.0, seed * 7.0)) * 0.58;
+	n += noise2d(dir * 5.4 + vec2(seed * 31.0, seed * 19.0)) * 0.28;
+	n += noise2d(dir * 11.5 + vec2(seed * 57.0, seed * 41.0)) * 0.14;
 	n = smoothstep(0.22, 0.84, n);
 	return 0.22 + pow(n, 1.45) * 0.78;
 }
@@ -59,10 +59,11 @@ float ridge_profile(float a) {
 void vertex() {
 	float a = VERTEX.x;
 	float t = VERTEX.y;
+	vec2 dir = vec2(cos(a), sin(a));
 	float r = ridge_profile(a);
 	float r_next = ridge_profile(a + 0.025);
 	float dr_da = (r_next - r) / 0.025;
-	float jag = noise1d(a * 11.0 + t * 4.5 + seed * 19.0) - 0.5;
+	float jag = noise2d(dir * 3.8 + vec2(t * 4.5 + seed * 19.0, seed * 11.0)) - 0.5;
 	float h = t * height * r;
 	float rad = radius + (t - 0.25) * height * 1.35 * (0.72 + jag * 0.65);
 	VERTEX = vec3(cos(a) * rad, h - 12.0 + jag * t * height * 0.08, sin(a) * rad);

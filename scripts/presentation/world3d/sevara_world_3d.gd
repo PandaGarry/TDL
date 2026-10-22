@@ -120,6 +120,7 @@ func ensure_built() -> void:
 	_build_terrain_and_water()
 	_build_containers()
 	_populate_static_settlement()
+	_rebuild_ecology_and_flora(1.0)
 	_apply_camera_transform(true)
 
 

@@ -68,15 +68,15 @@ void fragment() {
 	vec3 col = meadow_ground_palette(xz);
 	col *= (1.0 + soft_grain * 0.035);
 
-	// 2. Gentle warm earthen footpath (calm, soft clay-ochre with subtle darker border)
+	// 2. Gentle warm earthen footpath (restricted to the inner core so grass borders sit on green turf)
 	float w_path = clamp(v_path_and_wet.x, 0.0, 1.0);
 	if (w_path > 0.01) {
-		float edge_noise = (fbm(xz * 0.45) - 0.5) * 0.18;
-		float path_mask = smoothstep(0.18, 0.62, w_path + edge_noise);
-		float border_band = smoothstep(0.12, 0.32, w_path + edge_noise) * (1.0 - smoothstep(0.32, 0.58, w_path + edge_noise));
-		vec3 path_center = vec3(0.45, 0.36, 0.26) * (1.0 + soft_grain * 0.04);
-		vec3 path_border = vec3(0.32, 0.26, 0.18);
-		col = mix(col, path_border, border_band * 0.55);
+		float edge_noise = (fbm(xz * 0.55) - 0.5) * 0.12;
+		float path_mask = smoothstep(0.46, 0.84, w_path + edge_noise);
+		float border_band = smoothstep(0.32, 0.52, w_path + edge_noise) * (1.0 - smoothstep(0.52, 0.78, w_path + edge_noise));
+		vec3 path_center = vec3(0.44, 0.35, 0.25) * (1.0 + soft_grain * 0.035);
+		vec3 path_border = vec3(0.24, 0.30, 0.16);
+		col = mix(col, path_border, border_band * 0.65);
 		col = mix(col, path_center, path_mask);
 	}
 
