@@ -38,6 +38,8 @@ var _status_banner_label: Label
 var _save_button: Button
 var _step_time_button: Button
 var _menu_button: Button
+var _touch_toggle_button: Button
+var _touch_controls_bar: Control
 var _hold_move_timer: float = 0.0
 
 
@@ -352,6 +354,11 @@ func _build_hud_controls() -> void:
 	_step_time_button.pressed.connect(_on_step_time_pressed)
 	top_bar.add_child(_step_time_button)
 
+	_touch_toggle_button = Button.new()
+	_touch_toggle_button.text = "Сенсор"
+	_touch_toggle_button.pressed.connect(_on_touch_toggle_pressed)
+	top_bar.add_child(_touch_toggle_button)
+
 	_save_button = Button.new()
 	_save_button.pressed.connect(_on_save_pressed)
 	top_bar.add_child(_save_button)
@@ -368,6 +375,8 @@ func _build_hud_controls() -> void:
 	_debug_overlay = GreyboxDebugOverlay.new()
 	_debug_overlay.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	vbox.add_child(_debug_overlay)
+
+	_build_touch_controls_bar()
 
 
 func _apply_localized_labels() -> void:
@@ -503,3 +512,87 @@ func _on_menu_pressed() -> void:
 	if _session != null and _owns_session and is_instance_valid(_session):
 		_session.stop_session()
 	GameManager.return_to_main_menu()
+
+
+func _build_touch_controls_bar() -> void:
+	var margin := MarginContainer.new()
+	margin.name = "TouchControlsMargin"
+	margin.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	margin.offset_top = -92.0
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_bottom", 18)
+	var is_mobile := (
+		OS.has_feature("mobile") or OS.get_name() == "iOS" or OS.get_name() == "Android"
+	)
+	margin.visible = is_mobile
+	_touch_controls_bar = margin
+	_hud_layer.add_child(margin)
+
+	var hbox := HBoxContainer.new()
+	hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hbox.add_theme_constant_override("separation", 12)
+	margin.add_child(hbox)
+
+	var dpad := HBoxContainer.new()
+	dpad.add_theme_constant_override("separation", 8)
+	hbox.add_child(dpad)
+	_add_touch_btn(
+		dpad, "◄", func() -> void: _trigger_touch_move(GreyboxGridMetrics.ACTION_MOVE_LEFT)
+	)
+	_add_touch_btn(
+		dpad, "▲", func() -> void: _trigger_touch_move(GreyboxGridMetrics.ACTION_MOVE_UP)
+	)
+	_add_touch_btn(
+		dpad, "▼", func() -> void: _trigger_touch_move(GreyboxGridMetrics.ACTION_MOVE_DOWN)
+	)
+	_add_touch_btn(
+		dpad, "►", func() -> void: _trigger_touch_move(GreyboxGridMetrics.ACTION_MOVE_RIGHT)
+	)
+
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hbox.add_child(spacer)
+
+	var actions := HBoxContainer.new()
+	actions.add_theme_constant_override("separation", 8)
+	hbox.add_child(actions)
+	_add_touch_btn(
+		actions,
+		"Припас [E]",
+		func() -> void: trigger_action(GreyboxGridMetrics.ACTION_INTERACT, true)
+	)
+	_add_touch_btn(actions, "Зум [Z]", func() -> void: cycle_camera_zoom())
+	_add_touch_btn(
+		actions,
+		"Ракурс [C]",
+		func() -> void:
+			if _world_3d != null:
+				_world_3d.cycle_camera_lookpoint()
+	)
+	_add_touch_btn(
+		actions,
+		"Инфо [F3]",
+		func() -> void: trigger_action(GreyboxGridMetrics.ACTION_DEBUG_TOGGLE, true)
+	)
+
+
+func _add_touch_btn(parent: Container, label_text: String, cb: Callable) -> void:
+	var btn := Button.new()
+	btn.text = label_text
+	btn.custom_minimum_size = Vector2(68.0, 52.0)
+	btn.pressed.connect(cb)
+	parent.add_child(btn)
+
+
+func _trigger_touch_move(action: StringName) -> void:
+	if _world_3d != null and _world_3d.current_lookpoint() != "follow":
+		_world_3d.set_camera_lookpoint("follow")
+	trigger_action(action, true)
+
+
+func _on_touch_toggle_pressed() -> void:
+	if _touch_controls_bar != null:
+		_touch_controls_bar.visible = not _touch_controls_bar.visible

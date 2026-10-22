@@ -96,12 +96,12 @@ static func load_canvas_texture(base_name: String, include_normals: bool = true)
 
 
 static func _load_texture_2d(res_path: String) -> Texture2D:
-	var abs_path := ProjectSettings.globalize_path(res_path)
-	if FileAccess.file_exists(abs_path):
-		var img := Image.load_from_file(abs_path)
-		if img != null and not img.is_empty():
-			img.generate_mipmaps()
-			return ImageTexture.create_from_image(img)
+	for candidate: String in [res_path, ProjectSettings.globalize_path(res_path)]:
+		if FileAccess.file_exists(candidate):
+			var img := Image.load_from_file(candidate)
+			if img != null and not img.is_empty():
+				img.generate_mipmaps()
+				return ImageTexture.create_from_image(img)
 	if ResourceLoader.exists(res_path):
 		var res: Resource = ResourceLoader.load(res_path)
 		if res is Texture2D:

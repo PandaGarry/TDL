@@ -44,12 +44,13 @@ static func load_texture(res_path: String) -> Texture2D:
 	if ResourceLoader.exists(res_path):
 		tex = ResourceLoader.load(res_path) as Texture2D
 	if tex == null:
-		var abs_path := ProjectSettings.globalize_path(res_path)
-		if FileAccess.file_exists(abs_path):
-			var img := Image.load_from_file(abs_path)
-			if img != null and not img.is_empty():
-				img.generate_mipmaps()
-				tex = ImageTexture.create_from_image(img)
+		for candidate: String in [res_path, ProjectSettings.globalize_path(res_path)]:
+			if FileAccess.file_exists(candidate):
+				var img := Image.load_from_file(candidate)
+				if img != null and not img.is_empty():
+					img.generate_mipmaps()
+					tex = ImageTexture.create_from_image(img)
+					break
 	if tex == null:
 		tex = white_texture()
 	_textures[res_path] = tex
@@ -72,17 +73,18 @@ static func load_scene(res_path: String) -> PackedScene:
 	if ResourceLoader.exists(res_path):
 		packed = ResourceLoader.load(res_path) as PackedScene
 	if packed == null:
-		var abs_path := ProjectSettings.globalize_path(res_path)
-		if FileAccess.file_exists(abs_path):
-			var doc := GLTFDocument.new()
-			var state := GLTFState.new()
-			var err := doc.append_from_file(abs_path, state)
-			if err == OK:
-				var root := doc.generate_scene(state)
-				if root != null:
-					packed = PackedScene.new()
-					packed.pack(root)
-					root.free()
+		for candidate: String in [res_path, ProjectSettings.globalize_path(res_path)]:
+			if FileAccess.file_exists(candidate):
+				var doc := GLTFDocument.new()
+				var state := GLTFState.new()
+				var err := doc.append_from_file(candidate, state)
+				if err == OK:
+					var root := doc.generate_scene(state)
+					if root != null:
+						packed = PackedScene.new()
+						packed.pack(root)
+						root.free()
+						break
 	if packed != null:
 		_scenes[res_path] = packed
 	return packed
@@ -97,9 +99,12 @@ static func raw_nature_mesh(model_name: String) -> ArrayMesh:
 		return pm
 	var gltf_path := NATURE_DIR + model_name + ".gltf"
 	var glb_path := NATURE_DIR + model_name + ".glb"
-	var target_path := (
-		gltf_path if FileAccess.file_exists(ProjectSettings.globalize_path(gltf_path)) else glb_path
+	var has_gltf := (
+		ResourceLoader.exists(gltf_path)
+		or FileAccess.file_exists(gltf_path)
+		or FileAccess.file_exists(ProjectSettings.globalize_path(gltf_path))
 	)
+	var target_path := gltf_path if has_gltf else glb_path
 	var scene := load_scene(target_path)
 	if scene == null:
 		return ArrayMesh.new()
