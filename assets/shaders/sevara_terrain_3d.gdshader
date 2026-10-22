@@ -102,10 +102,3 @@ void fragment() {
 	ROUGHNESS = 0.92;
 	SPECULAR = 0.06;
 }
-
-void light() {
-	float ndl = dot(NORMAL, LIGHT);
-	float diff = smoothstep(-0.22, 0.88, ndl) * 0.82 + 0.18;
-	DIFFUSE_LIGHT += LIGHT_COLOR * ATTENUATION * diff / PI;
-	DIFFUSE_LIGHT += vec3(0.05, 0.08, 0.14) * (1.0 - clamp(ndl * ATTENUATION, 0.0, 1.0)) * 0.28;
-}

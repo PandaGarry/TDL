@@ -122,14 +122,6 @@ void fragment() {
 void light() {
 	float ndl = dot(NORMAL, LIGHT);
 	float diff = smoothstep(-0.22, 0.88, ndl) * 0.82 + 0.18;
-	float tip_sss = clamp(dot(VIEW, -LIGHT), 0.0, 1.0) * (v_t * v_t) * 0.10;
-	DIFFUSE_LIGHT += LIGHT_COLOR * ATTENUATION * (diff + tip_sss) / PI;
-	DIFFUSE_LIGHT += vec3(0.05, 0.08, 0.14) * (1.0 - clamp(ndl * ATTENUATION, 0.0, 1.0)) * 0.28;
-}
-
-void light() {
-	float ndl = dot(NORMAL, LIGHT);
-	float diff = smoothstep(-0.22, 0.88, ndl) * 0.82 + 0.18;
 	DIFFUSE_LIGHT += LIGHT_COLOR * ATTENUATION * diff / PI;
 	float back = pow(clamp(dot(VIEW, -LIGHT), 0.0, 1.0), 3.2);
 	DIFFUSE_LIGHT += LIGHT_COLOR * ATTENUATION * back * v_t * 0.26 / PI;
