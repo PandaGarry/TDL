@@ -440,11 +440,11 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 4072026
 
-	var step := clampf(0.68 / sqrt(dens), 0.52, 0.90)
-	var x_min := -36.0
-	var x_max := 36.0
-	var z_min := -32.0
-	var z_max := 20.0
+	var step := clampf(0.72 / sqrt(dens), 0.54, 0.92)
+	var x_min := -44.0
+	var x_max := 44.0
+	var z_min := -38.0
+	var z_max := 22.0
 	var gx_count := int(round((x_max - x_min) / step))
 	var gz_count := int(round((z_max - z_min) / step))
 
@@ -452,19 +452,21 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 		for gx in range(gx_count):
 			var wx := x_min + (float(gx) + rng.randf_range(0.18, 0.82)) * step
 			var wz := z_min + (float(gz) + rng.randf_range(0.18, 0.82)) * step
+			if Vector2(wx, wz).length() > 45.5:
+				continue
 			var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
-			if wy < SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14 or wy > 4.8:
+			if wy < SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14 or wy > 5.4:
 				continue
 			var path_w := SevaraTerrainGen3D.get_path_weight_at(wx, wz)
-			if path_w > 0.46:
+			if path_w > 0.56:
 				continue
 			var gn := SevaraTerrainGen3D.get_ground_normal(wx, wz)
-			if gn.y < 0.78:
+			if gn.y < 0.76:
 				continue
-			var edge_taper := 1.0 - smoothstep(0.12, 0.46, path_w) * 0.72
-			var height_mult := clampf(edge_taper * rng.randf_range(0.86, 1.14), 0.25, 1.20)
+			var edge_taper := 1.0 - smoothstep(0.10, 0.56, path_w) * 0.78
+			var height_mult := clampf(edge_taper * rng.randf_range(0.86, 1.14), 0.18, 1.25)
 			var patch_scale := clampf(
-				(0.55 + 0.45 * edge_taper) * rng.randf_range(0.92, 1.12), 0.45, 1.15
+				(0.48 + 0.52 * edge_taper) * rng.randf_range(0.92, 1.12), 0.40, 1.15
 			)
 			var basis := _align_up_with_yaw(gn, rng.randf() * TAU, patch_scale)
 			patch_transforms.append(Transform3D(basis, Vector3(wx, wy - 0.015, wz)))

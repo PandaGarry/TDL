@@ -5,12 +5,12 @@ shader_type sky;
 // - Multi-layered FBM cumulus & cirrus clouds with silver-gold sun-rim scattering
 // - Crisp solar disc with warm Mie atmospheric corona
 
-uniform vec3 sky_top_color : source_color = vec3(0.22, 0.44, 0.68);
-uniform vec3 sky_horizon_color : source_color = vec3(0.84, 0.86, 0.82);
+uniform vec3 sky_top_color : source_color = vec3(0.20, 0.48, 0.80);
+uniform vec3 sky_horizon_color : source_color = vec3(0.84, 0.88, 0.90);
 uniform vec3 ground_bottom_color : source_color = vec3(0.24, 0.30, 0.28);
-uniform vec3 cloud_bright_color : source_color = vec3(0.99, 0.96, 0.90);
-uniform vec3 cloud_shadow_color : source_color = vec3(0.56, 0.64, 0.74);
-uniform float cloud_coverage = 0.48;
+uniform vec3 cloud_bright_color : source_color = vec3(1.0, 0.98, 0.94);
+uniform vec3 cloud_shadow_color : source_color = vec3(0.62, 0.72, 0.84);
+uniform float cloud_coverage = 0.42;
 uniform float cloud_speed = 0.012;
 
 float hash(vec2 p) {

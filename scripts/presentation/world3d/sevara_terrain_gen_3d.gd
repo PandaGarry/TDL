@@ -261,22 +261,22 @@ static func build_mountain_rings() -> Node3D:
 	var ring_mesh := _create_mountain_ring_mesh(256, 10)
 	var specs: Array[Dictionary] = [
 		{
-			"radius": 175.0,
-			"height": 58.0,
+			"radius": 210.0,
+			"height": 26.0,
 			"seed": 0.19,
-			"haze": 0.34,
-			"snow": 0.48,
-			"base_color": Color(0.26, 0.35, 0.34),
-			"shadow_color": Color(0.18, 0.24, 0.32),
+			"haze": 0.38,
+			"snow": 0.42,
+			"base_color": Color(0.25, 0.34, 0.38),
+			"shadow_color": Color(0.17, 0.24, 0.32),
 		},
 		{
-			"radius": 310.0,
-			"height": 105.0,
+			"radius": 340.0,
+			"height": 42.0,
 			"seed": 0.63,
-			"haze": 0.58,
-			"snow": 0.64,
-			"base_color": Color(0.32, 0.40, 0.46),
-			"shadow_color": Color(0.22, 0.29, 0.38),
+			"haze": 0.64,
+			"snow": 0.58,
+			"base_color": Color(0.32, 0.42, 0.52),
+			"shadow_color": Color(0.22, 0.31, 0.42),
 		},
 	]
 	for spec: Dictionary in specs:

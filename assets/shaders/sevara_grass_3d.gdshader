@@ -8,9 +8,9 @@ render_mode blend_mix, depth_draw_opaque, cull_disabled, diffuse_burley, specula
 // 2. Blade normal is locked to the smooth hill normal (never flipped downward on backfaces!).
 // 3. Soft, calm wind waves roll across the tips without noisy per-pixel speckles.
 
-uniform vec3 root_color : source_color = vec3(0.16, 0.30, 0.13);
-uniform vec3 tip_color : source_color = vec3(0.29, 0.47, 0.18);
-uniform vec3 tip_color_warm : source_color = vec3(0.39, 0.53, 0.21);
+uniform vec3 root_color : source_color = vec3(0.17, 0.30, 0.13);
+uniform vec3 tip_color : source_color = vec3(0.27, 0.43, 0.17);
+uniform vec3 tip_color_warm : source_color = vec3(0.38, 0.49, 0.19);
 uniform float blade_height : hint_range(0.15, 1.5) = 0.34;
 uniform vec2 wind_direction = vec2(0.88, 0.47);
 uniform float wind_strength : hint_range(0.0, 3.0) = 0.72;
@@ -21,6 +21,7 @@ varying vec3 v_root_col;
 varying vec3 v_tip_col;
 varying float v_gust;
 varying vec3 v_up_normal_view;
+varying float v_blossom_id;
 
 float hash12(vec2 p) {
 	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -54,11 +55,11 @@ float fbm(vec2 p) {
 vec3 meadow_ground_palette(vec2 xz) {
 	float macro_a = fbm(xz * 0.045);
 	float macro_b = fbm(xz * 0.11 + vec2(5.2, 3.7));
-	vec3 deep_sage = vec3(0.14, 0.27, 0.12);
-	vec3 lush_emerald = vec3(0.21, 0.37, 0.15);
-	vec3 warm_olive = vec3(0.29, 0.43, 0.17);
-	vec3 col = mix(deep_sage, lush_emerald, smoothstep(0.25, 0.72, macro_a));
-	col = mix(col, warm_olive, smoothstep(0.40, 0.82, macro_b) * 0.65);
+	vec3 deep_sage = vec3(0.17, 0.30, 0.13);
+	vec3 lush_meadow = vec3(0.24, 0.39, 0.16);
+	vec3 warm_olive = vec3(0.33, 0.45, 0.18);
+	vec3 col = mix(deep_sage, lush_meadow, smoothstep(0.22, 0.74, macro_a));
+	col = mix(col, warm_olive, smoothstep(0.36, 0.80, macro_b) * 0.72);
 	return col;
 }
 
@@ -72,9 +73,11 @@ void vertex() {
 	vec4 rnd = COLOR;
 	vec3 world_v = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 
-	float clump = value_noise(world_v.xz * 0.18);
-	float inst_h = clamp(INSTANCE_CUSTOM.a, 0.18, 1.35);
-	float h_scale = (0.80 + rnd.g * 0.36) * (0.85 + clump * 0.30) * inst_h;
+	// Natural meadow clumping + smooth distance taper so far hills have no abrupt grass cutoff
+	float clump = fbm(world_v.xz * 0.20);
+	float inst_h = clamp(INSTANCE_CUSTOM.a, 0.16, 1.35);
+	float dist_taper = 1.0 - smoothstep(32.0, 45.0, length(world_v.xz));
+	float h_scale = (0.72 + rnd.g * 0.46) * (0.74 + clump * 0.56) * inst_h * dist_taper;
 	float gust = wind_gust(world_v.xz, TIME);
 	float wave = sin(TIME * 1.5 - dot(world_v.xz, wind_direction) * 0.38 + rnd.a * 6.28) * 0.5 + 0.5;
 	float bend = (gust * 0.65 + wave * 0.35 + 0.08) * wind_strength;
@@ -99,10 +102,14 @@ void vertex() {
 	v_root_col = ground_col;
 
 	float warm_patch = fbm(world_v.xz * 0.08 + vec2(3.1, 1.7));
-	vec3 base_tip = mix(tip_color, tip_color_warm, smoothstep(0.35, 0.78, warm_patch));
-	v_tip_col = base_tip * (0.94 + (rnd.r - 0.5) * 0.12);
+	vec3 base_tip = mix(tip_color, tip_color_warm, smoothstep(0.28, 0.76, warm_patch));
+	// Taller seed-head clumps catch slightly warmer golden-oat sunlight
+	base_tip = mix(base_tip, vec3(0.44, 0.51, 0.21), smoothstep(0.58, 0.85, clump) * 0.45);
+	v_tip_col = base_tip * (0.93 + (rnd.r - 0.5) * 0.14);
 	v_t = t;
 	v_gust = gust;
+	// ~3.5% of tall blades in lush clumps carry a delicate wildflower blossom at the very tip
+	v_blossom_id = (rnd.r > 0.965 && clump > 0.45 && inst_h > 0.65) ? fract(rnd.b * 17.3) : -1.0;
 }
 
 void fragment() {
@@ -112,7 +119,19 @@ void fragment() {
 	float t = v_t;
 	vec3 col = mix(v_root_col, v_tip_col, smoothstep(0.08, 0.95, t));
 	// Subtle sunlit sheen along rolling wind gusts
-	col += vec3(0.04, 0.06, 0.015) * v_gust * (t * t);
+	col += vec3(0.035, 0.048, 0.012) * v_gust * (t * t);
+
+	// Delicate wildflower specks at the top 18% of rare blossom stems
+	if (v_blossom_id >= 0.0 && t > 0.80) {
+		float petal_t = smoothstep(0.80, 0.92, t);
+		vec3 petal_col = vec3(0.92, 0.90, 0.78); // Warm cream clover
+		if (v_blossom_id > 0.66) {
+			petal_col = vec3(0.90, 0.76, 0.28); // Golden buttercup
+		} else if (v_blossom_id > 0.38) {
+			petal_col = vec3(0.64, 0.76, 0.92); // Alpine speedwell blue
+		}
+		col = mix(col, petal_col, petal_t * 0.88);
+	}
 
 	ALBEDO = col;
 	ROUGHNESS = 0.92;

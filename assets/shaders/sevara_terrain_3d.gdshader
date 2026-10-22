@@ -45,11 +45,11 @@ float fbm(vec2 p) {
 vec3 meadow_ground_palette(vec2 xz) {
 	float macro_a = fbm(xz * 0.045);
 	float macro_b = fbm(xz * 0.11 + vec2(5.2, 3.7));
-	vec3 deep_sage = vec3(0.14, 0.27, 0.12);
-	vec3 lush_emerald = vec3(0.21, 0.37, 0.15);
-	vec3 warm_olive = vec3(0.29, 0.43, 0.17);
-	vec3 col = mix(deep_sage, lush_emerald, smoothstep(0.25, 0.72, macro_a));
-	col = mix(col, warm_olive, smoothstep(0.40, 0.82, macro_b) * 0.65);
+	vec3 deep_sage = vec3(0.17, 0.30, 0.13);
+	vec3 lush_meadow = vec3(0.24, 0.39, 0.16);
+	vec3 warm_olive = vec3(0.33, 0.45, 0.18);
+	vec3 col = mix(deep_sage, lush_meadow, smoothstep(0.22, 0.74, macro_a));
+	col = mix(col, warm_olive, smoothstep(0.36, 0.80, macro_b) * 0.72);
 	return col;
 }
 
@@ -64,20 +64,41 @@ void fragment() {
 	vec2 xz = v_world_pos.xz;
 	float soft_grain = fbm(xz * 0.55) * 2.0 - 1.0;
 
-	// 1. Base velvety meadow ground (matches grass blade roots 1:1)
+	// 1. Base velvety meadow ground (matches grass blade roots 1:1 up close,
+	// and warms toward sunlit blade tips in the distance so far hills blend seamlessly)
 	vec3 col = meadow_ground_palette(xz);
+	float far_blend = smoothstep(24.0, 44.0, length(xz));
+	vec3 far_meadow_col = mix(vec3(0.26, 0.42, 0.17), vec3(0.35, 0.48, 0.19), fbm(xz * 0.07));
+	col = mix(col, far_meadow_col, far_blend * 0.65);
 	col *= (1.0 + soft_grain * 0.035);
 
-	// 2. Gentle warm earthen footpath (restricted to the inner core so grass borders sit on green turf)
+	// 2. Organic earthen footpath with grassy wheel-track median, trampled olive verge & embedded pebbles
 	float w_path = clamp(v_path_and_wet.x, 0.0, 1.0);
 	if (w_path > 0.01) {
-		float edge_noise = (fbm(xz * 0.55) - 0.5) * 0.12;
-		float path_mask = smoothstep(0.46, 0.84, w_path + edge_noise);
-		float border_band = smoothstep(0.32, 0.52, w_path + edge_noise) * (1.0 - smoothstep(0.52, 0.78, w_path + edge_noise));
-		vec3 path_center = vec3(0.44, 0.35, 0.25) * (1.0 + soft_grain * 0.035);
-		vec3 path_border = vec3(0.24, 0.30, 0.16);
-		col = mix(col, path_border, border_band * 0.65);
-		col = mix(col, path_center, path_mask);
+		float edge_noise = (fbm(xz * 0.65) - 0.5) * 0.18 + (value_noise(xz * 1.8) - 0.5) * 0.08;
+		float wp = w_path + edge_noise;
+
+		// Trampled dry-olive turf verge right where short grass blades taper out (zero neon green strip!)
+		float verge_mask = smoothstep(0.18, 0.38, wp) * (1.0 - smoothstep(0.46, 0.70, wp));
+		vec3 verge_col = vec3(0.26, 0.29, 0.16) * (1.0 + soft_grain * 0.05);
+		col = mix(col, verge_col, verge_mask * 0.85);
+
+		// Packed warm loam core with subtle twin wheel/foot tracks and center crown
+		float path_mask = smoothstep(0.34, 0.66, wp);
+		float center_crown = smoothstep(0.72, 0.96, w_path) * (0.4 + 0.6 * fbm(xz * 0.5));
+		vec3 loam_track = vec3(0.42, 0.33, 0.23) * (1.0 + soft_grain * 0.06);
+		vec3 loam_edge = vec3(0.34, 0.27, 0.19);
+		vec3 loam_crown = vec3(0.35, 0.33, 0.20);
+		vec3 path_col = mix(loam_edge, loam_track, smoothstep(0.38, 0.74, wp));
+		path_col = mix(path_col, loam_crown, center_crown * 0.45);
+
+		// Subtle flat embedded stones along the compacted dirt
+		float peb_n = value_noise(xz * 3.6);
+		float peb_mask = smoothstep(0.76, 0.86, peb_n) * smoothstep(0.40, 0.65, wp);
+		vec3 peb_col = vec3(0.46, 0.43, 0.38);
+		path_col = mix(path_col, peb_col, peb_mask * 0.38);
+
+		col = mix(col, path_col, path_mask);
 	}
 
 	// 3. Gently sloped sandy-loam streambed & bank margin
