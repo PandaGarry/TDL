@@ -4,6 +4,10 @@ extends Node3D
 ## Built from the ground up with CC0 glTF/GLB models, MultiMesh dense meadows,
 ## custom spatial shaders, smooth character locomotion, and scenic valley camera lookpoints.
 
+## Step-by-step Look-Dev progression:
+## LOOKDEV_STEP = 1 -> Step 1 Foundation: Terrain relief, calm velvety 3D grass, earthen path & lighting ONLY.
+const LOOKDEV_STEP := 1
+
 const CAMERA_LOOKPOINTS: Array[String] = [
 	"follow",
 	"valley_panorama",
@@ -38,7 +42,6 @@ var _terrain_greybox_mat: StandardMaterial3D
 var _water_greybox_mat: StandardMaterial3D
 
 var _settlement_root: Node3D
-var _vfx_root: Node3D
 var _meadow_multimesh_root: Node3D
 var _ecology_root: Node3D
 var _actors_root: Node3D
@@ -333,33 +336,6 @@ func _build_terrain_and_water() -> void:
 	var t_shader := SevaraAssetLibrary3D.load_shader("sevara_terrain_3d.gdshader")
 	_terrain_shader_mat = ShaderMaterial.new()
 	_terrain_shader_mat.shader = t_shader
-	var meadow_alb := SevaraVisualTheme.load_diffuse_texture("tex_meadow_moss_and_snow")
-	var meadow_nrm := SevaraVisualTheme.load_normal_texture("tex_meadow_moss_and_snow")
-	var mud_alb := SevaraVisualTheme.load_diffuse_texture("tex_spring_mud_and_silt")
-	var mud_nrm := SevaraVisualTheme.load_normal_texture("tex_spring_mud_and_silt")
-	var peb_alb := SevaraVisualTheme.load_diffuse_texture("tex_riverbed_pebbles")
-	var peb_nrm := SevaraVisualTheme.load_normal_texture("tex_riverbed_pebbles")
-	var cliff_alb := SevaraVisualTheme.load_diffuse_texture("pbr_cliff_rock")
-	var cliff_nrm := SevaraVisualTheme.load_normal_texture("pbr_cliff_rock")
-	var path_alb := SevaraVisualTheme.load_diffuse_texture("pbr_flagstone_path")
-	var path_nrm := SevaraVisualTheme.load_normal_texture("pbr_flagstone_path")
-
-	_terrain_shader_mat.set_shader_parameter("tex_meadow", meadow_alb)
-	_terrain_shader_mat.set_shader_parameter("tex_meadow_nrm", meadow_nrm)
-	_terrain_shader_mat.set_shader_parameter("tex_forest", meadow_alb)
-	_terrain_shader_mat.set_shader_parameter("tex_forest_nrm", meadow_nrm)
-	_terrain_shader_mat.set_shader_parameter("tex_mud", mud_alb)
-	_terrain_shader_mat.set_shader_parameter("tex_mud_nrm", mud_nrm)
-	_terrain_shader_mat.set_shader_parameter("tex_pebbles", peb_alb)
-	_terrain_shader_mat.set_shader_parameter("tex_pebbles_nrm", peb_nrm)
-	_terrain_shader_mat.set_shader_parameter("tex_stone", cliff_alb)
-	_terrain_shader_mat.set_shader_parameter("tex_stone_nrm", cliff_nrm)
-	_terrain_shader_mat.set_shader_parameter("tex_snow", meadow_alb)
-	_terrain_shader_mat.set_shader_parameter("tex_snow_nrm", meadow_nrm)
-	_terrain_shader_mat.set_shader_parameter("tex_cliff", cliff_alb)
-	_terrain_shader_mat.set_shader_parameter("tex_cliff_nrm", cliff_nrm)
-	_terrain_shader_mat.set_shader_parameter("tex_path", path_alb)
-	_terrain_shader_mat.set_shader_parameter("tex_path_nrm", path_nrm)
 
 	_terrain_greybox_mat = StandardMaterial3D.new()
 	_terrain_greybox_mat.albedo_color = Color(0.32, 0.36, 0.34)
@@ -367,30 +343,27 @@ func _build_terrain_and_water() -> void:
 	_terrain_mesh_inst.material_override = _terrain_shader_mat
 	add_child(_terrain_mesh_inst)
 
-	_water_mesh_inst = MeshInstance3D.new()
-	_water_mesh_inst.name = "NivarelWater3D"
-	_water_mesh_inst.mesh = SevaraTerrainGen3D.build_water_mesh(32, 24, 128, 96)
-	_water_mesh_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if LOOKDEV_STEP >= 2:
+		_water_mesh_inst = MeshInstance3D.new()
+		_water_mesh_inst.name = "NivarelWater3D"
+		_water_mesh_inst.mesh = SevaraTerrainGen3D.build_water_mesh(32, 24, 128, 96)
+		_water_mesh_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
-	var w_shader := SevaraAssetLibrary3D.load_shader("sevara_water_3d.gdshader")
-	_water_shader_mat = ShaderMaterial.new()
-	_water_shader_mat.shader = w_shader
-	_water_shader_mat.set_shader_parameter("riverbed_tex", peb_alb)
-	_water_greybox_mat = StandardMaterial3D.new()
-	_water_greybox_mat.albedo_color = Color(0.18, 0.34, 0.44, 0.82)
-	_water_greybox_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_water_greybox_mat.roughness = 0.25
-	_water_mesh_inst.material_override = _water_shader_mat
-	add_child(_water_mesh_inst)
+		var w_shader := SevaraAssetLibrary3D.load_shader("sevara_water_3d.gdshader")
+		_water_shader_mat = ShaderMaterial.new()
+		_water_shader_mat.shader = w_shader
+		_water_greybox_mat = StandardMaterial3D.new()
+		_water_greybox_mat.albedo_color = Color(0.18, 0.34, 0.44, 0.82)
+		_water_greybox_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_water_greybox_mat.roughness = 0.25
+		_water_mesh_inst.material_override = _water_shader_mat
+		add_child(_water_mesh_inst)
 
 
 func _build_containers() -> void:
 	_settlement_root = Node3D.new()
 	_settlement_root.name = "SettlementStructures3D"
 	add_child(_settlement_root)
-
-	_vfx_root = SevaraVfx3D.build_valley_vfx_root()
-	add_child(_vfx_root)
 
 	_meadow_multimesh_root = Node3D.new()
 	_meadow_multimesh_root.name = "MeadowMultiMeshContainer3D"
@@ -414,7 +387,8 @@ func _build_containers() -> void:
 
 
 func _populate_static_settlement() -> void:
-	SevaraPropsFactory3D.populate_static_settlement(_settlement_root)
+	if LOOKDEV_STEP >= 4:
+		SevaraPropsFactory3D.populate_static_settlement(_settlement_root)
 
 
 func _rebuild_ecology_and_npcs(
@@ -433,6 +407,8 @@ func _rebuild_ecology_and_npcs(
 
 	var mm_bundle := SevaraPropsFactory3D.build_dense_meadow_multimeshes(foliage_density)
 	_meadow_multimesh_root.add_child(mm_bundle)
+	if LOOKDEV_STEP < 3:
+		return
 
 	var slope_node: Dictionary = basin.get(SevaraEcoChain.NODE_TORAMEK_SLOPE, {})
 	var meadow_node: Dictionary = basin.get(SevaraEcoChain.NODE_HERAVO_MEADOW, {})
@@ -645,6 +621,16 @@ func _rebuild_ecology_and_npcs(
 func _sync_entities_from_world(
 	world: WorldState, session: GameSession, local_body_entity_id: int
 ) -> void:
+	if LOOKDEV_STEP < 5:
+		if local_body_entity_id > 0 and world.has_entity(local_body_entity_id):
+			var lpos := world.get_entity_component(
+				local_body_entity_id, GreyboxWorld.POSITION_COMPONENT
+			)
+			var ltile := GreyboxWorld.position_from_component(
+				lpos, session.greybox_width_tiles, session.greybox_height_tiles
+			)
+			_focus_world_pos = _map_tile_to_valley_3d(ltile)
+		return
 	var active_actors: Dictionary = {}
 	var active_crates: Dictionary = {}
 	var local_tile := Vector2i(-1, -1)
@@ -788,21 +774,21 @@ func _apply_camera_transform(immediate: bool = false) -> void:
 
 	match _camera_lookpoint:
 		"valley_panorama":
-			cam_pos = Vector3(-2.5, 22.0, 32.5)
-			look_target = Vector3(-1.5, 1.2, -5.5)
-			fov = 44.0
-		"heravo_meadow":
-			cam_pos = Vector3(24.5, 5.2, 14.5)
-			look_target = Vector3(9.5, 1.1, -2.5)
-			fov = 37.0
-		"nivarel_rapids":
-			cam_pos = Vector3(10.5, 7.4, 7.5)
-			look_target = Vector3(-3.5, 1.0, -9.5)
-			fov = 38.0
-		"settlement_hearth":
-			cam_pos = Vector3(-5.8, 7.2, 2.8)
-			look_target = Vector3(-14.5, 1.2, -7.8)
+			cam_pos = Vector3(11.5, 4.4, 7.8)
+			look_target = Vector3(16.8, 1.0, -5.2)
 			fov = 36.0
+		"heravo_meadow":
+			cam_pos = Vector3(-11.2, 5.2, 1.8)
+			look_target = Vector3(-15.8, 1.0, -8.2)
+			fov = 35.0
+		"nivarel_rapids":
+			cam_pos = Vector3(21.5, 3.8, 11.5)
+			look_target = Vector3(12.2, 0.9, -1.5)
+			fov = 34.0
+		"settlement_hearth":
+			cam_pos = Vector3(-10.5, 3.6, -2.5)
+			look_target = Vector3(-15.2, 0.95, -7.8)
+			fov = 32.0
 		_:
 			var offset := Vector3(0.0, 12.2, 13.8)
 			fov = 38.0

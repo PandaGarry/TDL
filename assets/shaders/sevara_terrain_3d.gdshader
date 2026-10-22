@@ -1,37 +1,11 @@
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
-// Next-gen 2026 Sevara Valley Terrain Shader:
-// - Dual-scale stochastic anti-tiling sampling (zero visible grid repetition)
-// - ACES-calibrated 8-biome height-and-splat blending (meadow moss, clover grass, forest floor,
-//   wet river pebbles, marsh silt, flagstone cobblestone trails, cliff granite, spring snow)
-// - Normal-map blending with wetness darkening and specular sheen along the water's edge
+// Step 1 Look-Dev Foundation: Clean, calm, velvety stylized terrain shader
+// (inspired by Bukkbeek NatureBlocks, Tiny Glade, and Breath of the Wild).
+// Zero high-frequency noisy photo-textures: smooth macro color harmony that blends
+// seamlessly into the 3D grass blades growing from it.
 
-uniform sampler2D tex_meadow : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D tex_meadow_nrm : hint_normal, filter_linear_mipmap, repeat_enable;
-
-uniform sampler2D tex_forest : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D tex_forest_nrm : hint_normal, filter_linear_mipmap, repeat_enable;
-
-uniform sampler2D tex_mud : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D tex_mud_nrm : hint_normal, filter_linear_mipmap, repeat_enable;
-
-uniform sampler2D tex_pebbles : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D tex_pebbles_nrm : hint_normal, filter_linear_mipmap, repeat_enable;
-
-uniform sampler2D tex_stone : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D tex_stone_nrm : hint_normal, filter_linear_mipmap, repeat_enable;
-
-uniform sampler2D tex_snow : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D tex_snow_nrm : hint_normal, filter_linear_mipmap, repeat_enable;
-
-uniform sampler2D tex_cliff : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D tex_cliff_nrm : hint_normal, filter_linear_mipmap, repeat_enable;
-
-uniform sampler2D tex_path : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D tex_path_nrm : hint_normal, filter_linear_mipmap, repeat_enable;
-
-uniform float uv_scale = 0.26;
 uniform float silt_stain = 0.16;
 
 varying vec3 v_world_pos;
@@ -39,25 +13,44 @@ varying vec3 v_world_nrm;
 varying vec4 v_weights;
 varying vec2 v_path_and_wet;
 
-float hash(vec2 p) {
-	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+float hash12(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.x + p3.y) * p3.z);
 }
 
-float noise(vec2 p) {
+float value_noise(vec2 p) {
 	vec2 i = floor(p);
 	vec2 f = fract(p);
 	vec2 u = f * f * (3.0 - 2.0 * f);
 	return mix(
-		mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),
-		mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x),
+		mix(hash12(i + vec2(0.0, 0.0)), hash12(i + vec2(1.0, 0.0)), u.x),
+		mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), u.x),
 		u.y
 	);
 }
 
-vec3 sample_stochastic(sampler2D tex, vec2 uv, float macro_mask) {
-	vec2 uv_a = uv;
-	vec2 uv_b = mat2(vec2(0.80, -0.60), vec2(0.60, 0.80)) * (uv * 0.43) + vec2(0.37, 0.71);
-	return mix(texture(tex, uv_a).rgb, texture(tex, uv_b).rgb, macro_mask);
+float fbm(vec2 p) {
+	float v = 0.0;
+	float a = 0.5;
+	mat2 rot = mat2(vec2(0.80, 0.60), vec2(-0.60, 0.80));
+	for (int i = 0; i < 4; i++) {
+		v += a * value_noise(p);
+		p = rot * p * 2.02;
+		a *= 0.5;
+	}
+	return v;
+}
+
+vec3 meadow_ground_palette(vec2 xz) {
+	float macro_a = fbm(xz * 0.045);
+	float macro_b = fbm(xz * 0.11 + vec2(5.2, 3.7));
+	vec3 deep_sage = vec3(0.14, 0.27, 0.12);
+	vec3 lush_emerald = vec3(0.21, 0.37, 0.15);
+	vec3 warm_olive = vec3(0.29, 0.43, 0.17);
+	vec3 col = mix(deep_sage, lush_emerald, smoothstep(0.25, 0.72, macro_a));
+	col = mix(col, warm_olive, smoothstep(0.40, 0.82, macro_b) * 0.65);
+	return col;
 }
 
 void vertex() {
@@ -68,96 +61,51 @@ void vertex() {
 }
 
 void fragment() {
-	vec2 w_uv = v_world_pos.xz * uv_scale;
-	float macro_n = noise(v_world_pos.xz * 0.065);
-	float detail_n = noise(v_world_pos.xz * 0.24);
-	float stoch_blend = smoothstep(0.25, 0.75, macro_n);
+	vec2 xz = v_world_pos.xz;
+	float soft_grain = fbm(xz * 0.55) * 2.0 - 1.0;
 
-	float w_mud = clamp(v_weights.r + max(silt_stain - 0.20, 0.0) * 0.35, 0.0, 1.0);
-	float w_pebbles = clamp(v_weights.g, 0.0, 1.0);
-	float w_stone = clamp(v_weights.b, 0.0, 1.0);
-	float w_snow = clamp(v_weights.a, 0.0, 1.0);
+	// 1. Base velvety meadow ground (matches grass blade roots 1:1)
+	vec3 col = meadow_ground_palette(xz);
+	col *= (1.0 + soft_grain * 0.035);
+
+	// 2. Gentle warm earthen footpath (calm, soft clay-ochre with subtle darker border)
 	float w_path = clamp(v_path_and_wet.x, 0.0, 1.0);
-	float above_water = v_path_and_wet.y;
-
-	float slope = 1.0 - clamp(v_world_nrm.y, 0.0, 1.0);
-	float w_cliff = smoothstep(0.16, 0.42, slope);
-
-	vec3 c_meadow = sample_stochastic(tex_meadow, w_uv * 0.95, stoch_blend);
-	vec3 n_meadow = sample_stochastic(tex_meadow_nrm, w_uv * 0.95, stoch_blend);
-
-	vec3 c_forest = sample_stochastic(tex_forest, w_uv * 0.88, stoch_blend);
-	vec3 n_forest = sample_stochastic(tex_forest_nrm, w_uv * 0.88, stoch_blend);
-
-	float forest_patch = smoothstep(0.36, 0.68, macro_n * 0.7 + detail_n * 0.3);
-	vec3 col = mix(c_meadow, c_forest, forest_patch * 0.58);
-	vec3 nrm = mix(n_meadow, n_forest, forest_patch * 0.58);
-	float rough = mix(0.84, 0.78, forest_patch * 0.58);
-
-	// Warm ochre-moss tint variation across sunlit meadows vs shaded forest margins
-	vec3 meadow_grade = mix(vec3(0.76, 0.86, 0.70), vec3(0.92, 0.89, 0.78), detail_n);
-	col *= meadow_grade;
-
-	// Blend marsh mud & fertile bank soil
-	if (w_mud > 0.01) {
-		vec3 c_mud = sample_stochastic(tex_mud, w_uv * 1.05, stoch_blend) * vec3(0.78, 0.75, 0.70);
-		vec3 n_mud = sample_stochastic(tex_mud_nrm, w_uv * 1.05, stoch_blend);
-		float m_blend = smoothstep(0.05, 0.72, w_mud + (detail_n - 0.5) * 0.16);
-		col = mix(col, c_mud, m_blend);
-		nrm = mix(nrm, n_mud, m_blend);
-		rough = mix(rough, 0.48, m_blend);
-	}
-
-	// Blend riverbed & shoreline pebbles
-	if (w_pebbles > 0.01) {
-		vec3 c_peb = sample_stochastic(tex_pebbles, w_uv * 1.30, stoch_blend) * vec3(0.82, 0.82, 0.80);
-		vec3 n_peb = sample_stochastic(tex_pebbles_nrm, w_uv * 1.30, stoch_blend);
-		float p_blend = smoothstep(0.10, 0.76, w_pebbles + (detail_n - 0.5) * 0.20);
-		col = mix(col, c_peb, p_blend);
-		nrm = mix(nrm, n_peb, p_blend);
-		rough = mix(rough, 0.44, p_blend);
-	}
-
-	// Blend medieval flagstone & mossy cobblestone paths + settlement courtyard (ACES calibrated)
 	if (w_path > 0.01) {
-		vec3 c_path = sample_stochastic(tex_path, w_uv * 1.25, stoch_blend) * vec3(0.66, 0.64, 0.60);
-		vec3 n_path = sample_stochastic(tex_path_nrm, w_uv * 1.25, stoch_blend);
-		float path_luma = dot(c_path, vec3(0.299, 0.587, 0.114));
-		float path_blend = smoothstep(0.14, 0.66, w_path + (path_luma - 0.30) * 0.22);
-		col = mix(col, c_path, path_blend);
-		nrm = mix(nrm, n_path, path_blend);
-		rough = mix(rough, 0.68, path_blend);
+		float edge_noise = (fbm(xz * 0.45) - 0.5) * 0.18;
+		float path_mask = smoothstep(0.18, 0.62, w_path + edge_noise);
+		float border_band = smoothstep(0.12, 0.32, w_path + edge_noise) * (1.0 - smoothstep(0.32, 0.58, w_path + edge_noise));
+		vec3 path_center = vec3(0.45, 0.36, 0.26) * (1.0 + soft_grain * 0.04);
+		vec3 path_border = vec3(0.32, 0.26, 0.18);
+		col = mix(col, path_border, border_band * 0.55);
+		col = mix(col, path_center, path_mask);
 	}
 
-	// Blend steep cliff rock & highland stone
-	float rock_weight = max(w_stone, w_cliff);
-	if (rock_weight > 0.01) {
-		vec3 c_rock = sample_stochastic(tex_cliff, w_uv * 0.82, stoch_blend) * vec3(0.78, 0.78, 0.76);
-		vec3 n_rock = sample_stochastic(tex_cliff_nrm, w_uv * 0.82, stoch_blend);
-		float r_blend = smoothstep(0.10, 0.68, rock_weight + (detail_n - 0.5) * 0.18);
-		col = mix(col, c_rock, r_blend);
-		nrm = mix(nrm, n_rock, r_blend);
-		rough = mix(rough, 0.74, r_blend);
+	// 3. Gently sloped sandy-loam streambed & bank margin
+	float w_pebbles = clamp(v_weights.g, 0.0, 1.0);
+	if (w_pebbles > 0.01) {
+		float bank_noise = (fbm(xz * 0.35) - 0.5) * 0.16;
+		float bank_mask = smoothstep(0.18, 0.68, w_pebbles + bank_noise);
+		vec3 bank_col = mix(vec3(0.36, 0.32, 0.25), vec3(0.28, 0.27, 0.24), smoothstep(0.45, 0.90, w_pebbles));
+		col = mix(col, bank_col * (1.0 + soft_grain * 0.04), bank_mask);
 	}
 
-	// Blend spring snow patches on Toramek ridges (saving green moss peeks in crevices)
-	if (w_snow > 0.01) {
-		vec3 c_snow = sample_stochastic(tex_snow, w_uv * 0.95, stoch_blend);
-		vec3 n_snow = sample_stochastic(tex_snow_nrm, w_uv * 0.95, stoch_blend);
-		float s_blend = smoothstep(0.22, 0.76, w_snow * (1.0 - w_cliff * 0.6) + (macro_n - 0.5) * 0.22);
-		col = mix(col, mix(c_snow, vec3(0.76, 0.80, 0.84), 0.50), s_blend);
-		nrm = mix(nrm, n_snow, s_blend);
-		rough = mix(rough, 0.54, s_blend);
+	// 4. Steep highland rock outcrops on the distant valley rim
+	float slope = 1.0 - clamp(v_world_nrm.y, 0.0, 1.0);
+	float w_rock = max(clamp(v_weights.b, 0.0, 1.0), smoothstep(0.18, 0.42, slope));
+	if (w_rock > 0.01) {
+		float rock_mask = smoothstep(0.15, 0.65, w_rock);
+		vec3 rock_col = mix(vec3(0.30, 0.32, 0.33), vec3(0.38, 0.39, 0.38), fbm(xz * 0.22));
+		col = mix(col, rock_col, rock_mask);
 	}
-
-	// Shoreline wetness darkening & capillary sheen near water level
-	float wetness = 1.0 - smoothstep(0.0, 0.38, above_water);
-	col = mix(col, col * vec3(0.58, 0.63, 0.68), wetness * 0.76);
-	rough = mix(rough, 0.14, wetness * 0.84);
 
 	ALBEDO = col;
-	NORMAL_MAP = normalize(nrm);
-	NORMAL_MAP_DEPTH = 1.35;
-	ROUGHNESS = clamp(rough, 0.10, 0.95);
-	SPECULAR = mix(0.24, 0.72, wetness);
+	ROUGHNESS = 0.92;
+	SPECULAR = 0.06;
+}
+
+void light() {
+	float ndl = dot(NORMAL, LIGHT);
+	float diff = smoothstep(-0.22, 0.88, ndl) * 0.82 + 0.18;
+	DIFFUSE_LIGHT += LIGHT_COLOR * ATTENUATION * diff / PI;
+	DIFFUSE_LIGHT += vec3(0.05, 0.08, 0.14) * (1.0 - clamp(ndl * ATTENUATION, 0.0, 1.0)) * 0.28;
 }

@@ -429,123 +429,53 @@ static func create_supply_crate_3d(
 static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node3D:
 	var root := Node3D.new()
 	root.name = "DenseMeadowsMultiMesh3D"
-	var dens := clampf(foliage_density, 0.25, 2.0)
+	var dens := clampf(foliage_density, 0.4, 2.0)
 
-	# 1. Dense curved-blade grass carpet patches (NatureBlocks / Fern style)
-	var patch_mesh := SevaraAssetLibrary3D.build_grass_patch_mesh(68, 2.4, 0.058, 107)
+	# Step 1 Look-Dev Foundation: Unified velvety 3D grass carpet (zero noisy billboard cards).
+	# Uses a stratified jittered grid across the look-dev meadow so there are no bare patches,
+	# and tapers blade height smoothly along the earthen footpath and streambed edge.
+	var patch_mesh := SevaraAssetLibrary3D.build_grass_patch_mesh(108, 1.85, 0.065, 107)
 	var patch_transforms: Array[Transform3D] = []
 	var patch_customs: Array[Color] = []
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 4072026
 
-	var patch_target := int(round(560.0 * dens))
-	for _i in range(patch_target * 2):
-		if patch_transforms.size() >= patch_target:
-			break
-		var wx := rng.randf_range(-62.0, 64.0)
-		var wz := rng.randf_range(-46.0, 48.0)
-		var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
-		if wy < SevaraTerrainGen3D.WATER_SURFACE_Y + 0.16 or wy > 4.6:
-			continue
-		if SevaraTerrainGen3D.get_path_weight_at(wx, wz) > 0.32:
-			continue
-		var gn := SevaraTerrainGen3D.get_ground_normal(wx, wz)
-		if gn.y < 0.76:
-			continue
-		var basis := _align_up_with_yaw(gn, rng.randf() * TAU, rng.randf_range(0.85, 1.28))
-		patch_transforms.append(Transform3D(basis, Vector3(wx, wy - 0.03, wz)))
-		var warm := smoothstep(-5.0, 32.0, wx)
-		var tip_col := Color(0.32, 0.56, 0.18).lerp(
-			Color(0.56, 0.64, 0.22), warm * rng.randf_range(0.3, 0.9)
-		)
-		patch_customs.append(Color(tip_col.r, tip_col.g, tip_col.b, rng.randf_range(0.75, 1.25)))
+	var step := clampf(1.08 / sqrt(dens), 0.78, 1.45)
+	var x_min := -30.0
+	var x_max := 30.0
+	var z_min := -24.0
+	var z_max := 24.0
+	var gx_count := int(round((x_max - x_min) / step))
+	var gz_count := int(round((z_max - z_min) / step))
+
+	for gz in range(gz_count):
+		for gx in range(gx_count):
+			var wx := x_min + (float(gx) + rng.randf_range(0.15, 0.85)) * step
+			var wz := z_min + (float(gz) + rng.randf_range(0.15, 0.85)) * step
+			var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
+			if wy < SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14 or wy > 4.2:
+				continue
+			var path_w := SevaraTerrainGen3D.get_path_weight_at(wx, wz)
+			if path_w > 0.36:
+				continue
+			var gn := SevaraTerrainGen3D.get_ground_normal(wx, wz)
+			if gn.y < 0.78:
+				continue
+			var edge_taper := 1.0 - smoothstep(0.12, 0.36, path_w) * 0.58
+			var bank_taper := smoothstep(
+				SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14,
+				SevaraTerrainGen3D.WATER_SURFACE_Y + 0.55,
+				wy
+			)
+			var height_mult := clampf(
+				edge_taper * (0.55 + 0.45 * bank_taper) * rng.randf_range(0.88, 1.16), 0.38, 1.25
+			)
+			var basis := _align_up_with_yaw(gn, rng.randf() * TAU, rng.randf_range(0.92, 1.18))
+			patch_transforms.append(Transform3D(basis, Vector3(wx, wy - 0.02, wz)))
+			patch_customs.append(Color(0.0, 0.0, 0.0, height_mult))
 
 	root.add_child(
 		_create_multimesh_node("GrassBladeCarpetMM", patch_mesh, patch_transforms, patch_customs)
-	)
-
-	# 2. Quaternius Tall & Wispy Grass Tufts MultiMesh
-	var tall_grass_mesh := SevaraAssetLibrary3D.nature_mesh("Grass_Common_Tall")
-	var wispy_grass_mesh := SevaraAssetLibrary3D.nature_mesh("Grass_Wispy_Tall")
-	_scatter_botanical_multimesh(
-		root,
-		"TallGrassTuftsMM",
-		tall_grass_mesh,
-		int(round(420.0 * dens)),
-		202601,
-		Vector2(0.42, 0.72),
-		false
-	)
-	_scatter_botanical_multimesh(
-		root,
-		"WispyGrassTuftsMM",
-		wispy_grass_mesh,
-		int(round(360.0 * dens)),
-		202602,
-		Vector2(0.45, 0.76),
-		false
-	)
-
-	# 3. Ferns, Clovers & Wildflower Groups across Heravo Meadow & Forest Edges
-	var fern_mesh := SevaraAssetLibrary3D.nature_mesh("Fern_1")
-	var clover_mesh := SevaraAssetLibrary3D.nature_mesh("Clover_1")
-	var flower3_mesh := SevaraAssetLibrary3D.nature_mesh("Flower_3_Group")
-	var flower4_mesh := SevaraAssetLibrary3D.nature_mesh("Flower_4_Group")
-	_scatter_botanical_multimesh(
-		root, "FernsMM", fern_mesh, int(round(170.0 * dens)), 202603, Vector2(0.42, 0.68), false
-	)
-	_scatter_botanical_multimesh(
-		root, "CloversMM", clover_mesh, int(round(230.0 * dens)), 202604, Vector2(0.46, 0.74), false
-	)
-	_scatter_botanical_multimesh(
-		root,
-		"Wildflowers3MM",
-		flower3_mesh,
-		int(round(160.0 * dens)),
-		202605,
-		Vector2(0.30, 0.48),
-		true
-	)
-	_scatter_botanical_multimesh(
-		root,
-		"Wildflowers4MM",
-		flower4_mesh,
-		int(round(150.0 * dens)),
-		202606,
-		Vector2(0.28, 0.46),
-		true
-	)
-
-	# 4. Flowering & Common Bushes
-	var bush_flower_mesh := SevaraAssetLibrary3D.nature_mesh("Bush_Common_Flowers")
-	_scatter_botanical_multimesh(
-		root,
-		"FloweringBushesMM",
-		bush_flower_mesh,
-		int(round(78.0 * dens)),
-		202607,
-		Vector2(0.46, 0.78),
-		true
-	)
-
-	# 5. Riverbank Pebbles & Stepping Stones along Nivarel
-	var pebble_mesh := SevaraAssetLibrary3D.nature_mesh(
-		"Pebble_Round_1", {"rock": {"moss_amount": 0.35, "wetness": 0.65, "triplanar": 1.0}}
-	)
-	_scatter_river_pebbles_multimesh(
-		root, "RiverPebblesMM", pebble_mesh, int(round(260.0 * dens)), 202608
-	)
-
-	# 6. Forest floor mushrooms under the Toramek pines
-	var mushroom_mesh := SevaraAssetLibrary3D.nature_mesh("Mushroom_Common")
-	_scatter_botanical_multimesh(
-		root,
-		"ForestMushroomsMM",
-		mushroom_mesh,
-		int(round(65.0 * dens)),
-		202609,
-		Vector2(0.45, 0.85),
-		false
 	)
 	return root
 

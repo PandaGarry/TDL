@@ -106,7 +106,11 @@ static func _load_texture_2d(res_path: String) -> Texture2D:
 		var res: Resource = ResourceLoader.load(res_path)
 		if res is Texture2D:
 			return res as Texture2D
-	return null
+	var fallback_img := Image.create(8, 8, true, Image.FORMAT_RGBA8)
+	var is_nrm := res_path.ends_with("_normal.png")
+	fallback_img.fill(Color(0.5, 0.5, 1.0, 1.0) if is_nrm else Color(0.28, 0.42, 0.22, 1.0))
+	fallback_img.generate_mipmaps()
+	return ImageTexture.create_from_image(fallback_img)
 
 
 static func lighting_for_hour(hour_of_day: int) -> Dictionary:

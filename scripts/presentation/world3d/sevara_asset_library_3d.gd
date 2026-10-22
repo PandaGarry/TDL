@@ -479,54 +479,36 @@ static func _enhance_materials_recursive(
 
 
 static func _make_arch_shader_material(
-	stem: String,
+	_stem: String,
 	primary_col: Color,
-	secondary_col: Color,
-	scale_val: float,
-	detail_mix_val: float,
-	nrm_strength: float,
+	_secondary_col: Color,
+	_scale_val: float,
+	_detail_mix_val: float,
+	_nrm_strength: float,
 	rough_val: float,
 	metal_val: float = 0.0,
-	moss_str: float = 0.45,
-	bevel_str: float = 0.24
-) -> ShaderMaterial:
-	var sm := ShaderMaterial.new()
-	sm.shader = load_shader("sevara_architecture_3d.gdshader")
-	sm.set_shader_parameter("detail_albedo_tex", load_texture(PBR_TEX_DIR + stem + ".png"))
-	sm.set_shader_parameter("detail_normal_tex", load_texture(PBR_TEX_DIR + stem + "_normal.png"))
-	sm.set_shader_parameter(
-		"moss_albedo_tex", load_texture(PBR_TEX_DIR + "tex_meadow_moss_and_snow.png")
-	)
-	sm.set_shader_parameter("primary_tint", primary_col)
-	sm.set_shader_parameter("secondary_tint", secondary_col)
-	sm.set_shader_parameter("triplanar_scale", scale_val)
-	sm.set_shader_parameter("detail_mix", detail_mix_val)
-	sm.set_shader_parameter("normal_strength", nrm_strength)
-	sm.set_shader_parameter("base_roughness", rough_val)
-	sm.set_shader_parameter("base_metallic", metal_val)
-	sm.set_shader_parameter("moss_strength", moss_str)
-	sm.set_shader_parameter("bevel_highlight_strength", bevel_str)
+	_moss_str: float = 0.45,
+	_bevel_str: float = 0.24
+) -> Material:
+	var sm := StandardMaterial3D.new()
+	sm.albedo_color = primary_col
+	sm.roughness = rough_val
+	sm.metallic = metal_val
 	return sm
 
 
 static func _make_creature_shader_material(
 	base_col: Color,
-	under_col: Color,
-	rim_col: Color,
+	_under_col: Color,
+	_rim_col: Color,
 	rough_val: float,
-	rim_str: float = 0.28,
-	grain_str: float = 0.07,
-	h_span: float = 1.8
-) -> ShaderMaterial:
-	var sm := ShaderMaterial.new()
-	sm.shader = load_shader("sevara_creature_3d.gdshader")
-	sm.set_shader_parameter("base_color", base_col)
-	sm.set_shader_parameter("underbelly_color", under_col)
-	sm.set_shader_parameter("rim_tint", rim_col)
-	sm.set_shader_parameter("base_roughness", rough_val)
-	sm.set_shader_parameter("rim_strength", rim_str)
-	sm.set_shader_parameter("micro_grain_strength", grain_str)
-	sm.set_shader_parameter("height_span", h_span)
+	_rim_str: float = 0.28,
+	_grain_str: float = 0.07,
+	_h_span: float = 1.8
+) -> Material:
+	var sm := StandardMaterial3D.new()
+	sm.albedo_color = base_col
+	sm.roughness = rough_val
 	return sm
 
 
@@ -598,12 +580,9 @@ static func _create_styled_surface_material(
 	if is_character:
 		if ml.contains("skin"):
 			var skin_col := raw_col if has_override else Color(0.46, 0.31, 0.22)
-			var skin_mat := _make_creature_shader_material(
+			return _make_creature_shader_material(
 				skin_col, skin_col.darkened(0.22), Color(0.78, 0.58, 0.42), 0.68, 0.12, 0.02, 2.3
 			)
-			skin_mat.set_shader_parameter("is_skin_surface", true)
-			skin_mat.set_shader_parameter("scalp_hair_color", Color(0.18, 0.11, 0.07))
-			return skin_mat
 		if ml.contains("hair"):
 			var hair_col := raw_col if has_override else Color(0.18, 0.11, 0.07)
 			return _make_creature_shader_material(
