@@ -367,7 +367,10 @@ static func _build_nature_material(
 		var pst: Dictionary = style.get("plant", {})
 		fmat.set_shader_parameter("mode", 2)
 		fmat.set_shader_parameter("instance_tint", mat_name == "Flowers")
-		fmat.set_shader_parameter("texture_color_mix", float(pst.get("texture_color_mix", 0.85)))
+		var default_tex_mix := 0.32 if mat_name == "Flowers" else 0.78
+		fmat.set_shader_parameter(
+			"texture_color_mix", float(pst.get("texture_color_mix", default_tex_mix))
+		)
 		fmat.set_shader_parameter("alpha_cut", 0.45)
 		fmat.set_shader_parameter("stiffness", float(pst.get("stiffness", 2.5)))
 		fmat.set_shader_parameter("flutter", 0.035)

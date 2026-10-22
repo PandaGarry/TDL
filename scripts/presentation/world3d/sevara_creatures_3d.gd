@@ -20,14 +20,19 @@ static func create_human_figure_3d(
 
 	var model_file := _select_character_model_file(role_hint, has_satchel, is_local_focus)
 	var skin_col := Color(0.66, 0.68, 0.64) if has_kevalu_fever else Color(0.84, 0.69, 0.56)
+	var hair_col := Color(0.24, 0.17, 0.12)
+	if role_hint.contains("selima") or role_hint.contains("sarela"):
+		hair_col = Color(0.64, 0.62, 0.58)
+	elif role_hint.contains("ilune") or role_hint.contains("evaren"):
+		hair_col = Color(0.42, 0.26, 0.15)
 	var overrides := {
 		"Skin": skin_col,
 		"Main": cloak_color,
 		"Shirt": tunic_color,
 		"Vest": cloak_color.darkened(0.14),
-		"Light": tunic_color.lightened(0.15),
+		"Light": tunic_color.lightened(0.12),
 		"Pants": Color(0.24, 0.21, 0.18),
-		"Hair": Color(0.22, 0.16, 0.11),
+		"Hair": hair_col,
 		"DarkGreen": cloak_color,
 	}
 
@@ -148,19 +153,15 @@ static func create_kor_varn_canid_3d(prowling: bool = true, variant: int = 0) ->
 
 
 static func _select_character_model_file(
-	role_hint: String, has_satchel: bool, is_local_focus: bool
+	role_hint: String, has_satchel: bool, _is_local_focus: bool
 ) -> String:
 	var r := role_hint.to_lower()
-	if r.contains("selima"):
-		return "Doctor_Female_Old.gltf"
-	if r.contains("mavena") or r.contains("ilune") or has_satchel:
-		return "Worker_Female.gltf"
-	if r.contains("sarela"):
+	if (
+		r.contains("selima")
+		or r.contains("mavena")
+		or r.contains("ilune")
+		or r.contains("sarela")
+		or (has_satchel and not r.contains("hero"))
+	):
 		return "Viking_Female.gltf"
-	if r.contains("tovan") or r.contains("ruvet") or r.contains("tobren"):
-		return "Worker_Male.gltf"
-	if r.contains("evaren"):
-		return "Soldier_Male.gltf"
-	if is_local_focus:
-		return "Viking_Male.gltf"
 	return "Viking_Male.gltf"

@@ -147,10 +147,16 @@ static func create_chronicle_pavilion_3d() -> Node3D:
 	bench.position = Vector3(0.0, 0.05, -0.45)
 	root.add_child(bench)
 
-	var book := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.ITEMS_DIR + "Book1_Open.glb", 0.28, {}, false
+	var desk := SevaraAssetLibrary3D.instantiate_model(
+		SevaraAssetLibrary3D.VILLAGE_DIR + "Bench_2.glb", 0.78, {}, true
 	)
-	book.position = Vector3(0.0, 0.76, 0.05)
+	desk.position = Vector3(0.0, 0.05, 0.12)
+	root.add_child(desk)
+
+	var book := SevaraAssetLibrary3D.instantiate_model(
+		SevaraAssetLibrary3D.ITEMS_DIR + "Book1_Open.glb", 0.075, {}, false
+	)
+	book.position = Vector3(0.0, 0.80, 0.12)
 	root.add_child(book)
 	return root
 
@@ -350,18 +356,18 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 		root,
 		"TallGrassTuftsMM",
 		tall_grass_mesh,
-		int(round(380.0 * dens)),
+		int(round(420.0 * dens)),
 		202601,
-		Vector2(0.75, 1.35),
+		Vector2(0.42, 0.72),
 		false
 	)
 	_scatter_botanical_multimesh(
 		root,
 		"WispyGrassTuftsMM",
 		wispy_grass_mesh,
-		int(round(320.0 * dens)),
+		int(round(360.0 * dens)),
 		202602,
-		Vector2(0.80, 1.40),
+		Vector2(0.45, 0.76),
 		false
 	)
 
@@ -371,27 +377,27 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 	var flower3_mesh := SevaraAssetLibrary3D.nature_mesh("Flower_3_Group")
 	var flower4_mesh := SevaraAssetLibrary3D.nature_mesh("Flower_4_Group")
 	_scatter_botanical_multimesh(
-		root, "FernsMM", fern_mesh, int(round(160.0 * dens)), 202603, Vector2(0.75, 1.30), false
+		root, "FernsMM", fern_mesh, int(round(170.0 * dens)), 202603, Vector2(0.42, 0.68), false
 	)
 	_scatter_botanical_multimesh(
-		root, "CloversMM", clover_mesh, int(round(210.0 * dens)), 202604, Vector2(0.85, 1.45), false
+		root, "CloversMM", clover_mesh, int(round(230.0 * dens)), 202604, Vector2(0.46, 0.74), false
 	)
 	_scatter_botanical_multimesh(
 		root,
 		"Wildflowers3MM",
 		flower3_mesh,
-		int(round(145.0 * dens)),
+		int(round(160.0 * dens)),
 		202605,
-		Vector2(0.80, 1.35),
+		Vector2(0.30, 0.48),
 		true
 	)
 	_scatter_botanical_multimesh(
 		root,
 		"Wildflowers4MM",
 		flower4_mesh,
-		int(round(135.0 * dens)),
+		int(round(150.0 * dens)),
 		202606,
-		Vector2(0.80, 1.35),
+		Vector2(0.28, 0.46),
 		true
 	)
 
@@ -403,7 +409,7 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 		bush_flower_mesh,
 		int(round(78.0 * dens)),
 		202607,
-		Vector2(0.65, 1.15),
+		Vector2(0.46, 0.78),
 		true
 	)
 
