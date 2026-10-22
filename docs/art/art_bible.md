@@ -261,12 +261,12 @@ Compatibility renderer, CanvasTexture Normal/Specular Maps, 2D-шейдеры)**
      холмами луга Хераво на востоке и двумя процедурными кольцами заснеженных
      гор (`DistantMountains3D` на `175` и `310` м).
 2. **Курируемая коллекция открытых CC0 3D-моделей (`assets/nature/` и `assets/models/`):**
-   - Природа (`assets/nature/`): сосны `Pine_1..5`, лиственные и вековые
-     деревья `CommonTree_1..4`, `TwistedTree_1..2`, прибрежные плакучие ивы
-     Талина `Willow_1.glb`, мшистые пни и валежник `TreeStump_Moss.glb`,
-     `WoodLog_Moss.glb`, скальные глыбы `Rock_Medium_1..3`, прибрежная галька
-     `Pebble_Round_1`, папоротники `Fern_1`, клевер `Clover_1`, полевые цветы
-     `Flower_3_Group`, `Flower_4_Group`, кусты Кевара/Кевалу (`Bush_Common`,
+   - Природа (`assets/nature/`): сосны `Pine_1..5`, лиственные, вековые и
+     прибрежные ивовые деревья `CommonTree_1..4`, `TwistedTree_1..2`, мшистые
+     пни и валежник `TreeStump_Moss.glb`, `WoodLog_Moss.glb`, скальные глыбы
+     `Rock_Medium_1..3`, прибрежная галька `Pebble_Round_1`, папоротники
+     `Fern_1`, клевер `Clover_1`, полевые цветы `Flower_3_Group`,
+     `Flower_4_Group`, кусты Кевара/Кевалу (`Bush_Common`,
      `Bush_Common_Flowers`), лесные грибы `Mushroom_Common`, плавающие
      кувшинки `Lilypad.glb` и пучки травы `Grass_Common_Tall`,
      `Grass_Wispy_Tall`.

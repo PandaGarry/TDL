@@ -58,6 +58,7 @@ static func create_structural_material3d(
 	if tex != null:
 		mat.albedo_texture = tex
 		mat.uv1_triplanar = true
+		mat.uv1_world_triplanar = true
 		mat.uv1_triplanar_sharpness = 4.0
 		mat.uv1_scale = Vector3(0.45, 0.45, 0.45)
 	var nrm := load_normal_texture("tex_stone_and_timber")

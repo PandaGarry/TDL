@@ -191,9 +191,9 @@ static func build_grass_patch_mesh(
 
 	var mat := ShaderMaterial.new()
 	mat.shader = load_shader("sevara_grass_3d.gdshader")
-	mat.set_shader_parameter("root_color", style.get("root_color", Color(0.11, 0.25, 0.09)))
-	mat.set_shader_parameter("tip_color", style.get("tip_color", Color(0.36, 0.60, 0.19)))
-	mat.set_shader_parameter("tip_color_warm", style.get("tip_color_warm", Color(0.62, 0.66, 0.23)))
+	mat.set_shader_parameter("root_color", style.get("root_color", Color(0.10, 0.21, 0.08)))
+	mat.set_shader_parameter("tip_color", style.get("tip_color", Color(0.30, 0.48, 0.18)))
+	mat.set_shader_parameter("tip_color_warm", style.get("tip_color_warm", Color(0.54, 0.54, 0.24)))
 	mat.set_shader_parameter("blade_height", float(style.get("blade_height", 0.52)))
 	mat.set_shader_parameter("wind_strength", float(style.get("wind_strength", 1.0)))
 	mesh.surface_set_material(0, mat)
@@ -491,6 +491,7 @@ static func _bind_triplanar_pbr(
 	std.normal_texture = load_texture(PBR_TEX_DIR + stem + "_normal.png")
 	std.normal_scale = nrm_scale
 	std.uv1_triplanar = true
+	std.uv1_world_triplanar = true
 	std.uv1_triplanar_sharpness = 4.0
 	std.uv1_scale = Vector3(uv_scale, uv_scale, uv_scale)
 	std.albedo_color = tint

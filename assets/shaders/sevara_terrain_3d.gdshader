@@ -106,9 +106,9 @@ void fragment() {
 
 	// 1. Photogrammetric northern alpine meadow (anti-tiled dual-scale sampling)
 	vec3 meadow_raw = sample_dual_scale(tex_meadow, xz, 0.28, macro_n);
-	vec3 meadow_grade = mix(vec3(0.76, 0.92, 0.68), vec3(1.14, 1.18, 0.88), macro_n);
-	meadow_grade = mix(meadow_grade, vec3(1.18, 1.08, 0.74), smoothstep(0.56, 0.84, mid_n) * 0.36);
-	vec3 c_meadow = meadow_raw * meadow_grade * (0.90 + 0.18 * micro_n);
+	vec3 meadow_grade = mix(vec3(0.72, 0.74, 0.58), vec3(0.96, 0.88, 0.68), macro_n);
+	meadow_grade = mix(meadow_grade, vec3(1.06, 0.88, 0.60), smoothstep(0.52, 0.82, mid_n) * 0.44);
+	vec3 c_meadow = meadow_raw * meadow_grade * (0.82 + 0.16 * micro_n);
 
 	// 2. Photogrammetric forest soil, gravel & riverbank mud
 	vec3 mud_raw = sample_dual_scale(tex_mud, xz, 0.30, mid_n);

@@ -72,7 +72,10 @@ func _capture_stage_states(abs_dir: String) -> void:
 	await _wait_frames(5)
 	_save_viewport_png(abs_dir.path_join("04_godot_stage_greybox_comparison.png"))
 
-	# 3. Lush Heravo Meadow with MultiMesh grass carpet, wildflowers & grazing Stags/Deer
+	# 3. Golden dusk over Lush Heravo Meadow with MultiMesh grass, grazing Stags/Deer & telemetry
+	stage.session().advance_simulation_minutes(540)
+	stage.debug_overlay().visible = true
+	stage.refresh_presentation()
 	stage.world_3d().set_camera_lookpoint("heravo_meadow")
 	await _wait_frames(5)
 	_save_viewport_png(abs_dir.path_join("03_godot_stage_p1_dusk_silted_debug.png"))

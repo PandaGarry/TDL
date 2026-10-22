@@ -107,23 +107,27 @@ static func create_kevar_bush_3d(is_kevalu: bool = false) -> Node3D:
 
 
 static func create_talina_willow_3d(variant: int = 0) -> Node3D:
-	var h := 4.2 + float(posmod(variant, 3)) * 0.35
-	var willow := (
-		SevaraAssetLibrary3D
-		. instantiate_model(
-			SevaraAssetLibrary3D.NATURE_DIR + "Willow_1.glb",
-			h,
-			{
-				"Green": Color(0.24, 0.46, 0.24),
-				"DarkGreen": Color(0.16, 0.34, 0.18),
-				"Wood": Color(0.38, 0.30, 0.22),
-			},
-			false
-		)
-	)
-	willow.name = "TalinaWillow3D"
-	willow.rotation.y = float(variant) * 1.28
-	return willow
+	var root := Node3D.new()
+	root.name = "TalinaWillow3D"
+	var model_name := "TwistedTree_1" if (variant % 2) == 0 else "TwistedTree_2"
+	var style := {
+		"stiffness": 2.6,
+		"leaves":
+		{
+			"color_dark": Color(0.14, 0.32, 0.18),
+			"color_light": Color(0.42, 0.62, 0.34),
+			"texture_color_mix": 0.36,
+			"snow_cover": 0.02,
+		},
+	}
+	var mesh := SevaraAssetLibrary3D.nature_mesh(model_name, style)
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	var scale_f := 0.78 + float(posmod(variant, 3)) * 0.08
+	mi.scale = Vector3(scale_f * 1.08, scale_f * 0.92, scale_f * 1.08)
+	mi.rotation = Vector3(0.08, float(variant) * 1.28, -0.06)
+	root.add_child(mi)
+	return root
 
 
 static func create_reed_clump_3d(variant: int = 0) -> Node3D:
