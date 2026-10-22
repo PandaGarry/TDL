@@ -772,7 +772,9 @@ func _sync_entities_from_world(
 
 		elif def_id == GreyboxWorld.OBJECT_DEFINITION_ID:
 			active_crates[entity_id] = true
-			var crate_comp := world.get_entity_component(entity_id, GreyboxWorld.CRATE_COMPONENT)
+			var crate_comp := world.get_entity_component(
+				entity_id, GreyboxWorld.CONTAINER_COMPONENT
+			)
 			var pos_comp := world.get_entity_component(entity_id, GreyboxWorld.POSITION_COMPONENT)
 			var tile := GreyboxWorld.position_from_component(
 				pos_comp, session.greybox_width_tiles, session.greybox_height_tiles
