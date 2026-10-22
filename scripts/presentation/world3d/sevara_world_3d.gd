@@ -181,8 +181,14 @@ func sync_from_session(session: GameSession) -> Dictionary:
 	var is_greybox := SevaraVisualTheme.is_greybox_mode()
 	_apply_material_mode(is_greybox)
 
-	var rules: Dictionary = world.world_rules().to_dict()
-	var day_phase := String(rules.get("starting_day_phase", "morning"))
+	var hour := world.clock().hour_of_day()
+	var day_phase := "morning"
+	if hour >= 11 and hour <= 15:
+		day_phase = "noon"
+	elif hour >= 16 and hour <= 20:
+		day_phase = "dusk"
+	elif hour >= 21 or hour <= 4:
+		day_phase = "night"
 	_apply_day_phase_lighting(day_phase, is_greybox)
 
 	var p1_active := not SevaraEcoChain.find_basin_nodes(world).is_empty()
@@ -269,38 +275,36 @@ func _build_environment_and_lights() -> void:
 	_environment.sky = sky
 
 	_environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	_environment.ambient_light_color = Color(0.62, 0.70, 0.78)
-	_environment.ambient_light_sky_contribution = 0.62
-	_environment.ambient_light_energy = 0.95
+	_environment.ambient_light_color = Color(0.56, 0.66, 0.76)
+	_environment.ambient_light_sky_contribution = 0.55
+	_environment.ambient_light_energy = 0.72
 	_environment.tonemap_mode = Environment.TONE_MAPPER_ACES
-	_environment.tonemap_exposure = 1.06
+	_environment.tonemap_exposure = 0.96
 	_environment.fog_enabled = true
-	_environment.fog_light_color = Color(0.68, 0.76, 0.84)
-	_environment.fog_light_energy = 0.82
-	_environment.fog_density = 0.0042
-	_environment.fog_sky_affect = 0.22
-	_environment.glow_enabled = true
-	_environment.glow_intensity = 0.35
-	_environment.glow_bloom = 0.06
+	_environment.fog_light_color = Color(0.62, 0.74, 0.86)
+	_environment.fog_light_energy = 0.42
+	_environment.fog_density = 0.00085
+	_environment.fog_sky_affect = 0.15
+	_environment.glow_enabled = false
 	_env_node.environment = _environment
 	add_child(_env_node)
 
 	_sun_light = DirectionalLight3D.new()
 	_sun_light.name = "SunDirectionalLight3D"
-	_sun_light.rotation_degrees = Vector3(-42.0, -34.0, 0.0)
-	_sun_light.light_color = Color(1.0, 0.94, 0.84)
-	_sun_light.light_energy = 1.38
+	_sun_light.rotation_degrees = Vector3(-44.0, -34.0, 0.0)
+	_sun_light.light_color = Color(1.0, 0.95, 0.86)
+	_sun_light.light_energy = 1.12
 	_sun_light.shadow_enabled = true
-	_sun_light.shadow_opacity = 0.76
-	_sun_light.shadow_blur = 1.35
-	_sun_light.directional_shadow_max_distance = 135.0
+	_sun_light.shadow_opacity = 0.72
+	_sun_light.shadow_blur = 1.25
+	_sun_light.directional_shadow_max_distance = 140.0
 	add_child(_sun_light)
 
 	_fill_light = DirectionalLight3D.new()
 	_fill_light.name = "SkyFillLight3D"
 	_fill_light.rotation_degrees = Vector3(-52.0, 145.0, 0.0)
-	_fill_light.light_color = Color(0.60, 0.74, 0.90)
-	_fill_light.light_energy = 0.42
+	_fill_light.light_color = Color(0.58, 0.72, 0.88)
+	_fill_light.light_energy = 0.28
 	_fill_light.shadow_enabled = false
 	add_child(_fill_light)
 
@@ -344,10 +348,11 @@ func _build_terrain_and_water() -> void:
 		"tex_pebbles_normal", SevaraVisualTheme.load_normal_texture("tex_riverbed_pebbles")
 	)
 	_terrain_shader_mat.set_shader_parameter(
-		"tex_stone", SevaraVisualTheme.load_diffuse_texture("tex_stone_and_timber")
+		"tex_stone",
+		SevaraAssetLibrary3D.load_texture(SevaraAssetLibrary3D.NATURE_DIR + "Rocks_Diffuse.png")
 	)
 	_terrain_shader_mat.set_shader_parameter(
-		"tex_stone_normal", SevaraVisualTheme.load_normal_texture("tex_stone_and_timber")
+		"tex_stone_normal", SevaraVisualTheme.load_normal_texture("tex_riverbed_pebbles")
 	)
 
 	_terrain_greybox_mat = StandardMaterial3D.new()
@@ -916,20 +921,20 @@ func _apply_day_phase_lighting(day_phase: String, is_greybox: bool) -> void:
 	match day_phase:
 		"noon":
 			_sun_light.light_color = Color(1.0, 0.97, 0.90)
-			_sun_light.light_energy = 1.45
+			_sun_light.light_energy = 1.18
 			_sun_light.rotation_degrees = Vector3(-56.0, -26.0, 0.0)
 		"dusk":
-			_sun_light.light_color = Color(1.0, 0.72, 0.48)
-			_sun_light.light_energy = 1.18
-			_sun_light.rotation_degrees = Vector3(-26.0, -48.0, 0.0)
+			_sun_light.light_color = Color(1.0, 0.76, 0.54)
+			_sun_light.light_energy = 1.02
+			_sun_light.rotation_degrees = Vector3(-30.0, -46.0, 0.0)
 		"night":
 			_sun_light.light_color = Color(0.45, 0.58, 0.82)
 			_sun_light.light_energy = 0.52
 			_sun_light.rotation_degrees = Vector3(-38.0, 25.0, 0.0)
 		_:
-			_sun_light.light_color = Color(1.0, 0.94, 0.84)
-			_sun_light.light_energy = 1.38
-			_sun_light.rotation_degrees = Vector3(-42.0, -34.0, 0.0)
+			_sun_light.light_color = Color(1.0, 0.95, 0.86)
+			_sun_light.light_energy = 1.12
+			_sun_light.rotation_degrees = Vector3(-44.0, -34.0, 0.0)
 
 
 func _npc_palette_for_id(npc_id: String, idx: int) -> Dictionary:
