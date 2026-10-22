@@ -348,11 +348,16 @@ func _build_terrain_and_water() -> void:
 		"tex_pebbles_normal", SevaraVisualTheme.load_normal_texture("tex_riverbed_pebbles")
 	)
 	_terrain_shader_mat.set_shader_parameter(
-		"tex_stone",
-		SevaraAssetLibrary3D.load_texture(SevaraAssetLibrary3D.NATURE_DIR + "Rocks_Diffuse.png")
+		"tex_stone", SevaraVisualTheme.load_diffuse_texture("pbr_cliff_rock")
 	)
 	_terrain_shader_mat.set_shader_parameter(
-		"tex_stone_normal", SevaraVisualTheme.load_normal_texture("tex_riverbed_pebbles")
+		"tex_stone_normal", SevaraVisualTheme.load_normal_texture("pbr_cliff_rock")
+	)
+	_terrain_shader_mat.set_shader_parameter(
+		"tex_flagstone", SevaraVisualTheme.load_diffuse_texture("pbr_flagstone_path")
+	)
+	_terrain_shader_mat.set_shader_parameter(
+		"tex_flagstone_normal", SevaraVisualTheme.load_normal_texture("pbr_flagstone_path")
 	)
 
 	_terrain_greybox_mat = StandardMaterial3D.new()
@@ -369,6 +374,12 @@ func _build_terrain_and_water() -> void:
 	var w_shader := SevaraAssetLibrary3D.load_shader("sevara_water_3d.gdshader")
 	_water_shader_mat = ShaderMaterial.new()
 	_water_shader_mat.shader = w_shader
+	_water_shader_mat.set_shader_parameter(
+		"riverbed_tex", SevaraVisualTheme.load_diffuse_texture("tex_riverbed_pebbles")
+	)
+	_water_shader_mat.set_shader_parameter(
+		"riverbed_normal", SevaraVisualTheme.load_normal_texture("tex_riverbed_pebbles")
+	)
 	_water_greybox_mat = StandardMaterial3D.new()
 	_water_greybox_mat.albedo_color = Color(0.18, 0.34, 0.44, 0.82)
 	_water_greybox_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA

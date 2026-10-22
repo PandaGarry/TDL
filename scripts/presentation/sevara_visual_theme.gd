@@ -9,6 +9,20 @@ extends RefCounted
 
 const TEXTURE_DIR := "res://assets/textures/sevara_p1"
 const CAMERA_ZOOM_PRESETS := [0.65, 1.0, 1.45]
+const PBR_MATERIAL_STEMS := [
+	"tex_meadow_moss_and_snow",
+	"tex_spring_mud_and_silt",
+	"tex_riverbed_pebbles",
+	"tex_stone_and_timber",
+	"pbr_cliff_rock",
+	"pbr_flagstone_path",
+	"pbr_roof_slate",
+	"pbr_aged_timber",
+	"pbr_lime_plaster",
+	"pbr_foliage_canopy",
+	"pbr_woven_fabric",
+	"pbr_animal_fur",
+]
 
 static var _cached_textures: Dictionary = {}
 
@@ -44,7 +58,13 @@ static func create_structural_material3d(
 	if tex != null:
 		mat.albedo_texture = tex
 		mat.uv1_triplanar = true
+		mat.uv1_triplanar_sharpness = 4.0
 		mat.uv1_scale = Vector3(0.45, 0.45, 0.45)
+	var nrm := load_normal_texture("tex_stone_and_timber")
+	if nrm != null:
+		mat.normal_enabled = true
+		mat.normal_texture = nrm
+		mat.normal_scale = 1.25
 	return mat
 
 
@@ -79,6 +99,7 @@ static func _load_texture_2d(res_path: String) -> Texture2D:
 	if FileAccess.file_exists(abs_path):
 		var img := Image.load_from_file(abs_path)
 		if img != null and not img.is_empty():
+			img.generate_mipmaps()
 			return ImageTexture.create_from_image(img)
 	if ResourceLoader.exists(res_path):
 		var res: Resource = ResourceLoader.load(res_path)

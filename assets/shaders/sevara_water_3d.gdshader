@@ -1,13 +1,16 @@
 shader_type spatial;
 render_mode blend_mix, depth_draw_always, cull_disabled, diffuse_burley, specular_schlick_ggx;
 
-uniform vec3 water_deep_color : source_color = vec3(0.05, 0.20, 0.30);
-uniform vec3 water_shallow_color : source_color = vec3(0.10, 0.34, 0.40);
-uniform vec3 silt_tint_color : source_color = vec3(0.24, 0.28, 0.19);
-uniform vec3 foam_color : source_color = vec3(0.78, 0.86, 0.90);
+uniform sampler2D riverbed_tex : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D riverbed_normal : hint_normal, filter_linear_mipmap, repeat_enable;
+
+uniform vec3 water_deep_color : source_color = vec3(0.04, 0.17, 0.24);
+uniform vec3 water_shallow_color : source_color = vec3(0.09, 0.30, 0.33);
+uniform vec3 silt_tint_color : source_color = vec3(0.25, 0.28, 0.19);
+uniform vec3 foam_color : source_color = vec3(0.84, 0.90, 0.94);
 uniform float silt_load : hint_range(0.0, 1.0) = 0.18;
 uniform float flow_speed : hint_range(0.0, 3.0) = 0.72;
-uniform float wave_height : hint_range(0.0, 0.15) = 0.025;
+uniform float wave_height : hint_range(0.0, 0.15) = 0.022;
 
 varying vec3 v_world_pos;
 varying float v_shore_factor;
@@ -55,38 +58,51 @@ void vertex() {
 
 void fragment() {
 	float t = TIME * flow_speed;
-	vec2 flow_uv1 = v_world_pos.xz * 0.42 + vec2(-t * 0.24, -t * 0.58);
-	vec2 flow_uv2 = v_world_pos.xz * 0.78 + vec2(t * 0.16, -t * 0.36);
+	vec2 flow_uv1 = v_world_pos.xz * 0.38 + vec2(-t * 0.22, -t * 0.54);
+	vec2 flow_uv2 = v_world_pos.xz * 0.72 + vec2(t * 0.15, -t * 0.34);
 
 	float n1 = fbm(flow_uv1 * 2.2);
 	float n2 = fbm(flow_uv2 * 3.1 + vec2(4.2, 1.7));
 	float ripple = (n1 + n2) * 0.5;
 
-	float silt = clamp(silt_load, 0.0, 1.0);
-	vec3 deep_col = mix(water_deep_color, silt_tint_color * 0.72, silt * 0.60);
-	vec3 shallow_col = mix(water_shallow_color, silt_tint_color, silt * 0.72);
-	vec3 base_col = mix(shallow_col, deep_col, clamp(v_depth_factor * 0.85 + 0.15, 0.0, 1.0));
+	vec3 nrm_sample1 = texture(riverbed_normal, flow_uv1 * 0.85).rgb * 2.0 - 1.0;
+	vec3 nrm_sample2 = texture(riverbed_normal, flow_uv2 * 1.15).rgb * 2.0 - 1.0;
+	vec2 wave_offset = (nrm_sample1.xy + nrm_sample2.xy) * 0.035 + vec2(n1 - 0.5, n2 - 0.5) * 0.045;
 
-	// Subtle sunlit caustics in shallow water
-	float caustic = smoothstep(0.56, 0.78, ripple) * (1.0 - v_depth_factor * 0.7) * (1.0 - silt * 0.65);
-	base_col += vec3(0.06, 0.11, 0.12) * caustic;
+	// Refracted riverbed pebbles visible through clear mountain water
+	vec2 bed_uv = v_world_pos.xz * 0.36 + wave_offset;
+	vec3 bed_pebbles = texture(riverbed_tex, bed_uv).rgb * 0.78;
+
+	float silt = clamp(silt_load, 0.0, 1.0);
+	float depth = clamp(v_depth_factor, 0.0, 1.0);
+	vec3 deep_col = mix(water_deep_color, silt_tint_color * 0.68, silt * 0.62);
+	vec3 shallow_col = mix(water_shallow_color, silt_tint_color, silt * 0.74);
+
+	// Blend refracted pebbles in shallow water and over rapids into deep emerald-sapphire pool
+	float bed_visibility = (1.0 - smoothstep(0.05, 0.78, depth)) * (1.0 - silt * 0.65);
+	vec3 water_body = mix(shallow_col, deep_col, smoothstep(0.08, 0.88, depth));
+	vec3 base_col = mix(water_body, bed_pebbles * vec3(0.68, 0.88, 0.92), clamp(bed_visibility * 0.68, 0.0, 0.75));
+
+	// Sunlit caustics dancing over shallow pebbles
+	float caustic = smoothstep(0.54, 0.76, ripple) * (1.0 - depth * 0.68) * (1.0 - silt * 0.65);
+	base_col += vec3(0.09, 0.15, 0.16) * caustic;
 
 	// Delicate shoreline lace & rapids whitewater
-	float shore_foam = smoothstep(0.76, 0.96, v_shore_factor + (n1 - 0.5) * 0.18);
-	float rapids_foam = smoothstep(0.60, 0.84, ripple + v_rapids_factor * 0.25) * v_rapids_factor * 0.65;
-	float foam_mask = clamp(max(shore_foam * 0.75, rapids_foam), 0.0, 0.82);
+	float shore_foam = smoothstep(0.80, 0.97, v_shore_factor + (n1 - 0.5) * 0.22);
+	float rapids_foam = smoothstep(0.58, 0.82, ripple + v_rapids_factor * 0.28) * v_rapids_factor * 0.72;
+	float foam_mask = clamp(max(shore_foam * 0.68, rapids_foam), 0.0, 0.84);
 
-	float fresnel = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.5);
-	vec3 sky_refl = vec3(0.32, 0.46, 0.58);
-	vec3 final_col = mix(base_col, sky_refl, fresnel * 0.28);
+	float fresnel = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.2);
+	vec3 sky_refl = vec3(0.38, 0.52, 0.64);
+	vec3 final_col = mix(base_col, sky_refl, fresnel * 0.36);
 	final_col = mix(final_col, foam_color, foam_mask);
 
-	vec3 wave_n = normalize(vec3((n1 - 0.5) * 0.32, (n2 - 0.5) * 0.32, 1.0));
+	vec3 wave_n = normalize(vec3(wave_offset.x * 5.5, wave_offset.y * 5.5, 1.0));
 	NORMAL_MAP = wave_n * 0.5 + 0.5;
-	NORMAL_MAP_DEPTH = 0.55;
+	NORMAL_MAP_DEPTH = 0.85;
 
 	ALBEDO = final_col;
-	ROUGHNESS = mix(0.16, 0.42, max(silt * 0.5, foam_mask));
-	SPECULAR = 0.36;
-	ALPHA = clamp(mix(0.84, 0.95, max(v_depth_factor, foam_mask)), 0.80, 0.96);
+	ROUGHNESS = mix(0.09, 0.38, max(silt * 0.45, foam_mask));
+	SPECULAR = 0.48;
+	ALPHA = clamp(mix(0.76, 0.95, max(depth * 0.85 + 0.15, foam_mask)), 0.72, 0.96);
 }

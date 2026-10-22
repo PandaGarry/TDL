@@ -37,7 +37,7 @@ static func create_human_figure_3d(
 	}
 
 	var char_node := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.CHARACTERS_DIR + model_file, 1.78, overrides, false
+		SevaraAssetLibrary3D.CHARACTERS_DIR + model_file, 1.78, overrides, true
 	)
 	char_node.name = "CharacterRig"
 	root.add_child(char_node)
@@ -49,14 +49,14 @@ static func create_human_figure_3d(
 
 	if has_pack:
 		var pack := SevaraAssetLibrary3D.instantiate_model(
-			SevaraAssetLibrary3D.ITEMS_DIR + "Backpack.glb", 0.52, {}, false
+			SevaraAssetLibrary3D.ITEMS_DIR + "Backpack.glb", 0.52, {}, true
 		)
 		pack.position = Vector3(0.0, 0.96, -0.22)
 		root.add_child(pack)
 
 	if has_satchel:
 		var pouch := SevaraAssetLibrary3D.instantiate_model(
-			SevaraAssetLibrary3D.ITEMS_DIR + "Pouch.glb", 0.28, {}, false
+			SevaraAssetLibrary3D.ITEMS_DIR + "Pouch.glb", 0.28, {}, true
 		)
 		pouch.position = Vector3(0.24, 0.78, 0.06)
 		root.add_child(pouch)
@@ -68,7 +68,7 @@ static func create_human_figure_3d(
 			else "Axe_small.glb"
 		)
 		var tool_node := SevaraAssetLibrary3D.instantiate_model(
-			SevaraAssetLibrary3D.ITEMS_DIR + tool_file, 0.58, {}, false
+			SevaraAssetLibrary3D.ITEMS_DIR + tool_file, 0.58, {}, true
 		)
 		tool_node.position = Vector3(-0.28, 0.86, 0.12)
 		tool_node.rotation = Vector3(0.25, 0.4, -0.15)
@@ -119,7 +119,7 @@ static func create_tal_har_stag_3d(grazing: bool = true, variant: int = 0) -> No
 	var file_name := "Stag.glb" if is_stag else "Deer.glb"
 	var target_h := 2.15 if is_stag else 1.72
 	var animal := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.ANIMALS_DIR + file_name, target_h, {}, false
+		SevaraAssetLibrary3D.ANIMALS_DIR + file_name, target_h, {}, true
 	)
 	root.add_child(animal)
 	var speed := 0.88 + float(posmod(variant, 3)) * 0.08
@@ -139,7 +139,7 @@ static func create_kor_varn_canid_3d(prowling: bool = true, variant: int = 0) ->
 	var file_name := "Wolf.glb" if is_wolf else "Fox.glb"
 	var target_h := 1.08 if is_wolf else 0.78
 	var animal := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.ANIMALS_DIR + file_name, target_h, {}, false
+		SevaraAssetLibrary3D.ANIMALS_DIR + file_name, target_h, {}, true
 	)
 	root.add_child(animal)
 	var speed := 0.92 + float(posmod(variant, 3)) * 0.08
