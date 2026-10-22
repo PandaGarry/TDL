@@ -10,6 +10,7 @@ extends Node3D
 const TERRAIN_SHADER_PATH := "res://assets/shaders/sevara_terrain_3d.gdshader"
 const WATER_SHADER_PATH := "res://assets/shaders/sevara_water_3d.gdshader"
 
+var _built: bool = false
 var _world_env: WorldEnvironment
 var _environment: Environment
 var _sky_material: ProceduralSkyMaterial
@@ -30,6 +31,18 @@ var _last_eco_signature: String = ""
 
 func _init() -> void:
 	name = "SevaraWorld3D"
+	_camera_3d = Camera3D.new()
+	_camera_3d.name = "WorldCamera3D"
+	_camera_3d.current = true
+	_camera_3d.near = 0.2
+	_camera_3d.far = 260.0
+	add_child(_camera_3d)
+
+
+func ensure_built() -> void:
+	if _built or DisplayServer.get_name() == "headless":
+		return
+	_built = true
 	_build_environment_and_lights()
 	_build_terrain_and_water()
 	_static_root = Node3D.new()
@@ -42,6 +55,8 @@ func _init() -> void:
 	_actors_root.name = "ActorsAndCrates3D"
 	add_child(_actors_root)
 	_populate_static_scenery()
+	_rebuild_dynamic_ecology_if_needed({})
+	set_camera_preset(_camera_preset_index, Vector2i(12, 11))
 
 
 func camera_3d() -> Camera3D:
@@ -50,14 +65,14 @@ func camera_3d() -> Camera3D:
 
 func set_camera_preset(preset_index: int, focus_tile: Vector2i = Vector2i(14, 11)) -> void:
 	_camera_preset_index = posmod(preset_index, 3)
+	if _camera_3d == null:
+		return
 	var focus_pos := SevaraTerrainGen3D.tile_to_world_pos3d(focus_tile, 0.8)
 	if _camera_preset_index == 0:
-		# Strategic valley overview
 		var cam_pos := Vector3(0.0, 27.5, 29.5)
 		_camera_3d.fov = 40.0
 		_camera_3d.look_at_from_position(cam_pos, Vector3(0.0, 0.5, -1.5), Vector3.UP)
 	elif _camera_preset_index == 1:
-		# Balanced 3/4 gameplay camera over Nivara courtyard, sluice and bridge
 		var target := Vector3(
 			clampf(focus_pos.x * 0.35, -6.0, 6.0), 0.8, clampf(focus_pos.z * 0.35, -4.0, 5.0)
 		)
@@ -65,10 +80,9 @@ func set_camera_preset(preset_index: int, focus_tile: Vector2i = Vector2i(14, 11
 		_camera_3d.fov = 37.0
 		_camera_3d.look_at_from_position(cam_pos, target, Vector3.UP)
 	else:
-		# Immersive low-angle close-up showing 3D buildings, trees, horizon & sky
-		var target := focus_pos + Vector3(1.5, 0.6, -2.5)
-		var cam_pos := focus_pos + Vector3(-5.2, 5.6, 10.8)
-		_camera_3d.fov = 45.0
+		var target := Vector3(-2.5, 2.2, -3.5)
+		var cam_pos := Vector3(-11.5, 6.4, 14.5)
+		_camera_3d.fov = 46.0
 		_camera_3d.look_at_from_position(cam_pos, target, Vector3.UP)
 
 
@@ -78,11 +92,16 @@ func cycle_camera_preset(focus_tile: Vector2i = Vector2i(14, 11)) -> int:
 
 
 func sync_from_session(session: GameSession) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
 	var is_greybox := SettingsManager.texture_quality == SettingsManager.TEXTURE_QUALITY_GREYBOX
 	visible = not is_greybox
 	if _camera_3d != null:
 		_camera_3d.current = not is_greybox
-	if is_greybox or session == null:
+	if is_greybox:
+		return
+	ensure_built()
+	if session == null:
 		return
 	var world := session.world_state()
 	if world == null or not world.is_initialized():
@@ -94,7 +113,7 @@ func sync_from_session(session: GameSession) -> void:
 	var basin := SevaraEcoChain.basin_summary(world)
 	_update_shader_ecology_params(basin)
 	_rebuild_dynamic_ecology_if_needed(basin)
-	_rebuild_actors_and_crates(session, world, hour)
+	_rebuild_actors_and_crates(session, world)
 
 
 func _build_environment_and_lights() -> void:
@@ -127,14 +146,6 @@ func _build_environment_and_lights() -> void:
 	_sun_light.light_energy = 1.35
 	_sun_light.rotation_degrees = Vector3(-42.0, -34.0, 0.0)
 	add_child(_sun_light)
-
-	_camera_3d = Camera3D.new()
-	_camera_3d.name = "WorldCamera3D"
-	_camera_3d.current = true
-	_camera_3d.near = 0.2
-	_camera_3d.far = 260.0
-	add_child(_camera_3d)
-	set_camera_preset(1, Vector2i(12, 11))
 
 
 func _build_terrain_and_water() -> void:
@@ -173,32 +184,29 @@ func _bind_terrain_textures(mat: ShaderMaterial) -> void:
 		"tex_rock_normal": "res://assets/textures/sevara_p1/tex_stone_and_timber_normal.png",
 	}
 	for param_name in pairs.keys():
+		var key_str := String(param_name)
 		var tex := load(String(pairs[param_name])) as Texture2D
 		if tex != null:
-			mat.set_shader_parameter(String(param_name), tex)
+			mat.set_shader_parameter(key_str, tex)
 
 
 func _populate_static_scenery() -> void:
-	# 1) Nivara communal longhouse (Sarela's hearth + Selima's chronicle rack)
 	var longhouse := SevaraPropsFactory3D.build_longhouse_3d()
 	longhouse.position = Vector3(-14.5, SevaraTerrainGen3D.raw_terrain_height(-14.5, -5.2), -5.2)
 	longhouse.rotation_degrees = Vector3(0.0, 14.0, 0.0)
 	_static_root.add_child(longhouse)
 
-	# 2) Mavena's herbalist courtyard & stone quarantine pond
 	var herb_yard := SevaraPropsFactory3D.build_herbalist_yard_3d()
 	herb_yard.position = Vector3(-11.2, SevaraTerrainGen3D.raw_terrain_height(-11.2, 6.6), 6.6)
 	herb_yard.rotation_degrees = Vector3(0.0, 8.0, 0.0)
 	_static_root.add_child(herb_yard)
 
-	# 3) Wooden bridge across the Nivarel channel
 	var bridge := SevaraPropsFactory3D.build_wooden_bridge_3d()
 	var bx := SevaraTerrainGen3D.river_center_x(11.2)
 	bridge.position = Vector3(bx, SevaraTerrainGen3D.WATER_LEVEL_Y + 0.1, 11.2)
 	_static_root.add_child(bridge)
 
-	# 4) Torava pine forest along Toramek slope & western ridge
-	var pine_coords := [
+	var pine_coords: Array[Vector3] = [
 		Vector3(-22.0, 1.15, -14.0),
 		Vector3(-18.5, 1.25, -15.5),
 		Vector3(-13.0, 1.10, -15.8),
@@ -221,15 +229,14 @@ func _populate_static_scenery() -> void:
 		Vector3(10.0, 1.40, -24.5),
 		Vector3(24.0, 1.45, -23.0),
 	]
-	for p in pine_coords:
-		var snow_top := p.z < -13.0
+	for p: Vector3 in pine_coords:
+		var snow_top: bool = p.z < -13.0
 		var pine := SevaraPropsFactory3D.create_torava_pine_3d(p.y, snow_top)
 		pine.position = Vector3(p.x, SevaraTerrainGen3D.raw_terrain_height(p.x, p.z) - 0.1, p.z)
 		pine.rotation_degrees = Vector3(0.0, fmod(absf(p.x * 37.0 + p.z * 19.0), 360.0), 0.0)
 		_static_root.add_child(pine)
 
-	# 5) Flowering Mirval & Talina shrubs on the eastern Heravo meadow
-	var bush_coords := [
+	var bush_coords: Array[Vector3] = [
 		Vector3(9.2, 1.1, 2.5),
 		Vector3(13.5, 1.25, 5.2),
 		Vector3(17.8, 1.0, 1.8),
@@ -239,12 +246,11 @@ func _populate_static_scenery() -> void:
 		Vector3(-7.5, 0.9, 9.2),
 		Vector3(-16.2, 1.0, 3.8),
 	]
-	for b in bush_coords:
+	for b: Vector3 in bush_coords:
 		var bush := SevaraPropsFactory3D.create_mirval_blossom_bush_3d(b.y)
 		bush.position = Vector3(b.x, SevaraTerrainGen3D.raw_terrain_height(b.x, b.z), b.z)
 		_static_root.add_child(bush)
 
-	# 6) Granite boulders around the Kevar crater rim and riverbanks
 	for i in range(14):
 		var angle := (float(i) / 14.0) * TAU
 		var rad := SevaraTerrainGen3D.KEVAR_POOL_RADIUS + 1.1 + float(i % 3) * 0.65
@@ -262,7 +268,6 @@ func _apply_time_of_day_lighting(hour: int) -> void:
 	if _sun_light == null or _environment == null or _sky_material == null:
 		return
 	if hour >= 6 and hour < 11:
-		# Crisp spring morning golden light
 		_sun_light.rotation_degrees = Vector3(-34.0, -48.0, 0.0)
 		_sun_light.light_color = Color(1.0, 0.91, 0.76)
 		_sun_light.light_energy = 1.35
@@ -271,7 +276,6 @@ func _apply_time_of_day_lighting(hour: int) -> void:
 		_environment.fog_light_color = Color(0.82, 0.84, 0.80)
 		_environment.ambient_light_energy = 0.88
 	elif hour >= 11 and hour < 17:
-		# High clear spring midday
 		_sun_light.rotation_degrees = Vector3(-58.0, -22.0, 0.0)
 		_sun_light.light_color = Color(1.0, 0.97, 0.92)
 		_sun_light.light_energy = 1.45
@@ -280,7 +284,6 @@ func _apply_time_of_day_lighting(hour: int) -> void:
 		_environment.fog_light_color = Color(0.74, 0.84, 0.90)
 		_environment.ambient_light_energy = 0.95
 	elif hour >= 17 and hour < 21:
-		# Warm amber Sevaran dusk with long shadows
 		_sun_light.rotation_degrees = Vector3(-22.0, 46.0, 0.0)
 		_sun_light.light_color = Color(1.0, 0.62, 0.36)
 		_sun_light.light_energy = 1.15
@@ -289,7 +292,6 @@ func _apply_time_of_day_lighting(hour: int) -> void:
 		_environment.fog_light_color = Color(0.66, 0.48, 0.38)
 		_environment.ambient_light_energy = 0.62
 	else:
-		# Cool moonlit night
 		_sun_light.rotation_degrees = Vector3(-40.0, 120.0, 0.0)
 		_sun_light.light_color = Color(0.52, 0.66, 0.88)
 		_sun_light.light_energy = 0.48
@@ -357,33 +359,35 @@ func _rebuild_dynamic_ecology_if_needed(basin: Dictionary) -> void:
 	for child in _eco_root.get_children():
 		child.free()
 
-	# 1) Sluice gate + upstream Navelu beaver log dam
 	var sluice := SevaraPropsFactory3D.build_sluice_and_dam_3d(dams)
 	var sx := SevaraTerrainGen3D.river_center_x(-1.2)
 	sluice.position = Vector3(sx, SevaraTerrainGen3D.WATER_LEVEL_Y, -1.2)
 	_eco_root.add_child(sluice)
 
-	# 2) Navelu river builders near the upstream dam when intact
 	if dams > 0.25:
-		for offset in [Vector3(-1.4, 0.1, -8.8), Vector3(1.2, 0.1, -9.4)]:
+		var navelu_offsets: Array[Vector3] = [
+			Vector3(-1.4, 0.1, -8.8),
+			Vector3(1.2, 0.1, -9.4),
+		]
+		for offset: Vector3 in navelu_offsets:
 			var navelu := SevaraCreatures3D.create_navelu_builder_3d()
 			navelu.position = sluice.position + offset
 			navelu.rotation_degrees = Vector3(0.0, 35.0, 0.0)
 			_eco_root.add_child(navelu)
 
-	# 3) Selave filtration reed beds along both banks of the Nivarel channel
-	for z_reed in [-6.5, -4.2, 2.0, 4.5, 7.2, 14.0]:
+	var reed_z_list: Array[float] = [-6.5, -4.2, 2.0, 4.5, 7.2, 14.0]
+	var bank_sides: Array[float] = [-1.0, 1.0]
+	for z_reed: float in reed_z_list:
 		var rcx := SevaraTerrainGen3D.river_center_x(z_reed)
 		var rhw := SevaraTerrainGen3D.river_half_width(z_reed)
-		for side in [-1.0, 1.0]:
+		for side: float in bank_sides:
 			var reed := SevaraPropsFactory3D.create_selave_reed_clump_3d(selave)
 			reed.position = Vector3(
 				rcx + side * (rhw - 0.35), SevaraTerrainGen3D.WATER_LEVEL_Y - 0.05, z_reed
 			)
 			_eco_root.add_child(reed)
 
-	# 4) Harune horned grazers on the eastern Heravo meadow
-	var grazer_spots := [
+	var grazer_spots: Array[Vector3] = [
 		Vector3(12.2, 0.0, 6.2),
 		Vector3(15.6, 0.0, 8.4),
 		Vector3(14.0, 0.0, 3.2),
@@ -396,15 +400,14 @@ func _rebuild_dynamic_ecology_if_needed(basin: Dictionary) -> void:
 		harune.rotation_degrees = Vector3(0.0, -45.0 + float(i) * 52.0, 0.0)
 		_eco_root.add_child(harune)
 
-	# 5) Wild Kevalu ash-white mineral root tendrils creeping from Kevar toward Nivarel
 	if kevalu_wild > 0.04:
-		var tendril_spots := [
+		var tendril_spots: Array[Vector3] = [
 			Vector3(13.0, 0.0, -8.5),
 			Vector3(9.8, 0.0, -6.2),
 			Vector3(6.8, 0.0, -4.5),
 			Vector3(4.2, 0.0, -3.0),
 		]
-		for tp in tendril_spots:
+		for tp: Vector3 in tendril_spots:
 			var cluster := SevaraPropsFactory3D.create_kevalu_tendril_cluster_3d(kevalu_wild)
 			cluster.position = Vector3(
 				tp.x, SevaraTerrainGen3D.raw_terrain_height(tp.x, tp.z), tp.z
@@ -412,14 +415,13 @@ func _rebuild_dynamic_ecology_if_needed(basin: Dictionary) -> void:
 			_eco_root.add_child(cluster)
 
 
-func _rebuild_actors_and_crates(session: GameSession, world: WorldState, _hour: int) -> void:
+func _rebuild_actors_and_crates(session: GameSession, world: WorldState) -> void:
 	for child in _actors_root.get_children():
 		child.free()
 
 	var status := session.session_status()
 	var local_body_id := int(status.get("local_body_entity_id", -1))
 
-	# 1) Supply crate
 	var crate_id := GreyboxWorld.find_supply_object(world)
 	if crate_id > 0 and world.has_entity(crate_id):
 		var crate_tile := GreyboxWorld.position_from_component(
@@ -435,7 +437,6 @@ func _rebuild_actors_and_crates(session: GameSession, world: WorldState, _hour: 
 		crate_node.position = SevaraTerrainGen3D.tile_to_world_pos3d(crate_tile)
 		_actors_root.add_child(crate_node)
 
-	# 2) Player / participant bodies
 	for body_rec in GreyboxWorld.body_records(world):
 		var eid := int(body_rec.get("body_entity_id", -1))
 		var tile := Vector2i(int(body_rec.get("tile_x", 2)), int(body_rec.get("tile_y", 2)))
@@ -454,7 +455,6 @@ func _rebuild_actors_and_crates(session: GameSession, world: WorldState, _hour: 
 		actor_3d.rotation_degrees = Vector3(0.0, 25.0, 0.0)
 		_actors_root.add_child(actor_3d)
 
-	# 3) 8 Anchor NPCs of the P1 slice on their 3D valley workstations
 	for npc in SevaraP1Npcs.npcs_summary(world):
 		var npc_id := String(npc.get("npc_id", ""))
 		var default_tile := SevaraVisualTheme.npc_anchor_tile(npc_id)

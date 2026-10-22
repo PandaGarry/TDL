@@ -35,6 +35,7 @@ func _ready() -> void:
 func _install_backdrop_texture() -> void:
 	var bg_world := SevaraWorld3D.new()
 	bg_world.name = "MainMenuWorld3D"
+	bg_world.ensure_built()
 	bg_world.set_camera_preset(2, Vector2i(11, 11))
 	add_child(bg_world)
 
