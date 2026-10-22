@@ -416,6 +416,9 @@ func _populate_step2_boulders() -> void:
 		{"pos": Vector2(8.3, -4.6), "sc": Vector3(0.78, 0.45, 0.72), "moss": false},
 		{"pos": Vector2(10.2, -4.5), "sc": Vector3(0.72, 0.42, 0.68), "moss": false},
 		{"pos": Vector2(8.6, -1.0), "sc": Vector3(0.68, 0.38, 0.64), "moss": false},
+		{"pos": Vector2(7.6, -2.9), "sc": Vector3(0.74, 0.32, 0.68), "moss": false},
+		{"pos": Vector2(9.1, -2.7), "sc": Vector3(0.78, 0.34, 0.72), "moss": false},
+		{"pos": Vector2(10.5, -2.5), "sc": Vector3(0.70, 0.30, 0.65), "moss": false},
 		# Upper creek rapids & mossy bank boulders (z = -28..-8)
 		{"pos": Vector2(2.6, -9.8), "sc": Vector3(1.45, 1.05, 1.35), "moss": true},
 		{"pos": Vector2(9.2, -9.2), "sc": Vector3(1.30, 0.92, 1.20), "moss": true},
@@ -840,9 +843,9 @@ func _apply_camera_transform(immediate: bool = false) -> void:
 			look_target = Vector3(3.2, 0.9, -7.5)
 			fov = 36.0
 		"settlement_hearth":
-			cam_pos = Vector3(-0.8, 5.2, 4.4)
-			look_target = Vector3(6.8, 0.55, -2.8)
-			fov = 34.0
+			cam_pos = Vector3(1.8, 4.9, 4.2)
+			look_target = Vector3(8.8, 0.45, -2.8)
+			fov = 35.0
 		_:
 			var offset := Vector3(0.0, 12.2, 13.8)
 			fov = 38.0

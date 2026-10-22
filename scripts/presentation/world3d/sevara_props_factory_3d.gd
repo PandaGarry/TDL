@@ -443,7 +443,7 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 	root.name = "DenseMeadowsMultiMesh3D"
 	var is_mobile := OS.has_feature("mobile") or OS.get_name() in ["iOS", "Android"]
 	var blade_segs := 2 if is_mobile else 4
-	var vis_end := 74.0 if is_mobile else 96.0
+	var vis_end := 82.0 if is_mobile else 124.0
 	var dens := clampf(foliage_density * (0.78 if is_mobile else 1.0), 0.4, 2.0)
 
 	# 1. Spatial Chunked 4x3 Meadow Carpet across the 136 x 88 m CBT Proving Ground
@@ -483,13 +483,11 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 			if wy < SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14 or wy > 9.2:
 				continue
 			var path_w := SevaraTerrainGen3D.get_path_weight_at(wx, wz)
-			if path_w > 0.28:
+			if path_w > 0.22:
 				continue
 			var gn := SevaraTerrainGen3D.get_ground_normal(wx, wz)
-			var near_stream := absf(wx - SevaraTerrainGen3D.river_center_x(wz)) < 18.0
-			var min_up := 0.46 if near_stream else 0.68
-			# Leave only steep limestone cliff ledges exposed so valley slopes stay lush
-			if gn.y < min_up and path_w < 0.02:
+			# Keep all hillside slopes lush with grass (only vertical cliffs >65 deg bare)
+			if gn.y < 0.42 and path_w < 0.02:
 				continue
 			var bank_taper := smoothstep(
 				SevaraTerrainGen3D.WATER_SURFACE_Y + 0.12,
@@ -550,7 +548,7 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 			var r_cx := SevaraTerrainGen3D.river_center_x(wz)
 			var r_hw := SevaraTerrainGen3D.river_half_width(wz)
 			var norm_r := absf(wx - r_cx) / maxf(r_hw, 0.5)
-			var is_riverbank := norm_r >= 0.86 and norm_r <= 1.22 and pw < 0.35
+			var is_riverbank := norm_r >= 0.86 and norm_r <= 1.22 and pw < 0.14
 			var d_main := absf(SevaraTerrainGen3D._main_road_signed_dist(wx, wz))
 			var is_median := (
 				d_main < 0.23 and absf(wx) > 1.8 and norm_r > 0.95 and rng.randf() < 0.72
