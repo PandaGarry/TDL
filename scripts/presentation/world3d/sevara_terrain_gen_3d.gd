@@ -8,7 +8,7 @@ const VALLEY_WIDTH_M := 160.0
 const VALLEY_DEPTH_M := 120.0
 const WATER_SURFACE_Y := -0.18
 const WORLD_SCALE := TILE_SIZE_M / 32.0
-## Step 1 Look-Dev mode: clean rolling meadow + single winding footpath (no dry river trench or courtyard blotch).
+## Step 1 Look-Dev mode: clean rolling meadow + single winding footpath.
 const STEP1_CLEAN_MEADOW := true
 
 
