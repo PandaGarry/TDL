@@ -182,8 +182,8 @@ static func get_height_at(wx: float, wz: float) -> float:
 
 		var norm_r := dist_river / maxf(r_hw, 0.5)
 		var in_channel := clampf(1.0 - pow(norm_r, 1.9), 0.0, 1.0) * stream_fade
-		var ford_zone := road_c * exp(-pow((wz - (-2.8)) / 3.4, 2.0))
-		var carve_depth := lerpf(0.94, 0.46, clampf(ford_zone * 0.85, 0.0, 0.85))
+		var ford_zone := road_c * exp(-pow((wz - 2.68) / 3.4, 2.0))
+		var carve_depth := lerpf(0.94, 0.36, clampf(ford_zone * 0.90, 0.0, 0.90))
 		return h_bank - in_channel * carve_depth
 
 	# 1. Toramek NW mountain slope & rocky ridges
@@ -426,7 +426,7 @@ static func _add_water_vertex(st: SurfaceTool, pos: Vector3, half_w: float, half
 	var shore_prox := clampf(1.0 - water_depth * 1.35, 0.0, 1.0)
 	var rapids_fac := clampf(
 		(
-			exp(-pow((pos.z - (-2.8)) / 5.5, 2.0)) * 0.90
+			exp(-pow((pos.z - 2.68) / 4.2, 2.0)) * 0.90
 			+ exp(-pow((pos.z - (-15.0)) / 7.5, 2.0)) * 0.70
 		),
 		0.0,

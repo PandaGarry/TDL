@@ -137,9 +137,9 @@ void fragment() {
 	float shore_zone = (1.0 - smoothstep(0.03, 0.13, water_depth)) * smoothstep(0.01, 0.04, water_depth);
 	float shore_lace = smoothstep(0.60, 0.80, fn1 * fn2 * 2.05) * shore_zone * 0.38;
 
-	// 2) Fine current wisps across the stone ford (z ~ -2.8) and boulder rapids
+	// 2) Fine current wisps across the stone ford (z ~ +2.68) and boulder rapids
 	float r_cx = river_center_x(v_world_pos.z);
-	float d_ford = length(vec2((v_world_pos.x - r_cx) * 0.65, v_world_pos.z - (-2.8)));
+	float d_ford = length(vec2((v_world_pos.x - r_cx) * 0.65, v_world_pos.z - 2.68));
 	float d_rapid1 = abs(v_world_pos.z - (-15.0));
 	float d_rapid2 = abs(v_world_pos.z - 6.2);
 	float rapid_zone = max(
