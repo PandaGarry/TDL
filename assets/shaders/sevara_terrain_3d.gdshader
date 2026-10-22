@@ -65,43 +65,39 @@ void fragment() {
 	float soft_grain = fbm(xz * 0.55) * 2.0 - 1.0;
 
 	// 1. Base velvety meadow ground (matches grass blade roots 1:1 up close,
-	// and warms toward sunlit blade tips in the distance so far hills blend seamlessly)
+	// and transitions to the exact blade-tip palette in the distance so far hills have zero seam)
 	vec3 col = meadow_ground_palette(xz);
-	float far_blend = smoothstep(24.0, 44.0, length(xz));
-	vec3 far_meadow_col = mix(vec3(0.26, 0.42, 0.17), vec3(0.35, 0.48, 0.19), fbm(xz * 0.07));
-	col = mix(col, far_meadow_col, far_blend * 0.65);
-	col *= (1.0 + soft_grain * 0.035);
+	float warm_patch = fbm(xz * 0.08 + vec2(3.1, 1.7));
+	vec3 far_tip_col = mix(vec3(0.25, 0.41, 0.16), vec3(0.34, 0.46, 0.18), smoothstep(0.28, 0.76, warm_patch));
+	float far_blend = smoothstep(26.0, 44.0, length(xz));
+	col = mix(col, far_tip_col, far_blend * 0.92);
+	col *= (1.0 + soft_grain * 0.03);
 
-	// 2. Organic earthen footpath with grassy wheel-track median, trampled olive verge & embedded pebbles
+	// 2. Clean, natural earthen footpath with soft olive-turf shoulder and fine soil grain
 	float w_path = clamp(v_path_and_wet.x, 0.0, 1.0);
 	if (w_path > 0.01) {
-		float edge_noise = (fbm(xz * 0.65) - 0.5) * 0.18 + (value_noise(xz * 1.8) - 0.5) * 0.08;
+		float edge_noise = (fbm(xz * 0.75) - 0.5) * 0.12;
 		float wp = w_path + edge_noise;
 
-		// Trampled dry-olive turf verge right where short grass blades taper out (zero neon green strip!)
-		float verge_mask = smoothstep(0.18, 0.38, wp) * (1.0 - smoothstep(0.46, 0.70, wp));
-		vec3 verge_col = vec3(0.26, 0.29, 0.16) * (1.0 + soft_grain * 0.05);
-		col = mix(col, verge_col, verge_mask * 0.85);
+		// Soft olive-loam shoulder blending grass roots into the compacted trail
+		float verge_mask = smoothstep(0.26, 0.48, wp);
+		vec3 verge_col = vec3(0.25, 0.30, 0.16);
+		col = mix(col, verge_col, verge_mask * 0.75);
 
-		// Packed warm loam core with subtle twin wheel/foot tracks and center crown
-		float path_mask = smoothstep(0.34, 0.66, wp);
-		float center_crown = smoothstep(0.72, 0.96, w_path) * (0.4 + 0.6 * fbm(xz * 0.5));
-		vec3 loam_track = vec3(0.42, 0.33, 0.23) * (1.0 + soft_grain * 0.06);
-		vec3 loam_edge = vec3(0.34, 0.27, 0.19);
-		vec3 loam_crown = vec3(0.35, 0.33, 0.20);
-		vec3 path_col = mix(loam_edge, loam_track, smoothstep(0.38, 0.74, wp));
-		path_col = mix(path_col, loam_crown, center_crown * 0.45);
-
-		// Subtle flat embedded stones along the compacted dirt
-		float peb_n = value_noise(xz * 3.6);
-		float peb_mask = smoothstep(0.76, 0.86, peb_n) * smoothstep(0.40, 0.65, wp);
-		vec3 peb_col = vec3(0.46, 0.43, 0.38);
-		path_col = mix(path_col, peb_col, peb_mask * 0.38);
+		// Compacted warm soil core with fine micro-grain (no blotchy spots)
+		float fine_soil = (fbm(xz * 4.5) - 0.5) * 0.05;
+		float path_mask = smoothstep(0.42, 0.72, wp);
+		float center_crown = smoothstep(0.76, 0.98, w_path);
+		vec3 loam_track = vec3(0.41, 0.32, 0.22) * (1.0 + fine_soil);
+		vec3 loam_edge = vec3(0.33, 0.27, 0.18);
+		vec3 loam_crown = vec3(0.36, 0.31, 0.21) * (1.0 + fine_soil);
+		vec3 path_col = mix(loam_edge, loam_track, smoothstep(0.44, 0.78, wp));
+		path_col = mix(path_col, loam_crown, center_crown * 0.38);
 
 		col = mix(col, path_col, path_mask);
 	}
 
-	// 3. Gently sloped sandy-loam streambed & bank margin
+	// 3. Gently sloped sandy-loam streambed & bank margin (Step 2+)
 	float w_pebbles = clamp(v_weights.g, 0.0, 1.0);
 	if (w_pebbles > 0.01) {
 		float bank_noise = (fbm(xz * 0.35) - 0.5) * 0.16;
@@ -110,14 +106,9 @@ void fragment() {
 		col = mix(col, bank_col * (1.0 + soft_grain * 0.04), bank_mask);
 	}
 
-	// 4. Steep highland rock outcrops on the distant valley rim
-	float slope = 1.0 - clamp(v_world_nrm.y, 0.0, 1.0);
-	float w_rock = max(clamp(v_weights.b, 0.0, 1.0), smoothstep(0.18, 0.42, slope));
-	if (w_rock > 0.01) {
-		float rock_mask = smoothstep(0.15, 0.65, w_rock);
-		vec3 rock_col = mix(vec3(0.30, 0.32, 0.33), vec3(0.38, 0.39, 0.38), fbm(xz * 0.22));
-		col = mix(col, rock_col, rock_mask);
-	}
+	// 4. Subtle distant atmospheric perspective on the far valley rim hills
+	float rim_haze = smoothstep(52.0, 88.0, length(xz));
+	col = mix(col, vec3(0.34, 0.44, 0.36), rim_haze * 0.45);
 
 	ALBEDO = col;
 	ROUGHNESS = 0.92;

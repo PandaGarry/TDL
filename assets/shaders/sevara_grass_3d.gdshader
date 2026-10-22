@@ -9,8 +9,8 @@ render_mode blend_mix, depth_draw_opaque, cull_disabled, diffuse_burley, specula
 // 3. Soft, calm wind waves roll across the tips without noisy per-pixel speckles.
 
 uniform vec3 root_color : source_color = vec3(0.17, 0.30, 0.13);
-uniform vec3 tip_color : source_color = vec3(0.27, 0.43, 0.17);
-uniform vec3 tip_color_warm : source_color = vec3(0.38, 0.49, 0.19);
+uniform vec3 tip_color : source_color = vec3(0.25, 0.41, 0.16);
+uniform vec3 tip_color_warm : source_color = vec3(0.34, 0.46, 0.18);
 uniform float blade_height : hint_range(0.15, 1.5) = 0.34;
 uniform vec2 wind_direction = vec2(0.88, 0.47);
 uniform float wind_strength : hint_range(0.0, 3.0) = 0.72;

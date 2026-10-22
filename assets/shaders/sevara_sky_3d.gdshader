@@ -44,34 +44,34 @@ void sky() {
 	vec3 dir = normalize(EYEDIR);
 	float y = dir.y;
 
-	// Base atmospheric gradient
-	float zenith_t = pow(clamp(y, 0.0, 1.0), 0.58);
+	// Base atmospheric gradient tuned for 3/4 valley camera angles (y = 0.0 .. 0.22)
+	float zenith_t = smoothstep(0.0, 0.20, clamp(y, 0.0, 1.0));
 	vec3 col = mix(sky_horizon_color, sky_top_color, zenith_t);
 
 	// Sun Mie scattering & warm morning glow
 	vec3 sun_dir = normalize(LIGHT0_DIRECTION);
 	float sun_dot = max(dot(dir, sun_dir), 0.0);
-	float mie_glow = pow(sun_dot, 6.0) * 0.38 + pow(sun_dot, 32.0) * 0.45;
-	float sun_disc = smoothstep(0.9982, 0.9996, sun_dot) * 2.2;
+	float mie_glow = pow(sun_dot, 5.0) * 0.34 + pow(sun_dot, 24.0) * 0.40;
+	float sun_disc = smoothstep(0.9982, 0.9996, sun_dot) * 2.0;
 	vec3 sun_col = vec3(1.0, 0.88, 0.66);
 	col += sun_col * (mie_glow + sun_disc);
 
-	// Layered procedural clouds above the horizon
+	// Layered procedural clouds visible right above the mountain ridges (y > 0.015)
 	if (y > 0.01) {
-		vec2 cloud_uv = dir.xz / (y + 0.16);
+		vec2 cloud_uv = dir.xz / (y + 0.26);
 		float t = TIME * cloud_speed;
-		float n_base = fbm(cloud_uv * 1.15 + vec2(t, t * 0.45));
-		float n_detail = fbm(cloud_uv * 2.85 - vec2(t * 0.6, -t * 0.8));
-		float cloud_density = smoothstep(1.0 - cloud_coverage, 1.0 - cloud_coverage + 0.34, n_base * 0.72 + n_detail * 0.28);
+		float n_base = fbm(cloud_uv * 1.35 + vec2(t, t * 0.45));
+		float n_detail = fbm(cloud_uv * 3.10 - vec2(t * 0.6, -t * 0.8));
+		float cloud_density = smoothstep(1.0 - cloud_coverage, 1.0 - cloud_coverage + 0.32, n_base * 0.72 + n_detail * 0.28);
 
 		// Cloud internal self-shadowing + golden sun-lining
-		float light_sample = fbm((cloud_uv + sun_dir.xz * 0.08) * 1.15 + vec2(t, t * 0.45));
-		float cloud_lit = smoothstep(0.32, 0.72, n_base - light_sample * 0.35 + 0.38);
+		float light_sample = fbm((cloud_uv + sun_dir.xz * 0.08) * 1.35 + vec2(t, t * 0.45));
+		float cloud_lit = smoothstep(0.30, 0.70, n_base - light_sample * 0.35 + 0.38);
 		vec3 c_col = mix(cloud_shadow_color, cloud_bright_color, cloud_lit);
-		c_col += sun_col * pow(sun_dot, 4.0) * (1.0 - cloud_density * 0.5) * 0.45;
+		c_col += sun_col * pow(sun_dot, 4.0) * (1.0 - cloud_density * 0.5) * 0.40;
 
-		float horizon_fade = smoothstep(0.01, 0.18, y);
-		col = mix(col, c_col, cloud_density * horizon_fade * 0.88);
+		float horizon_fade = smoothstep(0.012, 0.075, y);
+		col = mix(col, c_col, cloud_density * horizon_fade * 0.86);
 	} else {
 		float ground_t = pow(clamp(-y, 0.0, 1.0), 0.55);
 		col = mix(sky_horizon_color, ground_bottom_color, ground_t);

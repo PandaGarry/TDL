@@ -458,15 +458,15 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 			if wy < SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14 or wy > 5.4:
 				continue
 			var path_w := SevaraTerrainGen3D.get_path_weight_at(wx, wz)
-			if path_w > 0.56:
+			if path_w > 0.34:
 				continue
 			var gn := SevaraTerrainGen3D.get_ground_normal(wx, wz)
 			if gn.y < 0.76:
 				continue
-			var edge_taper := 1.0 - smoothstep(0.10, 0.56, path_w) * 0.78
-			var height_mult := clampf(edge_taper * rng.randf_range(0.86, 1.14), 0.18, 1.25)
+			var edge_taper := 1.0 - smoothstep(0.08, 0.34, path_w) * 0.72
+			var height_mult := clampf(edge_taper * rng.randf_range(0.86, 1.14), 0.24, 1.25)
 			var patch_scale := clampf(
-				(0.48 + 0.52 * edge_taper) * rng.randf_range(0.92, 1.12), 0.40, 1.15
+				(0.56 + 0.44 * edge_taper) * rng.randf_range(0.92, 1.12), 0.48, 1.15
 			)
 			var basis := _align_up_with_yaw(gn, rng.randf() * TAU, patch_scale)
 			patch_transforms.append(Transform3D(basis, Vector3(wx, wy - 0.015, wz)))
