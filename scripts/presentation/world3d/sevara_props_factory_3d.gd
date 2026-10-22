@@ -63,17 +63,29 @@ static func create_boulder_3d(scale_vec: Vector3 = Vector3.ONE, mossy: bool = tr
 	var style := {
 		"rock":
 		{
-			"moss_amount": 0.65 if mossy else 0.12,
-			"snow_amount": 0.18 if scale_vec.y > 1.25 else 0.04,
-			"wetness": 0.18 if mossy else 0.45,
+			"moss_amount": 0.62 if mossy else 0.14,
+			"snow_amount": 0.08 if scale_vec.y > 1.35 else 0.0,
+			"wetness": 0.22 if mossy else 0.58,
 			"triplanar": 1.0,
 		}
 	}
 	var mesh := SevaraAssetLibrary3D.nature_mesh(model_name, style)
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
-	mi.scale = scale_vec * 0.92
+	# Raw `Rock_Medium` glTF is ~3.2x2.2x3.0m; 0.30x gives realistic 0.6..1.4m valley boulders
+	mi.scale = scale_vec * 0.30
+	mi.rotation = Vector3(0.11 * sin(scale_vec.x * 7.0), 0.0, -0.09 * cos(scale_vec.z * 5.0))
 	root.add_child(mi)
+
+	if mossy and scale_vec.x > 0.95:
+		var sub_idx := (idx + 1) % ROCK_MODELS.size()
+		var sub_mesh := SevaraAssetLibrary3D.nature_mesh(ROCK_MODELS[sub_idx], style)
+		var sub_mi := MeshInstance3D.new()
+		sub_mi.mesh = sub_mesh
+		sub_mi.scale = scale_vec * Vector3(0.14, 0.11, 0.14)
+		sub_mi.position = Vector3(scale_vec.x * 0.34, -0.03, scale_vec.z * 0.22)
+		sub_mi.rotation = Vector3(-0.12, 1.85, 0.08)
+		root.add_child(sub_mi)
 	return root
 
 
@@ -474,8 +486,8 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 			if path_w > 0.28:
 				continue
 			var gn := SevaraTerrainGen3D.get_ground_normal(wx, wz)
-			# Leave only steep limestone terrace ledges exposed so rock strata read clearly
-			if gn.y < 0.81 and path_w < 0.02:
+			# Leave only steep limestone cliff ledges exposed so hilltops stay lush
+			if gn.y < 0.68 and path_w < 0.02:
 				continue
 			var bank_taper := smoothstep(
 				SevaraTerrainGen3D.WATER_SURFACE_Y + 0.12,

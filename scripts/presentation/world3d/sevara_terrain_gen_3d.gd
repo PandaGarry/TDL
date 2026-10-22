@@ -42,9 +42,10 @@ static func river_center_x(wz: float) -> float:
 
 
 static func river_half_width(wz: float) -> float:
-	var base_w := 2.55 + smoothstep(-32.0, 28.0, wz) * 0.85
-	var pool_w := exp(-pow((wz - 11.0) / 7.5, 2.0)) * 1.25
-	return base_w + pool_w
+	var base_w := 2.35 + smoothstep(-32.0, 28.0, wz) * 0.75
+	var pool_w := exp(-pow((wz - 11.0) / 7.5, 2.0)) * 1.15
+	var bank_wave := sin(wz * 0.34 + 0.5) * 0.26 + cos(wz * 0.68 - 0.8) * 0.15
+	return base_w + pool_w + bank_wave
 
 
 static func wetland_pool_factor(wx: float, wz: float) -> float:

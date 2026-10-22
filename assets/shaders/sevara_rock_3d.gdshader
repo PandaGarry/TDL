@@ -1,18 +1,19 @@
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
 
-// Step 2 3D Procedural Granite, Slate & Mossy Boulder Shader for Sevara Valley:
-// - 100% procedural 3D stratified rock fracture, quartz grain & analytical 3D micro-normals.
+// Step 2 3D Triplanar Granite, Slate & Mossy Boulder Shader (v2 — Zero Vertical UV Stretch):
+// - True 3-axis triplanar procedural noise (XY, YZ, XZ) so vertical rock faces have crisp angular
+//   fracture detail instead of vertical stretching.
 // - Top moss cushions matched to `meadow_ground_palette` of Step 1 grass & terrain.
 // - Wet river sheen & waterline darkening near Nivarel creek (`WATER_SURFACE_Y = 0.42`).
 
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform sampler2D moss_tex : source_color, filter_linear_mipmap, repeat_enable;
-uniform vec3 tint : source_color = vec3(0.88, 0.90, 0.92);
+uniform vec3 tint : source_color = vec3(0.90, 0.90, 0.88);
 uniform vec3 moss_color : source_color = vec3(0.23, 0.37, 0.15);
-uniform float moss_amount : hint_range(0.0, 1.0) = 0.65;
-uniform float snow_amount : hint_range(0.0, 1.0) = 0.08;
+uniform float moss_amount : hint_range(0.0, 1.0) = 0.62;
+uniform float snow_amount : hint_range(0.0, 1.0) = 0.06;
 uniform float wetness : hint_range(0.0, 1.0) = 0.24;
 uniform float triplanar : hint_range(0.0, 1.0) = 1.0;
 uniform float triplanar_scale : hint_range(0.02, 2.0) = 0.34;
@@ -50,11 +51,29 @@ float fbm(vec2 p) {
 	return v;
 }
 
-float rock_micro_height(vec3 p) {
-	float strata = sin(p.y * 8.5 + fbm(p.xz * 1.4) * 3.4) * 0.5 + 0.5;
-	float crag = fbm(p.xz * 3.8 + vec2(p.y * 2.1, -p.y * 1.7));
-	float grain = value_noise(p.xz * 16.0 + vec2(p.y * 9.0));
-	return strata * 0.038 + crag * 0.028 + grain * 0.008;
+// True 3-axis triplanar FBM (eliminates vertical stretching on steep boulder sides!)
+float triplanar_fbm(vec3 p, vec3 n, float scale) {
+	vec3 w = pow(abs(n), vec3(3.0));
+	w /= max(w.x + w.y + w.z, 0.0001);
+	float nx = fbm(p.yz * scale + vec2(2.3, -1.7));
+	float ny = fbm(p.xz * scale);
+	float nz = fbm(p.xy * scale + vec2(-3.1, 4.2));
+	return nx * w.x + ny * w.y + nz * w.z;
+}
+
+float triplanar_grain(vec3 p, vec3 n, float scale) {
+	vec3 w = abs(n);
+	w /= max(w.x + w.y + w.z, 0.0001);
+	return value_noise(p.yz * scale) * w.x
+		+ value_noise(p.xz * scale) * w.y
+		+ value_noise(p.xy * scale) * w.z;
+}
+
+float rock_micro_height(vec3 p, vec3 n) {
+	float crag = triplanar_fbm(p, n, 2.8);
+	float detail = triplanar_fbm(p + vec3(3.1, 1.4, -2.2), n, 7.5);
+	float strata = sin(p.y * 7.2 + crag * 4.2) * 0.5 + 0.5;
+	return crag * 0.032 + detail * 0.016 + strata * 0.018;
 }
 
 vec3 meadow_ground_palette(vec2 xz) {
@@ -75,52 +94,56 @@ void vertex() {
 }
 
 void fragment() {
-	// 1. Analytical 3D Rock Fracture & Moss Cushion Micro-Normals
-	float eps = 0.025;
-	float h0 = rock_micro_height(v_world);
-	float hx = rock_micro_height(v_world + vec3(eps, 0.0, 0.0));
-	float hz = rock_micro_height(v_world + vec3(0.0, 0.0, eps));
-	vec3 d_h = vec3((h0 - hx) / eps, 0.0, (h0 - hz) / eps);
-	vec3 world_nrm = normalize(v_wnormal + d_h * 0.95);
+	vec3 base_n = normalize(v_wnormal);
+	// 1. Full 3D Analytical Rock Fracture & Grain Micro-Normals (along X, Y, and Z)
+	float eps = 0.024;
+	float h0 = rock_micro_height(v_world, base_n);
+	float hx = rock_micro_height(v_world + vec3(eps, 0.0, 0.0), base_n);
+	float hy = rock_micro_height(v_world + vec3(0.0, eps, 0.0), base_n);
+	float hz = rock_micro_height(v_world + vec3(0.0, 0.0, eps), base_n);
+	vec3 grad = vec3(h0 - hx, h0 - hy, h0 - hz) / eps;
+	// Project gradient onto surface tangent plane
+	grad -= base_n * dot(grad, base_n);
+	vec3 world_nrm = normalize(base_n + grad * 0.85);
 	NORMAL = normalize((VIEW_MATRIX * vec4(world_nrm, 0.0)).xyz);
 
-	// 2. Stratified Northern Granite & Warm Limestone Palette
-	float strata = sin(v_world.y * 8.5 + fbm(v_world.xz * 1.4) * 3.4) * 0.5 + 0.5;
-	float crag = fbm(v_world.xz * 3.6 + vec2(v_world.y * 1.9));
-	float lichen = fbm(v_world.xz * 7.2 + vec2(4.1, -2.7));
-	float grain = value_noise(v_world.xz * 18.0);
+	// 2. Natural Weathered Granite, Warm Sandstone & Lichen Palette
+	float crag = triplanar_fbm(v_world, base_n, 2.6);
+	float detail = triplanar_fbm(v_world + vec3(5.2, -1.8, 3.4), base_n, 6.8);
+	float grain = triplanar_grain(v_world, base_n, 18.0);
+	float strata = sin(v_world.y * 7.2 + crag * 4.2) * 0.5 + 0.5;
 
-	vec3 slate_deep = vec3(0.24, 0.26, 0.27);
-	vec3 granite_mid = vec3(0.36, 0.35, 0.33);
-	vec3 limestone_warm = vec3(0.46, 0.42, 0.36);
+	vec3 slate_dark = vec3(0.25, 0.26, 0.25);
+	vec3 granite_warm = vec3(0.38, 0.36, 0.32);
+	vec3 sandstone_pale = vec3(0.47, 0.43, 0.36);
 
-	vec3 c = mix(slate_deep, granite_mid, smoothstep(0.18, 0.68, strata * 0.60 + crag * 0.40));
-	c = mix(c, limestone_warm, smoothstep(0.55, 0.88, crag) * 0.65);
-	// Pale gold/sage crustose lichen specks on dry rock faces
-	c = mix(c, vec3(0.44, 0.45, 0.32), smoothstep(0.68, 0.90, lichen) * 0.35);
-	c *= (0.86 + 0.24 * grain) * tint;
+	vec3 c = mix(slate_dark, granite_warm, smoothstep(0.20, 0.72, crag * 0.65 + strata * 0.35));
+	c = mix(c, sandstone_pale, smoothstep(0.54, 0.86, detail) * 0.58);
+	// Crustose lichen patches
+	c = mix(c, vec3(0.42, 0.44, 0.30), smoothstep(0.66, 0.88, detail * crag * 1.6) * 0.40);
+	c *= (0.85 + 0.26 * grain) * tint;
 	if (length(v_custom.rgb) > 0.02) {
 		c *= v_custom.rgb;
 	}
 
 	float up = world_nrm.y;
-	c *= 0.80 + 0.28 * smoothstep(-0.20, 0.88, up);
+	c *= 0.82 + 0.26 * smoothstep(-0.25, 0.85, up);
 
-	// 3. Velvety Moss Cushions on Upper Faces (synced with Step 1 meadow palette)
+	// 3. Soft Frayed Moss Cushions on Upper Faces (synced with Step 1 meadow palette)
 	float inst_moss = v_custom.a > 0.01 ? v_custom.a : moss_amount;
-	float moss_mask = smoothstep(0.36, 0.72, up + (crag - 0.5) * 0.42) * inst_moss;
-	// Keep submerged base free of bright dry moss
-	moss_mask *= smoothstep(0.44, 0.68, v_world.y);
+	float moss_edge_noise = (detail - 0.5) * 0.48 + (grain - 0.5) * 0.22;
+	float moss_mask = smoothstep(0.46, 0.76, up + moss_edge_noise) * inst_moss;
+	moss_mask *= smoothstep(0.46, 0.66, v_world.y);
 	vec3 ground_moss = meadow_ground_palette(v_world.xz);
-	vec3 rich_moss = mix(moss_color, ground_moss, 0.72) * (0.86 + 0.26 * lichen);
-	c = mix(c, rich_moss, clamp(moss_mask, 0.0, 0.88));
+	vec3 rich_moss = mix(moss_color, ground_moss, 0.75) * (0.86 + 0.24 * detail);
+	c = mix(c, rich_moss, clamp(moss_mask, 0.0, 0.84));
 
 	// 4. Wet River Sheen near Nivarel Creek Waterline (WATER_SURFACE_Y = 0.42)
-	float water_prox = 1.0 - smoothstep(0.38, 0.76, v_world.y);
-	float wet = clamp(wetness * 0.45 + water_prox * 0.78, 0.0, 0.90);
-	c *= mix(1.0, 0.62, wet);
+	float water_prox = 1.0 - smoothstep(0.38, 0.68, v_world.y);
+	float wet = clamp(wetness * 0.35 + water_prox * 0.78, 0.0, 0.88);
+	c *= mix(1.0, 0.66, wet);
 
 	ALBEDO = c;
-	ROUGHNESS = mix(mix(0.84, 0.92, moss_mask), 0.22, wet);
-	SPECULAR = mix(0.18, 0.56, wet);
+	ROUGHNESS = mix(mix(0.86, 0.92, moss_mask), 0.24, wet);
+	SPECULAR = mix(0.16, 0.52, wet);
 }

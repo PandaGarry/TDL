@@ -439,8 +439,11 @@ func _populate_step2_boulders() -> void:
 	for r_idx in range(step2_rocks.size()):
 		var rs: Dictionary = step2_rocks[r_idx]
 		var rp: Vector2 = rs["pos"]
-		var boulder := SevaraPropsFactory3D.create_boulder_3d(rs["sc"] as Vector3, bool(rs["moss"]))
-		boulder.position = Vector3(rp.x, SevaraTerrainGen3D.get_height_at(rp.x, rp.y) - 0.08, rp.y)
+		var sc_v: Vector3 = rs["sc"]
+		var boulder := SevaraPropsFactory3D.create_boulder_3d(sc_v, bool(rs["moss"]))
+		boulder.position = Vector3(
+			rp.x, SevaraTerrainGen3D.get_height_at(rp.x, rp.y) - 0.11 * sc_v.y, rp.y
+		)
 		boulder.rotation.y = float(r_idx) * 1.18
 		_ecology_root.add_child(boulder)
 
@@ -829,16 +832,16 @@ func _apply_camera_transform(immediate: bool = false) -> void:
 			look_target = Vector3(5.5, 1.1, -5.5)
 			fov = 38.0
 		"heravo_meadow":
-			cam_pos = Vector3(-11.5, 5.4, 6.2)
-			look_target = Vector3(6.8, 0.9, -3.6)
+			cam_pos = Vector3(-10.5, 5.6, 6.8)
+			look_target = Vector3(5.8, 0.85, -3.8)
 			fov = 36.0
 		"nivarel_rapids":
 			cam_pos = Vector3(17.5, 5.6, 8.8)
 			look_target = Vector3(3.2, 0.9, -7.5)
 			fov = 36.0
 		"settlement_hearth":
-			cam_pos = Vector3(2.2, 4.5, 3.6)
-			look_target = Vector3(8.4, 0.55, -3.0)
+			cam_pos = Vector3(-0.8, 5.2, 4.4)
+			look_target = Vector3(6.8, 0.55, -2.8)
 			fov = 34.0
 		_:
 			var offset := Vector3(0.0, 12.2, 13.8)
