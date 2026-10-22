@@ -52,6 +52,7 @@ var _actor_nodes: Dictionary = {}
 var _actor_targets: Dictionary = {}
 var _crate_nodes: Dictionary = {}
 
+var _last_meadow_signature: String = ""
 var _last_eco_signature: String = ""
 var _camera_zoom_index: int = 1
 var _camera_lookpoint: String = "follow"
@@ -228,8 +229,17 @@ func sync_from_session(session: GameSession) -> Dictionary:
 	var scav_q := int(round(float(meadow_node.get("karune_predators", 0.25)) * 10.0))
 	var gfx: Dictionary = SettingsManager.graphics_profile()
 	var fol_dens := float(gfx.get("foliage_density", 1.0))
+	var meadow_sig := "%.2f" % fol_dens
+	if meadow_sig != _last_meadow_signature:
+		_last_meadow_signature = meadow_sig
+		for child: Node in _meadow_multimesh_root.get_children():
+			child.free()
+		_meadow_multimesh_root.add_child(
+			SevaraPropsFactory3D.build_dense_meadow_multimeshes(fol_dens)
+		)
+
 	var eco_sig := (
-		"%s|%d|%s|%d|%d|%d|%.2f"
+		"%s|%d|%s|%d|%d|%d"
 		% [
 			str(p1_active),
 			int(avg_silt * 20.0),
@@ -237,7 +247,6 @@ func sync_from_session(session: GameSession) -> Dictionary:
 			canopy_q,
 			herb_q,
 			scav_q,
-			fol_dens,
 		]
 	)
 	if eco_sig != _last_eco_signature:
@@ -387,7 +396,9 @@ func _build_containers() -> void:
 
 
 func _populate_static_settlement() -> void:
-	_meadow_multimesh_root.add_child(SevaraPropsFactory3D.build_dense_meadow_multimeshes(1.0))
+	var fol_dens := float(SettingsManager.graphics_profile().get("foliage_density", 1.0))
+	_last_meadow_signature = "%.2f" % fol_dens
+	_meadow_multimesh_root.add_child(SevaraPropsFactory3D.build_dense_meadow_multimeshes(fol_dens))
 	if LOOKDEV_STEP >= 4:
 		SevaraPropsFactory3D.populate_static_settlement(_settlement_root)
 
@@ -397,17 +408,12 @@ func _rebuild_ecology_and_npcs(
 	p1_active: bool,
 	basin: Dictionary,
 	any_kevalu_wild: bool,
-	foliage_density: float
+	_foliage_density: float
 ) -> void:
-	for child: Node in _meadow_multimesh_root.get_children():
-		child.free()
 	for child: Node in _ecology_root.get_children():
 		child.free()
 	for child: Node in _npcs_root.get_children():
 		child.free()
-
-	var mm_bundle := SevaraPropsFactory3D.build_dense_meadow_multimeshes(foliage_density)
-	_meadow_multimesh_root.add_child(mm_bundle)
 	if LOOKDEV_STEP < 3:
 		return
 

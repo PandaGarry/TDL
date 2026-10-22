@@ -429,12 +429,16 @@ static func create_supply_crate_3d(
 static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node3D:
 	var root := Node3D.new()
 	root.name = "DenseMeadowsMultiMesh3D"
-	var dens := clampf(foliage_density, 0.4, 2.0)
+	var is_mobile := OS.has_feature("mobile") or OS.get_name() in ["iOS", "Android"]
+	var blade_segs := 2 if is_mobile else 4
+	var vis_end := 74.0 if is_mobile else 96.0
+	var dens := clampf(foliage_density * (0.78 if is_mobile else 1.0), 0.4, 2.0)
 
-	# 1. Primary Meadow Carpet across the 110 x 80 m CBT Proving Ground
-	var patch_mesh := SevaraAssetLibrary3D.build_grass_patch_mesh(86, 1.05, 0.036, 107)
-	var patch_transforms: Array[Transform3D] = []
-	var patch_customs: Array[Color] = []
+	# 1. Spatial Chunked 4x3 Meadow Carpet across the 136 x 88 m CBT Proving Ground
+	#    (per-sector AABBs enable hardware Frustum Culling + distance visibility range fading)
+	var patch_mesh := SevaraAssetLibrary3D.build_grass_patch_mesh(
+		86, 1.05, 0.036, 107, {"segments": blade_segs}
+	)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 4072026
 
@@ -445,6 +449,17 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 	var z_max := 30.0
 	var gx_count := int(round((x_max - x_min) / step))
 	var gz_count := int(round((z_max - z_min) / step))
+	var sector_cols := 4
+	var sector_rows := 3
+	var sector_w := (x_max - x_min) / float(sector_cols)
+	var sector_d := (z_max - z_min) / float(sector_rows)
+	var sector_xforms: Array = []
+	var sector_customs: Array = []
+	for _s in range(sector_cols * sector_rows):
+		var xf_arr: Array[Transform3D] = []
+		var cu_arr: Array[Color] = []
+		sector_xforms.append(xf_arr)
+		sector_customs.append(cu_arr)
 
 	for gz in range(gz_count):
 		for gx in range(gx_count):
@@ -468,15 +483,36 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 				(0.60 + 0.40 * edge_taper) * rng.randf_range(0.92, 1.12), 0.50, 1.15
 			)
 			var basis := _align_up_with_yaw(gn, rng.randf() * TAU, patch_scale)
-			patch_transforms.append(Transform3D(basis, Vector3(wx, wy - 0.015, wz)))
-			patch_customs.append(Color(0.0, 0.0, 0.0, height_mult))
+			var col_idx := clampi(int(floorf((wx - x_min) / sector_w)), 0, sector_cols - 1)
+			var row_idx := clampi(int(floorf((wz - z_min) / sector_d)), 0, sector_rows - 1)
+			var s_idx := row_idx * sector_cols + col_idx
+			(sector_xforms[s_idx] as Array[Transform3D]).append(
+				Transform3D(basis, Vector3(wx, wy - 0.015, wz))
+			)
+			(sector_customs[s_idx] as Array[Color]).append(Color(0.0, 0.0, 0.0, height_mult))
 
-	root.add_child(
-		_create_multimesh_node("GrassBladeCarpetMM", patch_mesh, patch_transforms, patch_customs)
-	)
+	for r_i in range(sector_rows):
+		for c_i in range(sector_cols):
+			var s_idx := r_i * sector_cols + c_i
+			var s_xf := sector_xforms[s_idx] as Array[Transform3D]
+			var s_cu := sector_customs[s_idx] as Array[Color]
+			if s_xf.is_empty():
+				continue
+			var s_name := (
+				"GrassBladeCarpetMM"
+				if (c_i == 1 and r_i == 1)
+				else ("GrassBladeCarpetMM_%d_%d" % [c_i, r_i])
+			)
+			var mmi := _create_multimesh_node(s_name, patch_mesh, s_xf, s_cu)
+			mmi.visibility_range_end = vis_end
+			mmi.visibility_range_end_margin = 6.0
+			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+			root.add_child(mmi)
 
 	# 2. Roadside Verge Micro-Tufts & Center Median Strip (feathers road edges & between wheel ruts)
-	var verge_mesh := SevaraAssetLibrary3D.build_grass_patch_mesh(46, 0.42, 0.030, 309)
+	var verge_mesh := SevaraAssetLibrary3D.build_grass_patch_mesh(
+		46, 0.42, 0.030, 309, {"segments": blade_segs}
+	)
 	var verge_transforms: Array[Transform3D] = []
 	var verge_customs: Array[Color] = []
 	var v_step := 0.34
@@ -508,9 +544,13 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 			verge_transforms.append(Transform3D(basis, Vector3(wx, wy - 0.012, wz)))
 			verge_customs.append(Color(0.85, 0.0, 0.0, h_mult))
 
-	root.add_child(
-		_create_multimesh_node("RoadsideVergeMM", verge_mesh, verge_transforms, verge_customs)
+	var verge_mmi := _create_multimesh_node(
+		"RoadsideVergeMM", verge_mesh, verge_transforms, verge_customs
 	)
+	verge_mmi.visibility_range_end = vis_end * 0.85
+	verge_mmi.visibility_range_end_margin = 5.0
+	verge_mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+	root.add_child(verge_mmi)
 	return root
 
 

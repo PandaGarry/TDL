@@ -1,10 +1,11 @@
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_disabled, diffuse_burley, specular_schlick_ggx;
 
-// Step 1 CBT Proving Ground 3D Grass & Roadside Turf Shader:
+// Step 1 CBT Proving Ground 3D Grass & Roadside Turf Shader (v5):
 // - Root color matches the rich moss/humus/verge ground palette underneath
 // - Smooth hill-aligned normal (never inverted downward on backfaces)
-// - Natural clumping, roadside/median height control via INSTANCE_CUSTOM, and subtle wildflower tips
+// - Interactive player/NPC grass parting around `player_pos`
+// - Clustered sunlit wildflower & clover glades + warm subsurface tip translucency
 
 uniform vec3 root_color : source_color = vec3(0.16, 0.28, 0.12);
 uniform vec3 tip_color : source_color = vec3(0.25, 0.40, 0.15);
@@ -77,8 +78,9 @@ void vertex() {
 	vec4 rnd = COLOR;
 	vec3 world_v = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 
-	// Natural meadow clumping + extended distance taper across the 110x80m CBT proving ground
+	// Natural meadow clumping + extended distance taper across the 136x88m CBT proving ground
 	float clump = fbm(world_v.xz * 0.20);
+	float glade_n = fbm(world_v.xz * 0.14 + vec2(4.2, -1.8));
 	float inst_h = clamp(INSTANCE_CUSTOM.a, 0.14, 1.45);
 	float verge_tint = clamp(INSTANCE_CUSTOM.r, 0.0, 1.0);
 	float dist_taper = 1.0 - smoothstep(66.0, 86.0, length(world_v.xz));
@@ -91,6 +93,15 @@ void vertex() {
 	vec2 wdir = normalize(wind_direction);
 	vec2 rest_bend = vec2(cos(rnd.b * 6.283), sin(rnd.b * 6.283)) * 0.12;
 	vec2 total_xz = (wdir * bend * 0.34 + rest_bend) * curve * blade_height * h_scale;
+
+	// Interactive grass parting around player / traveller (`player_pos`)
+	vec2 to_blade = world_v.xz - player_pos.xz;
+	float p_dist = length(to_blade);
+	if (p_dist < 1.15 && p_dist > 0.001) {
+		float push = (1.0 - smoothstep(0.15, 1.15, p_dist)) * curve;
+		total_xz += (to_blade / p_dist) * (push * 0.28);
+		h_scale *= (1.0 - push * 0.24);
+	}
 
 	VERTEX.y *= blade_height * h_scale;
 	VERTEX.x += total_xz.x;
@@ -114,7 +125,12 @@ void vertex() {
 	v_tip_col = base_tip * (0.92 + (rnd.r - 0.5) * 0.16);
 	v_t = t;
 	v_gust = gust;
-	v_blossom_id = (rnd.r > 0.962 && clump > 0.42 && inst_h > 0.55) ? fract(rnd.b * 17.3) : -1.0;
+
+	// Clustered wildflower & clover glades on sunlit meadow rises
+	float blossom_thresh = mix(0.978, 0.905, smoothstep(0.50, 0.78, glade_n));
+	v_blossom_id = (rnd.r > blossom_thresh && clump > 0.36 && inst_h > 0.48 && verge_tint < 0.2)
+		? fract(rnd.b * 17.3 + glade_n * 0.35)
+		: -1.0;
 }
 
 void fragment() {
@@ -126,18 +142,21 @@ void fragment() {
 	// Gentle root ambient occlusion connecting blades to the dark humus soil
 	float root_ao = mix(0.86, 1.0, smoothstep(0.0, 0.38, t));
 	col *= root_ao;
-	col += vec3(0.035, 0.048, 0.012) * v_gust * (t * t);
+	// Warm golden subsurface translucency on sunlit upper blades
+	col += vec3(0.042, 0.054, 0.014) * (v_gust * 0.75 + 0.25) * (t * t);
 
-	// Delicate wildflower specks at the top 18% of rare blossom stems
-	if (v_blossom_id >= 0.0 && t > 0.80) {
-		float petal_t = smoothstep(0.80, 0.92, t);
-		vec3 petal_col = vec3(0.92, 0.90, 0.78);
-		if (v_blossom_id > 0.66) {
-			petal_col = vec3(0.90, 0.76, 0.28);
-		} else if (v_blossom_id > 0.38) {
-			petal_col = vec3(0.64, 0.76, 0.92);
+	// Delicate wildflower & clover specks at the top 22% of blossom stems
+	if (v_blossom_id >= 0.0 && t > 0.78) {
+		float petal_t = smoothstep(0.78, 0.91, t);
+		vec3 petal_col = vec3(0.95, 0.93, 0.82); // Meadowsweet cream
+		if (v_blossom_id > 0.74) {
+			petal_col = vec3(0.94, 0.78, 0.26); // Golden buttercup
+		} else if (v_blossom_id > 0.48) {
+			petal_col = vec3(0.66, 0.78, 0.95); // Sky speedwell
+		} else if (v_blossom_id > 0.26) {
+			petal_col = vec3(0.88, 0.68, 0.78); // Rose clover
 		}
-		col = mix(col, petal_col, petal_t * 0.88);
+		col = mix(col, petal_col, petal_t * 0.90);
 	}
 
 	ALBEDO = col;

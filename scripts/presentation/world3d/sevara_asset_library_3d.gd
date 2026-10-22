@@ -149,7 +149,7 @@ static func build_grass_patch_mesh(
 		return _styled_meshes[key] as ArrayMesh
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_val
-	var segments := 4
+	var segments := clampi(int(style.get("segments", 4)), 2, 4)
 	var verts := PackedVector3Array()
 	var normals := PackedVector3Array()
 	var uvs := PackedVector2Array()
