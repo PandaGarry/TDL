@@ -57,6 +57,17 @@ var _camera_target_look: Vector3 = Vector3(-15.6, 1.0, -8.6)
 var _built: bool = false
 
 
+func _init() -> void:
+	name = "SevaraWorld3D"
+	_camera_3d = Camera3D.new()
+	_camera_3d.name = "ValleyCamera3D"
+	_camera_3d.fov = 38.0
+	_camera_3d.near = 0.25
+	_camera_3d.far = 650.0
+	_camera_3d.current = true
+	add_child(_camera_3d)
+
+
 func _ready() -> void:
 	set_process(true)
 
@@ -293,13 +304,14 @@ func _build_environment_and_lights() -> void:
 	_fill_light.shadow_enabled = false
 	add_child(_fill_light)
 
-	_camera_3d = Camera3D.new()
-	_camera_3d.name = "ValleyCamera3D"
-	_camera_3d.fov = 38.0
-	_camera_3d.near = 0.25
-	_camera_3d.far = 650.0
-	_camera_3d.current = true
-	add_child(_camera_3d)
+	if _camera_3d == null:
+		_camera_3d = Camera3D.new()
+		_camera_3d.name = "ValleyCamera3D"
+		_camera_3d.fov = 38.0
+		_camera_3d.near = 0.25
+		_camera_3d.far = 650.0
+		_camera_3d.current = true
+		add_child(_camera_3d)
 
 
 func _build_terrain_and_water() -> void:

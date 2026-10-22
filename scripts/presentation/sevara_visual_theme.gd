@@ -13,6 +13,41 @@ const CAMERA_ZOOM_PRESETS := [0.65, 1.0, 1.45]
 static var _cached_textures: Dictionary = {}
 
 
+static func is_greybox_mode() -> bool:
+	return String(SettingsManager.texture_quality) == SettingsManager.TEXTURE_QUALITY_GREYBOX
+
+
+static func load_diffuse_texture(base_name: String) -> Texture2D:
+	return load_canvas_texture(base_name, false)
+
+
+static func load_normal_texture(base_name: String) -> Texture2D:
+	var cache_key := "%s:norm_only" % base_name
+	if _cached_textures.has(cache_key):
+		var cached: Variant = _cached_textures[cache_key]
+		if cached is Texture2D:
+			return cached as Texture2D
+	var normal_path := "%s/%s_normal.png" % [TEXTURE_DIR, base_name]
+	var normal := _load_texture_2d(normal_path)
+	if normal != null:
+		_cached_textures[cache_key] = normal
+	return normal
+
+
+static func create_structural_material3d(
+	albedo: Color, roughness_val: float = 0.85
+) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = albedo
+	mat.roughness = roughness_val
+	var tex := load_diffuse_texture("tex_stone_and_timber")
+	if tex != null:
+		mat.albedo_texture = tex
+		mat.uv1_triplanar = true
+		mat.uv1_scale = Vector3(0.45, 0.45, 0.45)
+	return mat
+
+
 static func load_canvas_texture(base_name: String, include_normals: bool = true) -> Texture2D:
 	var cache_key := "%s:%s" % [base_name, "n" if include_normals else "d"]
 	if _cached_textures.has(cache_key):

@@ -96,8 +96,14 @@ echo "Поиск фатальных маркеров ошибок в логах.
 # отдельно ищем ошибки скриптов и загрузки ресурсов в текстах логов.
 # Обычные ERROR системы CI не валят: в headless CI без GPU допустимы
 # предупреждения драйверов; скриптовые же ошибки не допустимы.
-if grep -RniE 'SCRIPT ERROR|Parse Error|Failed to load script|Failed to load resource|PROJECT_VALIDATION_FAILED|CORE_FOUNDATION_TESTS_FAILED|PERSISTENCE_TESTS_FAILED|SESSION_TESTS_FAILED|PRESENTATION_TESTS_FAILED|P0_ACCEPTANCE_TESTS_FAILED|P0_SOAK_SMOKE_FAILED' "$LOG_DIR" ; then
+if grep -RniE 'SCRIPT ERROR|Parse Error|Compile Error|Failed to load script|Failed to load resource|PROJECT_VALIDATION_FAILED|CORE_FOUNDATION_TESTS_FAILED|PERSISTENCE_TESTS_FAILED|SESSION_TESTS_FAILED|PRESENTATION_TESTS_FAILED|P0_ACCEPTANCE_TESTS_FAILED|P0_SOAK_SMOKE_FAILED' "$LOG_DIR" ; then
 	echo "!! В логах найдены ошибки скриптов или загрузки ресурсов (см. выше)."
+	if [ "${GITHUB_ACTIONS:-false}" = "true" ]; then
+		grep -RniE -A1 'SCRIPT ERROR|Parse Error|Compile Error|Failed to load script|PROJECT_VALIDATION_FAILED|P0_ACCEPTANCE_TESTS_FAILED' "$LOG_DIR" | head -8 | while IFS= read -r line; do
+			clean_line="$(printf '%s' "$line" | sed -e 's/%/%25/g' -e 's/\r/%0D/g')"
+			echo "::error title=Script/Test Error::${clean_line}"
+		done
+	fi
 	FAILED=1
 fi
 
