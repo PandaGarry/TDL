@@ -1,207 +1,331 @@
 class_name SevaraTerrainGen3D
 extends RefCounted
-## Generates the continuous 3D terrain mesh, heightfield and water meshes for
-## the Sevara Valley slice in Godot 4.7.
+## Generates the expanded 3D terrain mesh (160 x 120 m), river/wetland water mesh,
+## and distant mountain range rings for the Sevara Valley.
 
-const TILE_METERS := 1.6
-const CHUNK_WIDTH_TILES := 32
-const CHUNK_HEIGHT_TILES := 24
-const TERRAIN_HALF_EXTENT := 48.0
-const TERRAIN_STEP := 2.0
-const WATER_LEVEL_Y := -0.38
-const KEVAR_POOL_CENTER := Vector2(16.5, -10.8)
-const KEVAR_POOL_RADIUS := 6.4
-const KEVAR_WATER_Y := 1.15
+const TILE_SIZE_M := 1.65
+const VALLEY_WIDTH_M := 160.0
+const VALLEY_DEPTH_M := 120.0
+const WATER_SURFACE_Y := -0.18
+const WORLD_SCALE := TILE_SIZE_M / 32.0
 
 
-static func tile_to_world_xz(tile: Vector2i) -> Vector2:
-	var wx := (float(tile.x) - 15.0) * TILE_METERS
-	var wz := (float(tile.y) - 11.5) * TILE_METERS
-	return Vector2(wx, wz)
+static func tile_to_world_3d(
+	tile: Vector2i, width_tiles: int = 32, height_tiles: int = 24
+) -> Vector3:
+	var half_w := float(width_tiles) * TILE_SIZE_M * 0.5
+	var half_h := float(height_tiles) * TILE_SIZE_M * 0.5
+	var wx := (float(tile.x) + 0.5) * TILE_SIZE_M - half_w
+	var wz := (float(tile.y) + 0.5) * TILE_SIZE_M - half_h
+	var wy := get_height_at(wx, wz)
+	return Vector3(wx, wy, wz)
 
 
-static func tile_to_world_pos3d(tile: Vector2i, y_offset: float = 0.0) -> Vector3:
-	var xz := tile_to_world_xz(tile)
-	var hy := ground_height_at(xz.x, xz.y)
-	return Vector3(xz.x, hy + y_offset, xz.y)
+static func pixel_to_world_3d(
+	px_pos: Vector2, tile_size_px: float = 32.0, width_tiles: int = 32, height_tiles: int = 24
+) -> Vector3:
+	var safe_tile_px := maxf(tile_size_px, 1.0)
+	var half_w := float(width_tiles) * TILE_SIZE_M * 0.5
+	var half_h := float(height_tiles) * TILE_SIZE_M * 0.5
+	var wx := (px_pos.x / safe_tile_px) * TILE_SIZE_M - half_w
+	var wz := (px_pos.y / safe_tile_px) * TILE_SIZE_M - half_h
+	var wy := get_height_at(wx, wz)
+	return Vector3(wx, wy, wz)
 
 
-static func river_center_x(z: float) -> float:
-	return sin(z * 0.095) * 1.85 + cos(z * 0.045) * 0.75
+static func river_center_x(wz: float) -> float:
+	# Nivarel flows from the NW gorge (-24 at z=-55) through the central rapids (x ~ 1.5 at z=0)
+	# and winds SE into the broad Mulane floodplain (x ~ 16 at z=+50).
+	return 1.8 + wz * 0.28 + sin(wz * 0.085 + 0.35) * 4.2 + cos(wz * 0.042) * 2.1
 
 
-static func river_half_width(z: float) -> float:
-	var wetland_widen := clampf((z - 8.0) / 18.0, 0.0, 1.0) * 3.8
-	return 2.85 + wetland_widen
+static func river_half_width(wz: float) -> float:
+	var base_w := 3.4 + smoothstep(-25.0, 35.0, wz) * 1.8
+	var pool_w := exp(-pow((wz - 11.0) / 9.5, 2.0)) * 2.8
+	return base_w + pool_w
 
 
-static func ground_height_at(x: float, z: float) -> float:
-	var h := raw_terrain_height(x, z)
-	var rcx := river_center_x(z)
-	if absf(z - 11.2) < 1.9 and absf(x - rcx) < 4.2:
-		return maxf(h, 0.72)
-	return maxf(h, WATER_LEVEL_Y - 0.15)
+static func wetland_pool_factor(wx: float, wz: float) -> float:
+	# Secondary Mulane oxbow pool & marsh channels in the SW-South basin
+	var dx := wx - (-7.5 + sin(wz * 0.14) * 2.2)
+	var dz := wz - 13.5
+	var oxbow := exp(-(dx * dx) / 28.0 - (dz * dz) / 46.0)
+	var south_pond := exp(-pow(wx - 4.5, 2.0) / 38.0 - pow(wz - 22.0, 2.0) / 32.0)
+	return clampf(maxf(oxbow, south_pond * 0.85), 0.0, 1.0)
 
 
-static func raw_terrain_height(x: float, z: float) -> float:
-	var rcx := river_center_x(z)
-	var rw := river_half_width(z)
-	var dist_river := absf(x - rcx)
+static func is_water_at(wx: float, wz: float) -> bool:
+	return get_height_at(wx, wz) < WATER_SURFACE_Y - 0.03
 
-	# Keep a wide valley corridor around the river so north mountains don't pinch into a spike
-	var corridor_mask := smoothstep(rw + 1.5, rw + 14.5, dist_river)
-	var north_slope := clampf((-z - 8.0) / 34.0, 0.0, 1.3) * 5.2 * (0.28 + 0.72 * corridor_mask)
-	var far_west_ridge := clampf((-x - 21.0) / 28.0, 0.0, 1.4) * 8.5
-	var far_east_ridge := clampf((x - 24.0) / 28.0, 0.0, 1.4) * 7.5
-	var far_north_peaks := clampf((-z - 22.0) / 28.0, 0.0, 1.4) * 8.5 * corridor_mask
-	var rolling := (
-		sin(x * 0.14 + z * 0.11) * 0.28
-		+ cos(x * 0.27 - z * 0.19) * 0.16
-		+ sin(x * 0.51 + z * 0.47) * 0.06
+
+static func get_ground_normal(wx: float, wz: float) -> Vector3:
+	var eps := 0.45
+	var hx := get_height_at(wx + eps, wz) - get_height_at(wx - eps, wz)
+	var hz := get_height_at(wx, wz + eps) - get_height_at(wx, wz - eps)
+	return Vector3(-hx, 2.0 * eps, -hz).normalized()
+
+
+static func get_path_weight_at(wx: float, wz: float) -> float:
+	# Main stone-paved settlement courtyard & trails connecting the hearth, well, bridge, and meadow
+	var courtyard := exp(-pow(wx - (-14.5), 2.0) / 54.0 - pow(wz - (-7.5), 2.0) / 38.0)
+	# Trail from settlement (-15, -7.5) across the bridge (0, -4.5) into Heravo meadow (+16, -2)
+	var trail_z := -6.2 + (wx + 15.0) * 0.14 + sin(wx * 0.16) * 1.1
+	var main_trail := (
+		exp(-pow(wz - trail_z, 2.0) / 2.2)
+		* smoothstep(-26.0, -20.0, wx)
+		* (1.0 - smoothstep(22.0, 30.0, wx))
+	)
+	# North trail up toward Toramek slope & watermill
+	var north_x := -11.5 + (wz + 7.5) * 0.22
+	var north_trail := (
+		exp(-pow(wx - north_x, 2.0) / 1.8)
+		* smoothstep(-24.0, -18.0, wz)
+		* (1.0 - smoothstep(-3.0, 2.0, wz))
+	)
+	return clampf(maxf(courtyard * 0.92, maxf(main_trail, north_trail * 0.85)), 0.0, 1.0)
+
+
+static func get_height_at(wx: float, wz: float) -> float:
+	# 1. Toramek NW mountain slope & rocky ridges
+	var nw_slope := smoothstep(4.0, -34.0, wx * 0.68 + wz * 0.74)
+	var nw_cliff := smoothstep(-14.0, -52.0, wx * 0.62 + wz * 0.78)
+	var toramek_h := (
+		nw_slope * 2.65
+		+ nw_cliff * 6.4
+		+ sin(wx * 0.18 + wz * 0.14) * 0.35 * nw_slope
+		+ cos(wx * 0.33 - wz * 0.27) * 0.22 * nw_cliff
 	)
 
-	var base_y := 0.82 + north_slope + far_west_ridge + far_east_ridge + far_north_peaks + rolling
-
-	var dist_settlement := Vector2((x + 13.5) * 0.75, (z + 1.0) * 0.65).length()
-	if dist_settlement < 11.5:
-		var flat_blend := smoothstep(11.5, 4.5, dist_settlement)
-		base_y = lerpf(base_y, 1.22, flat_blend)
-
-	var d_kevar := Vector2(x - KEVAR_POOL_CENTER.x, z - KEVAR_POOL_CENTER.y).length()
-	if d_kevar < KEVAR_POOL_RADIUS + 4.8:
-		if d_kevar < KEVAR_POOL_RADIUS:
-			var bowl := smoothstep(KEVAR_POOL_RADIUS, 1.2, d_kevar)
-			base_y = lerpf(1.65, 0.25, bowl)
-		else:
-			var rim := sin(((d_kevar - KEVAR_POOL_RADIUS) / 4.8) * PI)
-			base_y += rim * 1.55
-
-	if dist_river < rw + 3.2:
-		var bank_t := smoothstep(rw + 3.2, rw * 0.55, dist_river)
-		var bed_y := -1.25 if z < 10.0 else -0.95
-		base_y = lerpf(base_y, bed_y, bank_t)
-
-	return base_y
-
-
-static func terrain_normal_at(x: float, z: float) -> Vector3:
-	var eps := 0.5
-	var h_l := raw_terrain_height(x - eps, z)
-	var h_r := raw_terrain_height(x + eps, z)
-	var h_d := raw_terrain_height(x, z - eps)
-	var h_u := raw_terrain_height(x, z + eps)
-	return Vector3(h_l - h_r, 2.0 * eps, h_d - h_u).normalized()
-
-
-static func biome_weights_at(x: float, y: float, z: float, normal: Vector3) -> Color:
-	var rcx := river_center_x(z)
-	var rw := river_half_width(z)
-	var dist_river := absf(x - rcx)
-	var w_river := clampf(1.0 - (dist_river - rw * 0.65) / 2.8, 0.0, 1.0)
-	var d_kevar := Vector2(x - KEVAR_POOL_CENTER.x, z - KEVAR_POOL_CENTER.y).length()
-	if d_kevar < KEVAR_POOL_RADIUS + 1.4:
-		w_river = maxf(w_river, clampf(1.0 - (d_kevar - KEVAR_POOL_RADIUS) / 1.8, 0.0, 1.0))
-
-	var d_yard := Vector2(x + 11.5, z - 2.5).length()
-	var d_bridge_road := absf(z - 11.2) + maxf(0.0, absf(x) - 14.0) * 0.4
-	var d_sluice_road := absf(z + 1.2) + maxf(0.0, absf(x + 5.0) - 7.0) * 0.5
-	var w_path := clampf(
-		maxf(1.0 - d_yard / 6.5, maxf(1.0 - d_bridge_road / 2.2, 1.0 - d_sluice_road / 2.0)),
-		0.0,
-		1.0
+	# 2. Outer valley rim hills (enclosing the 160x120m valley floor naturally)
+	var rim_x := smoothstep(32.0, 76.0, absf(wx))
+	var rim_z := smoothstep(24.0, 56.0, absf(wz))
+	var rim_factor := clampf(rim_x + rim_z - rim_x * rim_z * 0.4, 0.0, 1.0)
+	# Keep the SE river outlet lower so the river flows out naturally
+	var outlet_carve := exp(-pow(wx - 16.0, 2.0) / 95.0) * smoothstep(10.0, 45.0, wz)
+	var rim_h := (
+		rim_factor
+		* (1.0 - outlet_carve * 0.82)
+		* (3.8 + 1.4 * sin(wx * 0.09 + 0.5) + 1.1 * cos(wz * 0.11 - 0.3))
 	)
 
-	var slope := 1.0 - clampf(normal.y, 0.0, 1.0)
-	var w_rock := clampf(smoothstep(0.24, 0.48, slope), 0.0, 1.0)
-	if d_kevar >= KEVAR_POOL_RADIUS - 0.6 and d_kevar <= KEVAR_POOL_RADIUS + 4.2:
-		w_rock = maxf(w_rock, 0.78)
-	var w_snow := clampf((y - 5.2) / 5.5, 0.0, 1.0)
-	return Color(w_river, w_path, w_rock, w_snow)
+	# 3. Settlement dry terrace on the western/central bank (around x=-22..-5, z=-16..+4)
+	var settle_mask := (
+		smoothstep(-30.0, -21.0, wx)
+		* (1.0 - smoothstep(-4.5, 1.5, wx))
+		* smoothstep(-20.0, -13.0, wz)
+		* (1.0 - smoothstep(4.0, 11.0, wz))
+	)
+	var terrace_h := settle_mask * 0.78
 
-
-static func build_terrain_mesh() -> ArrayMesh:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-
-	var steps := int(round((TERRAIN_HALF_EXTENT * 2.0) / TERRAIN_STEP))
-	for iz in range(steps):
-		var z0 := -TERRAIN_HALF_EXTENT + float(iz) * TERRAIN_STEP
-		var z1 := z0 + TERRAIN_STEP
-		for ix in range(steps):
-			var x0 := -TERRAIN_HALF_EXTENT + float(ix) * TERRAIN_STEP
-			var x1 := x0 + TERRAIN_STEP
-
-			_emit_terrain_vertex(st, x0, z0)
-			_emit_terrain_vertex(st, x1, z0)
-			_emit_terrain_vertex(st, x0, z1)
-
-			_emit_terrain_vertex(st, x1, z0)
-			_emit_terrain_vertex(st, x1, z1)
-			_emit_terrain_vertex(st, x0, z1)
-
-	st.generate_tangents()
-	return st.commit()
-
-
-static func build_water_mesh() -> ArrayMesh:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-
-	var z_min := -TERRAIN_HALF_EXTENT
-	var z_max := TERRAIN_HALF_EXTENT
-	var z_step := 2.0
-	var z := z_min
-	while z < z_max:
-		var zn := z + z_step
-		var cx0 := river_center_x(z)
-		var cx1 := river_center_x(zn)
-		var hw0 := river_half_width(z) + 1.35
-		var hw1 := river_half_width(zn) + 1.35
-		_emit_water_quad(
-			st,
-			Vector3(cx0 - hw0, WATER_LEVEL_Y, z),
-			Vector3(cx0 + hw0, WATER_LEVEL_Y, z),
-			Vector3(cx1 - hw1, WATER_LEVEL_Y, zn),
-			Vector3(cx1 + hw1, WATER_LEVEL_Y, zn)
+	# 4. Heravo sun-drenched rolling meadows on the eastern bank (x > 5)
+	var meadow_mask := smoothstep(3.5, 12.0, wx) * (1.0 - smoothstep(44.0, 66.0, wx))
+	var meadow_undulation := (
+		(
+			sin(wx * 0.11 + 0.4) * cos(wz * 0.12 - 0.2) * 0.48
+			+ sin(wx * 0.24 - wz * 0.19) * 0.18
+			+ 0.52
 		)
-		z = zn
+		* meadow_mask
+	)
 
-	var segs := 24
-	var center3 := Vector3(KEVAR_POOL_CENTER.x, KEVAR_WATER_Y, KEVAR_POOL_CENTER.y)
-	for i in range(segs):
-		var a0 := (float(i) / float(segs)) * TAU
-		var a1 := (float(i + 1) / float(segs)) * TAU
-		var p0 := center3 + Vector3(cos(a0), 0.0, sin(a0)) * (KEVAR_POOL_RADIUS - 0.35)
-		var p1 := center3 + Vector3(cos(a1), 0.0, sin(a1)) * (KEVAR_POOL_RADIUS - 0.35)
-		st.set_normal(Vector3.UP)
-		st.set_uv(Vector2(0.5, 0.5))
-		st.add_vertex(center3)
-		st.set_normal(Vector3.UP)
-		st.set_uv(Vector2(p1.x * 0.1, p1.z * 0.1))
-		st.add_vertex(p1)
-		st.set_normal(Vector3.UP)
-		st.set_uv(Vector2(p0.x * 0.1, p0.z * 0.1))
-		st.add_vertex(p0)
+	# 5. Nivarel river channel & Mulane wetland basin carving
+	var r_cx := river_center_x(wz)
+	var r_hw := river_half_width(wz)
+	var dist_river := absf(wx - r_cx)
+	var channel_carve := exp(-pow(dist_river / maxf(r_hw, 1.2), 2.2)) * 1.38
+	var bank_shelf := exp(-pow(dist_river / maxf(r_hw * 1.95, 2.2), 2.0)) * 0.28
+	var wetland_carve := wetland_pool_factor(wx, wz) * 0.86
 
+	# 6. Micro-relief undulation
+	var micro := sin(wx * 0.42 + wz * 0.37) * 0.045 + cos(wx * 0.27 - wz * 0.51) * 0.035
+
+	var base_y := 0.22 + toramek_h + rim_h + terrace_h + meadow_undulation + micro
+	var carved_y := base_y - channel_carve - bank_shelf - wetland_carve
+	return carved_y
+
+
+static func build_terrain_mesh(
+	_width_tiles: int = 32, _height_tiles: int = 24, subdiv_x: int = 160, subdiv_z: int = 120
+) -> ArrayMesh:
+	var half_w := VALLEY_WIDTH_M * 0.5
+	var half_d := VALLEY_DEPTH_M * 0.5
+	var step_x := VALLEY_WIDTH_M / float(subdiv_x)
+	var step_z := VALLEY_DEPTH_M / float(subdiv_z)
+
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+
+	for gz in range(subdiv_z):
+		for gx in range(subdiv_x):
+			var x0 := -half_w + float(gx) * step_x
+			var z0 := -half_d + float(gz) * step_z
+			var x1 := x0 + step_x
+			var z1 := z0 + step_z
+
+			var p00 := Vector3(x0, get_height_at(x0, z0), z0)
+			var p10 := Vector3(x1, get_height_at(x1, z0), z0)
+			var p01 := Vector3(x0, get_height_at(x0, z1), z1)
+			var p11 := Vector3(x1, get_height_at(x1, z1), z1)
+
+			_add_terrain_vertex(st, p00, half_w, half_d)
+			_add_terrain_vertex(st, p10, half_w, half_d)
+			_add_terrain_vertex(st, p01, half_w, half_d)
+
+			_add_terrain_vertex(st, p10, half_w, half_d)
+			_add_terrain_vertex(st, p11, half_w, half_d)
+			_add_terrain_vertex(st, p01, half_w, half_d)
+
+	st.generate_normals()
 	st.generate_tangents()
 	return st.commit()
 
 
-static func _emit_terrain_vertex(st: SurfaceTool, x: float, z: float) -> void:
-	var y := raw_terrain_height(x, z)
-	var n := terrain_normal_at(x, z)
-	var col := biome_weights_at(x, y, z, n)
-	st.set_normal(n)
-	st.set_color(col)
-	st.set_uv(Vector2(x * 0.12, z * 0.12))
-	st.add_vertex(Vector3(x, y, z))
+static func build_water_mesh(
+	_width_tiles: int = 32, _height_tiles: int = 24, subdiv_x: int = 128, subdiv_z: int = 96
+) -> ArrayMesh:
+	var half_w := VALLEY_WIDTH_M * 0.5
+	var half_d := VALLEY_DEPTH_M * 0.5
+	var step_x := VALLEY_WIDTH_M / float(subdiv_x)
+	var step_z := VALLEY_DEPTH_M / float(subdiv_z)
+
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+
+	for gz in range(subdiv_z):
+		for gx in range(subdiv_x):
+			var x0 := -half_w + float(gx) * step_x
+			var z0 := -half_d + float(gz) * step_z
+			var x1 := x0 + step_x
+			var z1 := z0 + step_z
+			var cx := (x0 + x1) * 0.5
+			var cz := (z0 + z1) * 0.5
+
+			# Only generate water quads where the terrain dips near or below the water plane
+			var min_ground := minf(
+				minf(get_height_at(x0, z0), get_height_at(x1, z0)),
+				minf(get_height_at(x0, z1), get_height_at(x1, z1))
+			)
+			if (
+				min_ground > WATER_SURFACE_Y + 0.35
+				and absf(cx - river_center_x(cz)) > river_half_width(cz) + 3.5
+			):
+				continue
+
+			var p00 := Vector3(x0, WATER_SURFACE_Y, z0)
+			var p10 := Vector3(x1, WATER_SURFACE_Y, z0)
+			var p01 := Vector3(x0, WATER_SURFACE_Y, z1)
+			var p11 := Vector3(x1, WATER_SURFACE_Y, z1)
+
+			_add_water_vertex(st, p00, half_w, half_d)
+			_add_water_vertex(st, p10, half_w, half_d)
+			_add_water_vertex(st, p01, half_w, half_d)
+
+			_add_water_vertex(st, p10, half_w, half_d)
+			_add_water_vertex(st, p11, half_w, half_d)
+			_add_water_vertex(st, p01, half_w, half_d)
+
+	st.generate_normals()
+	return st.commit()
 
 
-static func _emit_water_quad(
-	st: SurfaceTool, v00: Vector3, v10: Vector3, v01: Vector3, v11: Vector3
+static func build_mountain_rings() -> Node3D:
+	var root := Node3D.new()
+	root.name = "DistantMountains3D"
+	var ring_mesh := _create_mountain_ring_mesh(256, 10)
+	var specs: Array[Dictionary] = [
+		{
+			"radius": 175.0,
+			"height": 58.0,
+			"seed": 0.19,
+			"haze": 0.34,
+			"snow": 0.48,
+			"base_color": Color(0.26, 0.35, 0.34),
+			"shadow_color": Color(0.18, 0.24, 0.32),
+		},
+		{
+			"radius": 310.0,
+			"height": 105.0,
+			"seed": 0.63,
+			"haze": 0.58,
+			"snow": 0.64,
+			"base_color": Color(0.32, 0.40, 0.46),
+			"shadow_color": Color(0.22, 0.29, 0.38),
+		},
+	]
+	for spec: Dictionary in specs:
+		var mat := ShaderMaterial.new()
+		mat.shader = SevaraAssetLibrary3D.load_shader("sevara_mountains_3d.gdshader")
+		mat.set_shader_parameter("radius", float(spec["radius"]))
+		mat.set_shader_parameter("height", float(spec["height"]))
+		mat.set_shader_parameter("seed", float(spec["seed"]))
+		mat.set_shader_parameter("haze", float(spec["haze"]))
+		mat.set_shader_parameter("snow", float(spec["snow"]))
+		mat.set_shader_parameter("base_color", spec["base_color"])
+		mat.set_shader_parameter("shadow_color", spec["shadow_color"])
+		var mi := MeshInstance3D.new()
+		mi.mesh = ring_mesh
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.custom_aabb = AABB(Vector3(-600.0, -100.0, -600.0), Vector3(1200.0, 400.0, 1200.0))
+		root.add_child(mi)
+	return root
+
+
+static func _create_mountain_ring_mesh(segments: int, rows: int) -> ArrayMesh:
+	var verts := PackedVector3Array()
+	var indices := PackedInt32Array()
+	for i in range(segments + 1):
+		var ang := float(i) * TAU / float(segments)
+		for j in range(rows + 1):
+			verts.append(Vector3(ang, float(j) / float(rows), 0.0))
+	for i in range(segments):
+		for j in range(rows):
+			var v := i * (rows + 1) + j
+			var w := v + rows + 1
+			indices.append_array([v, w, v + 1, v + 1, w, w + 1])
+	var arr := []
+	arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = verts
+	arr[Mesh.ARRAY_INDEX] = indices
+	var m := ArrayMesh.new()
+	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	return m
+
+
+static func _add_terrain_vertex(
+	st: SurfaceTool, pos: Vector3, half_w: float, half_d: float
 ) -> void:
-	var quad_verts: Array[Vector3] = [v00, v10, v01, v10, v11, v01]
-	for v: Vector3 in quad_verts:
-		st.set_normal(Vector3.UP)
-		st.set_uv(Vector2(v.x * 0.15, v.z * 0.15))
-		st.add_vertex(v)
+	var uv := Vector2((pos.x + half_w) / (half_w * 2.0), (pos.z + half_d) / (half_d * 2.0))
+	var r_cx := river_center_x(pos.z)
+	var r_hw := river_half_width(pos.z)
+	var dist_river := absf(pos.x - r_cx)
+	var wet_pool := wetland_pool_factor(pos.x, pos.z)
+
+	# R = mud/silt, G = pebbles/shore, B = cliff stone, A = spring snow
+	var w_pebbles := clampf(1.0 - (dist_river / maxf(r_hw * 1.45, 1.5)), 0.0, 1.0)
+	var w_mud := clampf(
+		wet_pool * 0.85 + exp(-pow((dist_river - r_hw) / 2.2, 2.0)) * 0.52, 0.0, 1.0
+	)
+	var w_stone := clampf(smoothstep(1.35, 3.4, pos.y), 0.0, 1.0)
+	var w_snow := clampf(
+		smoothstep(2.2, 5.2, pos.y) * (0.55 + 0.45 * sin(pos.x * 0.35 + pos.z * 0.42)), 0.0, 0.92
+	)
+
+	var path_w := get_path_weight_at(pos.x, pos.z)
+	var above_water := maxf(pos.y - WATER_SURFACE_Y, 0.0)
+
+	st.set_color(Color(w_mud, w_pebbles, w_stone, w_snow))
+	st.set_uv(uv)
+	st.set_uv2(Vector2(path_w, above_water))
+	st.add_vertex(pos)
+
+
+static func _add_water_vertex(st: SurfaceTool, pos: Vector3, half_w: float, half_d: float) -> void:
+	var ground_y := get_height_at(pos.x, pos.z)
+	var water_depth := clampf((WATER_SURFACE_Y - ground_y) / 1.15, 0.0, 1.0)
+	var shore_prox := clampf(1.0 - water_depth * 1.35, 0.0, 1.0)
+	var rapids_fac := clampf(exp(-pow((pos.z - (-8.0)) / 10.0, 2.0)) * 0.85, 0.0, 1.0)
+	var uv := Vector2((pos.x + half_w) / (half_w * 2.0), (pos.z + half_d) / (half_d * 2.0))
+	st.set_color(Color(shore_prox, water_depth, rapids_fac, 1.0))
+	st.set_uv(uv)
+	st.add_vertex(pos)

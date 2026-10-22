@@ -3,9 +3,9 @@ extends Node
 ##
 ## Saves 4 screenshots into `res://docs/art/godot_captures/`:
 ## 1) `01_godot_main_menu.png` — Main Menu scene
-## 2) `02_godot_stage_p1_morning_clean.png` — GreyboxStage with P1 enabled (morning, HIGH textures)
-## 3) `03_godot_stage_p1_dusk_silted_debug.png` — GreyboxStage in dusk + wild Kevalu + DebugOverlay
-## 4) `04_godot_stage_greybox_comparison.png` — GreyboxStage in diagnostic `greybox` preset
+## 2) `02_godot_stage_p1_morning_clean.png` — Grand Sevara Valley & Nivarel Rapids
+## 3) `03_godot_stage_p1_dusk_silted_debug.png` — Heravo Meadow with MultiMesh grass & deer
+## 4) `04_godot_stage_greybox_comparison.png` — Settlement Courtyard, Hearth & Pavilion
 
 const MAIN_MENU_SCENE := "res://scenes/ui/main_menu/main_menu.tscn"
 const STAGE_SCENE := "res://scenes/levels/greybox_stage.tscn"
@@ -60,32 +60,21 @@ func _capture_stage_states(abs_dir: String) -> void:
 		stage.trigger_action(&"move_right", true)
 	SettingsManager.set_texture_quality(SettingsManager.TEXTURE_QUALITY_HIGH)
 	stage.refresh_presentation()
-	stage.debug_overlay().visible = false
-	stage.world_3d().set_camera_preset(1, Vector2i(12, 11))
 
-	await _wait_frames(4)
+	# 1. Scenic view across Nivarel Rapids, Bridge, Sawmill, Pine Forest & Distant Mountains
+	stage.debug_overlay().visible = false
+	stage.world_3d().set_camera_lookpoint("nivarel_rapids")
+	await _wait_frames(5)
 	_save_viewport_png(abs_dir.path_join("02_godot_stage_p1_morning_clean.png"))
 
-	# Capture close-up low-angle 3D view showing 3D buildings, trees, horizon & sky
-	stage.world_3d().set_camera_preset(2, Vector2i(11, 11))
-	await _wait_frames(4)
+	# 2. Close scenic view of Settlement Terrace, Houses, Hearth, Well & NPCs
+	stage.world_3d().set_camera_lookpoint("settlement_hearth")
+	await _wait_frames(5)
 	_save_viewport_png(abs_dir.path_join("04_godot_stage_greybox_comparison.png"))
 
-	stage.session().submit_intent(
-		SessionProtocol.INTENT_ECO_INTERVENTION,
-		{"intervention": SevaraEcoChain.INTERVENTION_CLEAR_NAVELU_DAM}
-	)
-	stage.session().submit_intent(
-		SessionProtocol.INTENT_ECO_INTERVENTION,
-		{"intervention": SevaraEcoChain.INTERVENTION_RELEASE_KEVALU_WILD}
-	)
-	stage.session().process_pending_intents()
-	stage.session().advance_simulation_minutes(600)
-	stage.refresh_presentation()
-	stage.debug_overlay().visible = true
-	stage.world_3d().set_camera_preset(1, Vector2i(12, 11))
-
-	await _wait_frames(4)
+	# 3. Lush Heravo Meadow with MultiMesh grass carpet, wildflowers & grazing Stags/Deer
+	stage.world_3d().set_camera_lookpoint("heravo_meadow")
+	await _wait_frames(5)
 	_save_viewport_png(abs_dir.path_join("03_godot_stage_p1_dusk_silted_debug.png"))
 
 	stage.free()

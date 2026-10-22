@@ -38,6 +38,7 @@ var _status_banner_label: Label
 var _save_button: Button
 var _step_time_button: Button
 var _menu_button: Button
+var _hold_move_timer: float = 0.0
 
 
 func _init() -> void:
@@ -45,6 +46,7 @@ func _init() -> void:
 
 
 func _ready() -> void:
+	set_process(true)
 	UiLocaleCatalog.ensure_registered()
 	_chunk_view.tile_size_px = tile_size_px
 	_apply_localized_labels()
@@ -70,7 +72,43 @@ func _exit_tree() -> void:
 	_unbind_session_signals(_session)
 
 
+func _process(delta: float) -> void:
+	if _session == null or DisplayServer.get_name() == "headless":
+		return
+	var held_action: StringName = &""
+	if Input.is_action_pressed(GreyboxGridMetrics.ACTION_MOVE_UP):
+		held_action = GreyboxGridMetrics.ACTION_MOVE_UP
+	elif Input.is_action_pressed(GreyboxGridMetrics.ACTION_MOVE_DOWN):
+		held_action = GreyboxGridMetrics.ACTION_MOVE_DOWN
+	elif Input.is_action_pressed(GreyboxGridMetrics.ACTION_MOVE_LEFT):
+		held_action = GreyboxGridMetrics.ACTION_MOVE_LEFT
+	elif Input.is_action_pressed(GreyboxGridMetrics.ACTION_MOVE_RIGHT):
+		held_action = GreyboxGridMetrics.ACTION_MOVE_RIGHT
+	if held_action == &"":
+		_hold_move_timer = 0.0
+		return
+	_hold_move_timer += delta
+	if _hold_move_timer >= 0.18:
+		_hold_move_timer = 0.0
+		if _world_3d != null and _world_3d.current_lookpoint() != "follow":
+			_world_3d.set_camera_lookpoint("follow")
+		trigger_action(held_action, true)
+
+
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		var key_ev := event as InputEventKey
+		if key_ev.pressed and not key_ev.echo:
+			if key_ev.physical_keycode == KEY_Z:
+				cycle_camera_zoom()
+				if is_inside_tree() and get_viewport() != null:
+					get_viewport().set_input_as_handled()
+				return
+			if key_ev.physical_keycode == KEY_C and _world_3d != null:
+				_world_3d.cycle_camera_lookpoint()
+				if is_inside_tree() and get_viewport() != null:
+					get_viewport().set_input_as_handled()
+				return
 	var report := handle_input_event(event, true)
 	if bool(report.get("handled", false)) and is_inside_tree() and get_viewport() != null:
 		get_viewport().set_input_as_handled()
