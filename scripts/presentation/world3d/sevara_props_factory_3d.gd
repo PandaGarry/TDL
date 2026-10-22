@@ -438,10 +438,10 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 4072026
 
-	var step := clampf(0.78 / sqrt(dens), 0.56, 0.96)
-	var x_min := -62.0
-	var x_max := 62.0
-	var z_min := -54.0
+	var step := clampf(0.80 / sqrt(dens), 0.58, 0.96)
+	var x_min := -68.0
+	var x_max := 68.0
+	var z_min := -58.0
 	var z_max := 30.0
 	var gx_count := int(round((x_max - x_min) / step))
 	var gz_count := int(round((z_max - z_min) / step))
@@ -450,19 +450,19 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 		for gx in range(gx_count):
 			var wx := x_min + (float(gx) + rng.randf_range(0.18, 0.82)) * step
 			var wz := z_min + (float(gz) + rng.randf_range(0.18, 0.82)) * step
-			if Vector2(wx, wz).length() > 66.0:
+			if Vector2(wx, wz).length() > 84.0:
 				continue
 			var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
-			if wy < SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14 or wy > 7.8:
+			if wy < SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14 or wy > 9.2:
 				continue
 			var path_w := SevaraTerrainGen3D.get_path_weight_at(wx, wz)
-			if path_w > 0.26:
+			if path_w > 0.28:
 				continue
 			var gn := SevaraTerrainGen3D.get_ground_normal(wx, wz)
-			# Leave steep limestone terrace ledges exposed so rock strata read clearly
-			if gn.y < 0.86:
+			# Leave only steep limestone terrace ledges exposed so rock strata read clearly
+			if gn.y < 0.81 and path_w < 0.02:
 				continue
-			var edge_taper := 1.0 - smoothstep(0.02, 0.26, path_w) * 0.65
+			var edge_taper := 1.0 - smoothstep(0.02, 0.28, path_w) * 0.65
 			var height_mult := clampf(edge_taper * rng.randf_range(0.86, 1.16), 0.26, 1.28)
 			var patch_scale := clampf(
 				(0.60 + 0.40 * edge_taper) * rng.randf_range(0.92, 1.12), 0.50, 1.15
@@ -480,30 +480,30 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 	var verge_transforms: Array[Transform3D] = []
 	var verge_customs: Array[Color] = []
 	var v_step := 0.34
-	var vx_count := int(round(96.0 / v_step))
-	var vz_count := int(round(68.0 / v_step))
+	var vx_count := int(round(104.0 / v_step))
+	var vz_count := int(round(74.0 / v_step))
 	for vz in range(vz_count):
 		for vx in range(vx_count):
-			var wx := -48.0 + (float(vx) + rng.randf_range(0.15, 0.85)) * v_step
-			var wz := -38.0 + (float(vz) + rng.randf_range(0.15, 0.85)) * v_step
+			var wx := -52.0 + (float(vx) + rng.randf_range(0.15, 0.85)) * v_step
+			var wz := -44.0 + (float(vz) + rng.randf_range(0.15, 0.85)) * v_step
 			var pw := SevaraTerrainGen3D.get_path_weight_at(wx, wz)
-			if pw < 0.04:
+			if pw < 0.03:
 				continue
 			var d_main := absf(SevaraTerrainGen3D._main_road_signed_dist(wx, wz))
-			var is_median := d_main < 0.22 and absf(wx) > 2.2 and rng.randf() < 0.68
-			var is_shoulder := pw >= 0.05 and pw <= 0.58
+			var is_median := d_main < 0.23 and absf(wx) > 1.8 and rng.randf() < 0.72
+			var is_shoulder := pw >= 0.04 and pw <= 0.62
 			if not is_median and not is_shoulder:
 				continue
 			var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
 			var gn := SevaraTerrainGen3D.get_ground_normal(wx, wz)
-			if gn.y < 0.80:
+			if gn.y < 0.74:
 				continue
 			var h_mult := (
 				rng.randf_range(0.24, 0.44)
 				if is_median
-				else lerpf(0.70, 0.22, smoothstep(0.05, 0.58, pw)) * rng.randf_range(0.84, 1.16)
+				else lerpf(0.72, 0.22, smoothstep(0.04, 0.62, pw)) * rng.randf_range(0.84, 1.16)
 			)
-			var sc := rng.randf_range(0.72, 1.10)
+			var sc := rng.randf_range(0.72, 1.12)
 			var basis := _align_up_with_yaw(gn, rng.randf() * TAU, sc)
 			verge_transforms.append(Transform3D(basis, Vector3(wx, wy - 0.012, wz)))
 			verge_customs.append(Color(0.85, 0.0, 0.0, h_mult))

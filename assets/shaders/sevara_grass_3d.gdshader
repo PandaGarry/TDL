@@ -81,7 +81,7 @@ void vertex() {
 	float clump = fbm(world_v.xz * 0.20);
 	float inst_h = clamp(INSTANCE_CUSTOM.a, 0.14, 1.45);
 	float verge_tint = clamp(INSTANCE_CUSTOM.r, 0.0, 1.0);
-	float dist_taper = 1.0 - smoothstep(50.0, 68.0, length(world_v.xz));
+	float dist_taper = 1.0 - smoothstep(66.0, 86.0, length(world_v.xz));
 	float h_scale = (0.72 + rnd.g * 0.46) * (0.74 + clump * 0.56) * inst_h * dist_taper;
 	float gust = wind_gust(world_v.xz, TIME);
 	float wave = sin(TIME * 1.5 - dot(world_v.xz, wind_direction) * 0.38 + rnd.a * 6.28) * 0.5 + 0.5;
