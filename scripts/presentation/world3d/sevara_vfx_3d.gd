@@ -269,18 +269,17 @@ static func _build_volumetric_godrays(parent: Node3D) -> void:
 
 
 static func _build_floating_pollen_and_leaves(parent: Node3D) -> void:
-	# Sunlit golden pollen motes & drifting spring leaves across the valley
+	# Sunlit golden pollen motes with soft circular radial falloff (no square corners)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 20261022
 
 	var mote_mesh := QuadMesh.new()
-	mote_mesh.size = Vector2(0.085, 0.085)
-	var mote_mat := StandardMaterial3D.new()
-	mote_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mote_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mote_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mote_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	mote_mat.albedo_color = Color(1.0, 0.94, 0.66, 0.78)
+	mote_mesh.size = Vector2(0.11, 0.11)
+	var sh := SevaraAssetLibrary3D.load_shader("sevara_vfx_mist_3d.gdshader")
+	var mote_mat := ShaderMaterial.new()
+	mote_mat.shader = sh
+	mote_mat.set_shader_parameter("vfx_mode", 2)
+	mote_mat.set_shader_parameter("tint_color", Color(1.0, 0.92, 0.58, 0.55))
 	mote_mesh.material = mote_mat
 
 	var mmi := MultiMeshInstance3D.new()
@@ -289,15 +288,19 @@ static func _build_floating_pollen_and_leaves(parent: Node3D) -> void:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.mesh = mote_mesh
-	var count := 160
+	var count := 120
 	mm.instance_count = count
 	for i in range(count):
 		var wx := rng.randf_range(-28.0, 28.0)
 		var wz := rng.randf_range(-22.0, 22.0)
-		var wy := SevaraTerrainGen3D.get_height_at(wx, wz) + rng.randf_range(0.6, 4.8)
-		var sc := rng.randf_range(0.65, 1.45)
+		var wy := SevaraTerrainGen3D.get_height_at(wx, wz) + rng.randf_range(0.9, 4.8)
+		var sc := rng.randf_range(0.65, 1.35)
 		mm.set_instance_transform(
-			i, Transform3D(Basis().scaled(Vector3(sc, sc, sc)), Vector3(wx, wy, wz))
+			i,
+			Transform3D(
+				Basis.from_euler(Vector3(-0.4, rng.randf() * TAU, 0.0)).scaled(Vector3(sc, sc, sc)),
+				Vector3(wx, wy, wz)
+			)
 		)
 	mmi.multimesh = mm
 	parent.add_child(mmi)

@@ -279,14 +279,14 @@ func _build_environment_and_lights() -> void:
 	_environment.sky = sky
 
 	_environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	_environment.ambient_light_color = Color(0.62, 0.70, 0.78)
-	_environment.ambient_light_sky_contribution = 0.52
-	_environment.ambient_light_energy = 0.76
+	_environment.ambient_light_color = Color(0.58, 0.67, 0.76)
+	_environment.ambient_light_sky_contribution = 0.48
+	_environment.ambient_light_energy = 0.64
 	_environment.tonemap_mode = Environment.TONE_MAPPER_ACES
-	_environment.tonemap_exposure = 1.02
+	_environment.tonemap_exposure = 0.95
 	_environment.fog_enabled = true
-	_environment.fog_light_color = Color(0.76, 0.83, 0.88)
-	_environment.fog_light_energy = 0.46
+	_environment.fog_light_color = Color(0.72, 0.80, 0.86)
+	_environment.fog_light_energy = 0.42
 	_environment.fog_density = 0.00075
 	_environment.fog_sky_affect = 0.14
 	_environment.glow_enabled = false
@@ -297,7 +297,7 @@ func _build_environment_and_lights() -> void:
 	_sun_light.name = "SunDirectionalLight3D"
 	_sun_light.rotation_degrees = Vector3(-42.0, -34.0, 0.0)
 	_sun_light.light_color = Color(1.0, 0.94, 0.82)
-	_sun_light.light_energy = 1.18
+	_sun_light.light_energy = 1.04
 	_sun_light.shadow_enabled = true
 	_sun_light.shadow_opacity = 0.76
 	_sun_light.shadow_blur = 1.35
@@ -375,6 +375,7 @@ func _build_terrain_and_water() -> void:
 	var w_shader := SevaraAssetLibrary3D.load_shader("sevara_water_3d.gdshader")
 	_water_shader_mat = ShaderMaterial.new()
 	_water_shader_mat.shader = w_shader
+	_water_shader_mat.set_shader_parameter("riverbed_tex", peb_alb)
 	_water_greybox_mat = StandardMaterial3D.new()
 	_water_greybox_mat.albedo_color = Color(0.18, 0.34, 0.44, 0.82)
 	_water_greybox_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA

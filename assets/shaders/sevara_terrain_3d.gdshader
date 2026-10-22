@@ -3,7 +3,7 @@ render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
 // Next-gen 2026 Sevara Valley Terrain Shader:
 // - Dual-scale stochastic anti-tiling sampling (zero visible grid repetition)
-// - 8-biome height-and-splat blending (meadow moss, clover grass, forest floor,
+// - ACES-calibrated 8-biome height-and-splat blending (meadow moss, clover grass, forest floor,
 //   wet river pebbles, marsh silt, flagstone cobblestone trails, cliff granite, spring snow)
 // - Normal-map blending with wetness darkening and specular sheen along the water's edge
 
@@ -32,6 +32,7 @@ uniform sampler2D tex_path : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D tex_path_nrm : hint_normal, filter_linear_mipmap, repeat_enable;
 
 uniform float uv_scale = 0.26;
+uniform float silt_stain = 0.16;
 
 varying vec3 v_world_pos;
 varying vec3 v_world_nrm;
@@ -72,7 +73,7 @@ void fragment() {
 	float detail_n = noise(v_world_pos.xz * 0.24);
 	float stoch_blend = smoothstep(0.25, 0.75, macro_n);
 
-	float w_mud = clamp(v_weights.r, 0.0, 1.0);
+	float w_mud = clamp(v_weights.r + max(silt_stain - 0.20, 0.0) * 0.35, 0.0, 1.0);
 	float w_pebbles = clamp(v_weights.g, 0.0, 1.0);
 	float w_stone = clamp(v_weights.b, 0.0, 1.0);
 	float w_snow = clamp(v_weights.a, 0.0, 1.0);
@@ -94,12 +95,12 @@ void fragment() {
 	float rough = mix(0.84, 0.78, forest_patch * 0.58);
 
 	// Warm ochre-moss tint variation across sunlit meadows vs shaded forest margins
-	vec3 meadow_grade = mix(vec3(0.88, 0.97, 0.82), vec3(1.05, 1.01, 0.90), detail_n);
+	vec3 meadow_grade = mix(vec3(0.76, 0.86, 0.70), vec3(0.92, 0.89, 0.78), detail_n);
 	col *= meadow_grade;
 
 	// Blend marsh mud & fertile bank soil
 	if (w_mud > 0.01) {
-		vec3 c_mud = sample_stochastic(tex_mud, w_uv * 1.05, stoch_blend);
+		vec3 c_mud = sample_stochastic(tex_mud, w_uv * 1.05, stoch_blend) * vec3(0.78, 0.75, 0.70);
 		vec3 n_mud = sample_stochastic(tex_mud_nrm, w_uv * 1.05, stoch_blend);
 		float m_blend = smoothstep(0.05, 0.72, w_mud + (detail_n - 0.5) * 0.16);
 		col = mix(col, c_mud, m_blend);
@@ -109,7 +110,7 @@ void fragment() {
 
 	// Blend riverbed & shoreline pebbles
 	if (w_pebbles > 0.01) {
-		vec3 c_peb = sample_stochastic(tex_pebbles, w_uv * 1.30, stoch_blend);
+		vec3 c_peb = sample_stochastic(tex_pebbles, w_uv * 1.30, stoch_blend) * vec3(0.82, 0.82, 0.80);
 		vec3 n_peb = sample_stochastic(tex_pebbles_nrm, w_uv * 1.30, stoch_blend);
 		float p_blend = smoothstep(0.10, 0.76, w_pebbles + (detail_n - 0.5) * 0.20);
 		col = mix(col, c_peb, p_blend);
@@ -117,26 +118,26 @@ void fragment() {
 		rough = mix(rough, 0.44, p_blend);
 	}
 
-	// Blend medieval flagstone & mossy cobblestone paths + settlement courtyard
+	// Blend medieval flagstone & mossy cobblestone paths + settlement courtyard (ACES calibrated)
 	if (w_path > 0.01) {
-		vec3 c_path = sample_stochastic(tex_path, w_uv * 1.25, stoch_blend);
+		vec3 c_path = sample_stochastic(tex_path, w_uv * 1.25, stoch_blend) * vec3(0.66, 0.64, 0.60);
 		vec3 n_path = sample_stochastic(tex_path_nrm, w_uv * 1.25, stoch_blend);
 		float path_luma = dot(c_path, vec3(0.299, 0.587, 0.114));
-		float path_blend = smoothstep(0.14, 0.66, w_path + (path_luma - 0.45) * 0.22);
-		col = mix(col, c_path * vec3(1.02, 1.00, 0.96), path_blend);
+		float path_blend = smoothstep(0.14, 0.66, w_path + (path_luma - 0.30) * 0.22);
+		col = mix(col, c_path, path_blend);
 		nrm = mix(nrm, n_path, path_blend);
-		rough = mix(rough, 0.66, path_blend);
+		rough = mix(rough, 0.68, path_blend);
 	}
 
 	// Blend steep cliff rock & highland stone
 	float rock_weight = max(w_stone, w_cliff);
 	if (rock_weight > 0.01) {
-		vec3 c_rock = sample_stochastic(tex_cliff, w_uv * 0.82, stoch_blend);
+		vec3 c_rock = sample_stochastic(tex_cliff, w_uv * 0.82, stoch_blend) * vec3(0.78, 0.78, 0.76);
 		vec3 n_rock = sample_stochastic(tex_cliff_nrm, w_uv * 0.82, stoch_blend);
 		float r_blend = smoothstep(0.10, 0.68, rock_weight + (detail_n - 0.5) * 0.18);
 		col = mix(col, c_rock, r_blend);
 		nrm = mix(nrm, n_rock, r_blend);
-		rough = mix(rough, 0.72, r_blend);
+		rough = mix(rough, 0.74, r_blend);
 	}
 
 	// Blend spring snow patches on Toramek ridges (saving green moss peeks in crevices)
@@ -144,9 +145,9 @@ void fragment() {
 		vec3 c_snow = sample_stochastic(tex_snow, w_uv * 0.95, stoch_blend);
 		vec3 n_snow = sample_stochastic(tex_snow_nrm, w_uv * 0.95, stoch_blend);
 		float s_blend = smoothstep(0.22, 0.76, w_snow * (1.0 - w_cliff * 0.6) + (macro_n - 0.5) * 0.22);
-		col = mix(col, mix(c_snow, vec3(0.92, 0.96, 1.0), 0.55), s_blend);
+		col = mix(col, mix(c_snow, vec3(0.76, 0.80, 0.84), 0.50), s_blend);
 		nrm = mix(nrm, n_snow, s_blend);
-		rough = mix(rough, 0.52, s_blend);
+		rough = mix(rough, 0.54, s_blend);
 	}
 
 	// Shoreline wetness darkening & capillary sheen near water level

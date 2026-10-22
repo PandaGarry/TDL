@@ -597,20 +597,17 @@ static func _create_styled_surface_material(
 	# 4. Characters (Viking_Male / Viking_Female): natural northern skin, hair & woven garments
 	if is_character:
 		if ml.contains("skin"):
-			var skin_col := raw_col if has_override else Color(0.82, 0.62, 0.49)
-			return _make_creature_shader_material(
-				skin_col, skin_col.darkened(0.16), Color(0.96, 0.78, 0.64), 0.64, 0.22, 0.02, 2.3
+			var skin_col := raw_col if has_override else Color(0.46, 0.31, 0.22)
+			var skin_mat := _make_creature_shader_material(
+				skin_col, skin_col.darkened(0.22), Color(0.78, 0.58, 0.42), 0.68, 0.12, 0.02, 2.3
 			)
+			skin_mat.set_shader_parameter("is_skin_surface", true)
+			skin_mat.set_shader_parameter("scalp_hair_color", Color(0.18, 0.11, 0.07))
+			return skin_mat
 		if ml.contains("hair"):
-			var hair_col := raw_col if has_override else Color(0.28, 0.19, 0.12)
+			var hair_col := raw_col if has_override else Color(0.18, 0.11, 0.07)
 			return _make_creature_shader_material(
-				hair_col.lightened(0.06),
-				hair_col.darkened(0.22),
-				Color(0.88, 0.72, 0.48),
-				0.72,
-				0.26,
-				0.09,
-				2.4
+				hair_col, hair_col.darkened(0.28), Color(0.68, 0.52, 0.34), 0.74, 0.14, 0.08, 2.4
 			)
 		var garment_col := (
 			raw_col
@@ -656,8 +653,8 @@ static func _create_styled_surface_material(
 		)
 
 	if ml.contains("plaster") or ml.contains("beige") or ml == "white":
-		var wall_pri := Color(0.92, 0.85, 0.73)
-		var wall_sec := Color(0.78, 0.70, 0.58)
+		var wall_pri := Color(0.68, 0.61, 0.50)
+		var wall_sec := Color(0.52, 0.45, 0.36)
 		return _make_arch_shader_material(
 			"pbr_lime_plaster", wall_pri, wall_sec, 0.42, 0.45, 0.65, 0.86, 0.0, 0.48, 0.18
 		)

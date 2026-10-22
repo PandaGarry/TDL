@@ -19,19 +19,19 @@ static func create_human_figure_3d(
 	root.name = "HumanFigure3D"
 
 	var model_file := _select_character_model_file(role_hint, has_satchel, is_local_focus)
-	var skin_col := Color(0.66, 0.68, 0.64) if has_kevalu_fever else Color(0.84, 0.69, 0.56)
-	var hair_col := Color(0.24, 0.17, 0.12)
+	var skin_col := Color(0.42, 0.44, 0.40) if has_kevalu_fever else Color(0.46, 0.31, 0.22)
+	var hair_col := Color(0.18, 0.11, 0.07)
 	if role_hint.contains("selima") or role_hint.contains("sarela"):
-		hair_col = Color(0.64, 0.62, 0.58)
+		hair_col = Color(0.34, 0.24, 0.15)
 	elif role_hint.contains("ilune") or role_hint.contains("evaren"):
-		hair_col = Color(0.42, 0.26, 0.15)
+		hair_col = Color(0.28, 0.16, 0.09)
 	var overrides := {
 		"Skin": skin_col,
 		"Main": cloak_color,
 		"Shirt": tunic_color,
-		"Vest": cloak_color.darkened(0.14),
-		"Light": tunic_color.lightened(0.12),
-		"Pants": Color(0.24, 0.21, 0.18),
+		"Vest": cloak_color.darkened(0.18),
+		"Light": tunic_color.darkened(0.06),
+		"Pants": Color(0.18, 0.16, 0.14),
 		"Hair": hair_col,
 		"DarkGreen": cloak_color,
 	}
