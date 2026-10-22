@@ -176,7 +176,8 @@ static func get_height_at(wx: float, wz: float) -> float:
 		var dist_river := absf(wx - r_cx)
 		var stream_fade := smoothstep(-52.0, -40.0, wz) * (1.0 - smoothstep(38.0, 48.0, wz))
 		var bank_y := WATER_SURFACE_Y + 0.26 + sin(wz * 0.18 + wx * 0.14) * 0.035
-		var trough_blend := exp(-pow(dist_river / (r_hw * 2.45), 2.2)) * stream_fade
+		var trough_w := r_hw * lerpf(4.8, 2.45, smoothstep(-30.0, -6.0, wz))
+		var trough_blend := exp(-pow(dist_river / trough_w, 2.0)) * stream_fade
 		var h_bank := lerpf(meadow_h, bank_y, trough_blend)
 
 		var norm_r := dist_river / maxf(r_hw, 0.5)

@@ -486,8 +486,10 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 			if path_w > 0.28:
 				continue
 			var gn := SevaraTerrainGen3D.get_ground_normal(wx, wz)
-			# Leave only steep limestone cliff ledges exposed so hilltops stay lush
-			if gn.y < 0.68 and path_w < 0.02:
+			var near_stream := absf(wx - SevaraTerrainGen3D.river_center_x(wz)) < 18.0
+			var min_up := 0.46 if near_stream else 0.68
+			# Leave only steep limestone cliff ledges exposed so valley slopes stay lush
+			if gn.y < min_up and path_w < 0.02:
 				continue
 			var bank_taper := smoothstep(
 				SevaraTerrainGen3D.WATER_SURFACE_Y + 0.12,

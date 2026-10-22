@@ -352,27 +352,27 @@ void fragment() {
 	// --- 5. Step 2 Nivarel Creek Pebble Bed & Wet Mossy Shore Bank ---
 	if (river_bed > 0.01) {
 		float grain = 0.84 + 0.20 * crumb_n + 0.12 * (grit_n - 0.35);
-		vec3 river_sand = mix(vec3(0.32, 0.29, 0.22), vec3(0.24, 0.26, 0.22), clod_n) * grain;
-		vec3 bank_moss = mix(vec3(0.17, 0.29, 0.13), vec3(0.23, 0.34, 0.15), moss_n) * grain;
-		vec3 bed_col = mix(bank_moss, river_sand, smoothstep(0.12, 0.58, river_bed));
+		float submerge = clamp((0.48 - v_world_pos.y) * 3.2, 0.0, 1.0);
+		vec3 river_sand = mix(vec3(0.32, 0.28, 0.19), vec3(0.22, 0.25, 0.17), clod_n) * grain;
+		vec3 bank_moss = mix(vec3(0.17, 0.29, 0.13), vec3(0.23, 0.35, 0.15), moss_n) * grain;
+		vec3 bed_col = mix(bank_moss, river_sand, clamp(submerge * 0.90 + road_core * 0.55, 0.0, 1.0));
 
-		float m_p1 = smoothstep(0.14, 0.60, st1.x);
-		float m_p2 = smoothstep(0.18, 0.64, st2.x) * (1.0 - m_p1);
-		vec3 peb_warm = vec3(0.42, 0.37, 0.29) * grain;
-		vec3 peb_slate = vec3(0.28, 0.31, 0.32) * grain;
-		vec3 peb_jade = vec3(0.26, 0.34, 0.28) * grain;
+		float m_p1 = smoothstep(0.12, 0.56, st1.x) * clamp(submerge * 1.15 + 0.18, 0.0, 1.0);
+		float m_p2 = smoothstep(0.16, 0.60, st2.x) * (1.0 - m_p1) * clamp(submerge * 1.15 + 0.18, 0.0, 1.0);
+		vec3 peb_warm = vec3(0.44, 0.38, 0.26) * grain;
+		vec3 peb_slate = vec3(0.26, 0.30, 0.24) * grain;
+		vec3 peb_jade = vec3(0.24, 0.34, 0.22) * grain;
 		vec3 pcol1 = mix(peb_slate, peb_warm, fract(st1.w * 11.3));
 		pcol1 = mix(pcol1, peb_jade, smoothstep(0.65, 0.92, fract(st1.w * 5.7)));
 		vec3 pcol2 = mix(peb_slate, peb_warm, fract(st2.w * 8.9));
 
-		bed_col = mix(bed_col, pcol1, m_p1 * 0.78);
-		bed_col = mix(bed_col, pcol2, m_p2 * 0.62);
-		// Wet darkening near and below water surface (y <= 0.48)
-		float wet_dark = clamp(wet_shore * 0.75 + (1.0 - smoothstep(0.36, 0.56, v_world_pos.y)) * 0.45, 0.0, 0.90);
-		bed_col *= mix(1.0, 0.68, wet_dark);
+		bed_col = mix(bed_col, pcol1, m_p1 * 0.82);
+		bed_col = mix(bed_col, pcol2, m_p2 * 0.66);
+		float wet_dark = clamp(wet_shore * 0.55 + submerge * 0.42, 0.0, 0.82);
+		bed_col *= mix(1.0, 0.74, wet_dark);
 
-		col = mix(col, bed_col, smoothstep(0.04, 0.55, river_bed));
-		rough = mix(rough, mix(0.76, 0.24, wet_dark), smoothstep(0.04, 0.55, river_bed));
+		col = mix(col, bed_col, smoothstep(0.06, 0.58, river_bed));
+		rough = mix(rough, mix(0.82, 0.30, wet_dark), smoothstep(0.06, 0.58, river_bed));
 	}
 
 	// --- 6. Distant Valley Rim Atmospheric Perspective ---
