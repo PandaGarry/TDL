@@ -431,20 +431,18 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 	root.name = "DenseMeadowsMultiMesh3D"
 	var dens := clampf(foliage_density, 0.4, 2.0)
 
-	# Step 1 Look-Dev Foundation: Unified velvety 3D grass carpet (zero noisy billboard cards).
-	# Uses a stratified jittered grid across the look-dev meadow so there are no bare patches,
-	# and tapers blade height smoothly along the earthen footpath and streambed edge.
+	# 1. Primary Meadow Carpet across the 110 x 80 m CBT Proving Ground
 	var patch_mesh := SevaraAssetLibrary3D.build_grass_patch_mesh(86, 1.05, 0.036, 107)
 	var patch_transforms: Array[Transform3D] = []
 	var patch_customs: Array[Color] = []
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 4072026
 
-	var step := clampf(0.72 / sqrt(dens), 0.54, 0.92)
-	var x_min := -44.0
-	var x_max := 44.0
-	var z_min := -38.0
-	var z_max := 22.0
+	var step := clampf(0.76 / sqrt(dens), 0.56, 0.96)
+	var x_min := -54.0
+	var x_max := 54.0
+	var z_min := -44.0
+	var z_max := 28.0
 	var gx_count := int(round((x_max - x_min) / step))
 	var gz_count := int(round((z_max - z_min) / step))
 
@@ -452,19 +450,20 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 		for gx in range(gx_count):
 			var wx := x_min + (float(gx) + rng.randf_range(0.18, 0.82)) * step
 			var wz := z_min + (float(gz) + rng.randf_range(0.18, 0.82)) * step
-			if Vector2(wx, wz).length() > 45.5:
+			if Vector2(wx, wz).length() > 56.5:
 				continue
 			var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
-			if wy < SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14 or wy > 5.4:
+			if wy < SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14 or wy > 6.4:
 				continue
 			var path_w := SevaraTerrainGen3D.get_path_weight_at(wx, wz)
-			if path_w > 0.34:
+			if path_w > 0.36:
 				continue
 			var gn := SevaraTerrainGen3D.get_ground_normal(wx, wz)
-			if gn.y < 0.76:
+			# Leave steep limestone terrace ledges exposed so rock strata read clearly
+			if gn.y < 0.82:
 				continue
-			var edge_taper := 1.0 - smoothstep(0.08, 0.34, path_w) * 0.72
-			var height_mult := clampf(edge_taper * rng.randf_range(0.86, 1.14), 0.24, 1.25)
+			var edge_taper := 1.0 - smoothstep(0.08, 0.36, path_w) * 0.72
+			var height_mult := clampf(edge_taper * rng.randf_range(0.86, 1.16), 0.24, 1.28)
 			var patch_scale := clampf(
 				(0.56 + 0.44 * edge_taper) * rng.randf_range(0.92, 1.12), 0.48, 1.15
 			)
@@ -474,6 +473,43 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 
 	root.add_child(
 		_create_multimesh_node("GrassBladeCarpetMM", patch_mesh, patch_transforms, patch_customs)
+	)
+
+	# 2. Roadside Verge Micro-Tufts & Center Median Strip (feathers road edges & between wheel ruts)
+	var verge_mesh := SevaraAssetLibrary3D.build_grass_patch_mesh(44, 0.40, 0.030, 309)
+	var verge_transforms: Array[Transform3D] = []
+	var verge_customs: Array[Color] = []
+	var v_step := 0.36
+	var vx_count := int(round(92.0 / v_step))
+	var vz_count := int(round(64.0 / v_step))
+	for vz in range(vz_count):
+		for vx in range(vx_count):
+			var wx := -46.0 + (float(vx) + rng.randf_range(0.15, 0.85)) * v_step
+			var wz := -36.0 + (float(vz) + rng.randf_range(0.15, 0.85)) * v_step
+			var pw := SevaraTerrainGen3D.get_path_weight_at(wx, wz)
+			if pw < 0.22:
+				continue
+			var d_main := absf(SevaraTerrainGen3D._main_road_signed_dist(wx, wz))
+			var is_median := d_main < 0.20 and absf(wx) > 3.5 and rng.randf() < 0.62
+			var is_shoulder := pw >= 0.24 and pw <= 0.68
+			if not is_median and not is_shoulder:
+				continue
+			var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
+			var gn := SevaraTerrainGen3D.get_ground_normal(wx, wz)
+			if gn.y < 0.78:
+				continue
+			var h_mult := (
+				rng.randf_range(0.24, 0.42)
+				if is_median
+				else lerpf(0.62, 0.22, smoothstep(0.24, 0.68, pw)) * rng.randf_range(0.82, 1.18)
+			)
+			var sc := rng.randf_range(0.68, 1.08)
+			var basis := _align_up_with_yaw(gn, rng.randf() * TAU, sc)
+			verge_transforms.append(Transform3D(basis, Vector3(wx, wy - 0.012, wz)))
+			verge_customs.append(Color(0.85, 0.0, 0.0, h_mult))
+
+	root.add_child(
+		_create_multimesh_node("RoadsideVergeMM", verge_mesh, verge_transforms, verge_customs)
 	)
 	return root
 

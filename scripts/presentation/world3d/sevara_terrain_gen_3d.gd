@@ -67,16 +67,51 @@ static func get_ground_normal(wx: float, wz: float) -> Vector3:
 	return Vector3(-hx, 2.0 * eps, -hz).normalized()
 
 
+static func _main_road_z(wx: float) -> float:
+	return -2.2 + sin(wx * 0.085 + 0.35) * 3.8 + cos(wx * 0.045 - 0.4) * 1.9 - wx * 0.06
+
+
+static func _main_road_signed_dist(wx: float, wz: float) -> float:
+	var rz := _main_road_z(wx)
+	var dz_dx := cos(wx * 0.085 + 0.35) * 0.323 - sin(wx * 0.045 - 0.4) * 0.0855 - 0.06
+	return (wz - rz) / sqrt(1.0 + dz_dx * dz_dx)
+
+
+static func _north_branch_signed_dist(wx: float, wz: float) -> float:
+	var bx := -3.5 + (wz + 3.6) * 0.55 + sin((wz + 3.6) * 0.16) * 2.2
+	var dx_dz := 0.55 + cos((wz + 3.6) * 0.16) * 0.352
+	return (wx - bx) / sqrt(1.0 + dx_dz * dx_dz)
+
+
+static func _south_branch_signed_dist(wx: float, wz: float) -> float:
+	var sx := 5.5 + (wz + 1.8) * 0.48 + sin((wz + 1.8) * 0.18) * 1.8
+	var dx_dz := 0.48 + cos((wz + 1.8) * 0.18) * 0.324
+	return (wx - sx) / sqrt(1.0 + dx_dz * dx_dz)
+
+
 static func get_path_weight_at(wx: float, wz: float) -> float:
 	if STEP1_CLEAN_MEADOW:
-		# Single organic winding footpath gently curving across the sun-lit rolling hills
-		var trail_z := -3.5 + sin(wx * 0.14 + 0.4) * 2.8 + cos(wx * 0.07 - 0.3) * 1.4
-		var main_trail := (
-			exp(-pow((wz - trail_z) / 1.05, 2.0))
-			* smoothstep(-28.0, -21.0, wx)
-			* (1.0 - smoothstep(21.0, 28.0, wx))
+		# 1. Main two-track valley road running SW -> NE across the 110x80m CBT proving ground
+		var d_main := absf(_main_road_signed_dist(wx, wz))
+		var fade_main := smoothstep(-56.0, -46.0, wx) * (1.0 - smoothstep(46.0, 56.0, wx))
+		var w_main := exp(-pow(d_main / 1.48, 2.4)) * fade_main
+
+		# 2. NW Overlook terrace trail branching off the crossroads at (-3.5, -3.6)
+		var d_north := absf(_north_branch_signed_dist(wx, wz))
+		var rz_at_x := _main_road_z(wx)
+		var fade_north := (
+			smoothstep(rz_at_x + 0.6, rz_at_x - 1.2, wz) * (1.0 - smoothstep(-32.0, -39.0, wz))
 		)
-		return clampf(main_trail, 0.0, 1.0)
+		var w_north := exp(-pow(d_north / 1.12, 2.2)) * fade_north
+
+		# 3. SE Meadow basin trail branching off at (+5.5, -1.8)
+		var d_south := absf(_south_branch_signed_dist(wx, wz))
+		var fade_south := (
+			smoothstep(rz_at_x - 0.6, rz_at_x + 1.2, wz) * (1.0 - smoothstep(20.0, 27.0, wz))
+		)
+		var w_south := exp(-pow(d_south / 1.05, 2.2)) * fade_south
+
+		return clampf(maxf(w_main, maxf(w_north, w_south)), 0.0, 1.0)
 
 	# Main stone-paved settlement courtyard & trails connecting the hearth, well, bridge, and meadow
 	var courtyard := exp(-pow(wx - (-14.5), 2.0) / 54.0 - pow(wz - (-7.5), 2.0) / 38.0)
@@ -99,19 +134,45 @@ static func get_path_weight_at(wx: float, wz: float) -> float:
 
 static func get_height_at(wx: float, wz: float) -> float:
 	if STEP1_CLEAN_MEADOW:
-		# Soft, harmonious rolling hills across the meadow look-dev sanctuary
-		var hill_a := sin(wx * 0.10 + 0.3) * cos(wz * 0.11 - 0.4) * 0.68
-		var hill_b := sin(wx * 0.19 - wz * 0.16 + 1.1) * 0.26
-		var north_rise := smoothstep(-6.0, -42.0, wz) * 2.8
-		var rim_x := smoothstep(28.0, 74.0, absf(wx))
-		var rim_z := smoothstep(22.0, 54.0, absf(wz))
+		# CBT Proving Ground topography: rolling sun-lit meadows, stepped limestone terraces on the
+		# northern/western hills, and physically carved two-track roadbeds.
+		var hill_a := sin(wx * 0.075 + 0.3) * cos(wz * 0.085 - 0.4) * 0.88
+		var hill_b := sin(wx * 0.15 - wz * 0.13 + 1.1) * 0.36
+		var nw_plateau := smoothstep(6.0, -34.0, wx * 0.42 + wz * 0.82) * 3.4
+		var ne_knoll := exp(-pow((wx - 24.0) / 18.0, 2.0) - pow((wz - (-20.0)) / 15.0, 2.0)) * 2.35
+
+		# Stepped natural terraces on the hillside slopes (creates crisp rock ledges & grassy shelves)
+		var raw_slope_h := nw_plateau + ne_knoll + maxf(hill_a + hill_b, 0.0)
+		var terrace_phase := raw_slope_h * 1.65
+		var terrace_shelf := (
+			(floor(terrace_phase) + smoothstep(0.18, 0.82, fract(terrace_phase))) / 1.65
+		)
+		var terrace_blend := (
+			smoothstep(0.65, 2.4, raw_slope_h) * (1.0 - get_path_weight_at(wx, wz) * 0.85)
+		)
+		var sculpted_hills := lerpf(
+			hill_a + hill_b + nw_plateau + ne_knoll,
+			terrace_shelf + hill_b * 0.4,
+			terrace_blend * 0.58
+		)
+
+		var rim_x := smoothstep(42.0, 76.0, absf(wx))
+		var rim_z := smoothstep(30.0, 56.0, absf(wz))
 		var rim_h := (
 			clampf(rim_x + rim_z - rim_x * rim_z * 0.4, 0.0, 1.0)
 			* (2.8 + 0.9 * sin(wx * 0.08 + 0.4))
 		)
-		var path_dip := get_path_weight_at(wx, wz) * 0.07
-		var micro := sin(wx * 0.38 + wz * 0.33) * 0.03 + cos(wx * 0.25 - wz * 0.41) * 0.025
-		return 0.85 + hill_a + hill_b + north_rise + rim_h + micro - path_dip
+
+		# Twin wheel-rut carving along the main road
+		var d_main := absf(_main_road_signed_dist(wx, wz))
+		var rut_carve := (
+			(exp(-pow((d_main - 0.52) / 0.32, 2.0)) * 0.065 + exp(-pow(d_main / 1.35, 2.0)) * 0.045)
+			* smoothstep(-54.0, -44.0, wx)
+			* (1.0 - smoothstep(44.0, 54.0, wx))
+		)
+		var branch_carve := get_path_weight_at(wx, wz) * 0.055
+		var micro := sin(wx * 0.42 + wz * 0.37) * 0.032 + cos(wx * 0.27 - wz * 0.49) * 0.026
+		return 0.82 + sculpted_hills + rim_h + micro - maxf(rut_carve, branch_carve)
 
 	# 1. Toramek NW mountain slope & rocky ridges
 	var nw_slope := smoothstep(4.0, -34.0, wx * 0.68 + wz * 0.74)
