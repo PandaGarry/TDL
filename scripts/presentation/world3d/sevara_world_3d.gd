@@ -6,7 +6,8 @@ extends Node3D
 
 ## Step-by-step Look-Dev progression:
 ## LOOKDEV_STEP = 1 -> Step 1: Terrain relief, calm velvety 3D grass, path & lighting.
-const LOOKDEV_STEP := 1
+## LOOKDEV_STEP = 2 -> Step 2: Crystal Nivarel creek, shoreline foam, stone ford & mossy boulders.
+const LOOKDEV_STEP := 2
 
 const CAMERA_LOOKPOINTS: Array[String] = [
 	"follow",
@@ -399,8 +400,49 @@ func _populate_static_settlement() -> void:
 	var fol_dens := float(SettingsManager.graphics_profile().get("foliage_density", 1.0))
 	_last_meadow_signature = "%.2f" % fol_dens
 	_meadow_multimesh_root.add_child(SevaraPropsFactory3D.build_dense_meadow_multimeshes(fol_dens))
+	if LOOKDEV_STEP >= 2:
+		_populate_step2_boulders()
 	if LOOKDEV_STEP >= 4:
 		SevaraPropsFactory3D.populate_static_settlement(_settlement_root)
+
+
+func _populate_step2_boulders() -> void:
+	var step2_rocks: Array[Dictionary] = [
+		# Stone ford & central rapids boulders (around z = -6..+1, r_cx ~ 8..10)
+		{"pos": Vector2(5.9, -4.5), "sc": Vector3(1.15, 0.72, 1.05), "moss": true},
+		{"pos": Vector2(6.3, -1.2), "sc": Vector3(0.95, 0.62, 0.90), "moss": true},
+		{"pos": Vector2(12.2, -4.3), "sc": Vector3(1.25, 0.78, 1.15), "moss": true},
+		{"pos": Vector2(12.5, -1.1), "sc": Vector3(1.05, 0.68, 0.95), "moss": true},
+		{"pos": Vector2(8.3, -4.6), "sc": Vector3(0.78, 0.45, 0.72), "moss": false},
+		{"pos": Vector2(10.2, -4.5), "sc": Vector3(0.72, 0.42, 0.68), "moss": false},
+		{"pos": Vector2(8.6, -1.0), "sc": Vector3(0.68, 0.38, 0.64), "moss": false},
+		# Upper creek rapids & mossy bank boulders (z = -28..-8)
+		{"pos": Vector2(2.6, -9.8), "sc": Vector3(1.45, 1.05, 1.35), "moss": true},
+		{"pos": Vector2(9.2, -9.2), "sc": Vector3(1.30, 0.92, 1.20), "moss": true},
+		{"pos": Vector2(0.4, -15.6), "sc": Vector3(1.65, 1.22, 1.50), "moss": true},
+		{"pos": Vector2(3.4, -15.0), "sc": Vector3(0.88, 0.55, 0.82), "moss": false},
+		{"pos": Vector2(6.8, -16.2), "sc": Vector3(1.50, 1.10, 1.40), "moss": true},
+		{"pos": Vector2(-1.4, -24.5), "sc": Vector3(1.85, 1.35, 1.65), "moss": true},
+		{"pos": Vector2(4.8, -23.2), "sc": Vector3(1.55, 1.15, 1.45), "moss": true},
+		# Lower creek pool & meadow bank boulders (z = +3..+14)
+		{"pos": Vector2(7.8, 3.8), "sc": Vector3(1.35, 0.95, 1.25), "moss": true},
+		{"pos": Vector2(14.6, 4.6), "sc": Vector3(1.55, 1.12, 1.42), "moss": true},
+		{"pos": Vector2(11.4, 6.2), "sc": Vector3(0.85, 0.50, 0.78), "moss": false},
+		{"pos": Vector2(9.2, 10.4), "sc": Vector3(1.60, 1.18, 1.48), "moss": true},
+		{"pos": Vector2(16.8, 11.0), "sc": Vector3(1.75, 1.28, 1.60), "moss": true},
+		# Hillside terrace & crossroads accent boulders
+		{"pos": Vector2(-9.6, -12.8), "sc": Vector3(1.65, 1.18, 1.50), "moss": true},
+		{"pos": Vector2(-8.2, -12.1), "sc": Vector3(0.92, 0.65, 0.86), "moss": true},
+		{"pos": Vector2(-6.8, -5.8), "sc": Vector3(1.10, 0.75, 1.02), "moss": true},
+		{"pos": Vector2(-15.5, -19.5), "sc": Vector3(1.95, 1.42, 1.75), "moss": true},
+	]
+	for r_idx in range(step2_rocks.size()):
+		var rs: Dictionary = step2_rocks[r_idx]
+		var rp: Vector2 = rs["pos"]
+		var boulder := SevaraPropsFactory3D.create_boulder_3d(rs["sc"] as Vector3, bool(rs["moss"]))
+		boulder.position = Vector3(rp.x, SevaraTerrainGen3D.get_height_at(rp.x, rp.y) - 0.08, rp.y)
+		boulder.rotation.y = float(r_idx) * 1.18
+		_ecology_root.add_child(boulder)
 
 
 func _rebuild_ecology_and_npcs(
@@ -414,6 +456,8 @@ func _rebuild_ecology_and_npcs(
 		child.free()
 	for child: Node in _npcs_root.get_children():
 		child.free()
+	if LOOKDEV_STEP >= 2:
+		_populate_step2_boulders()
 	if LOOKDEV_STEP < 3:
 		return
 
@@ -781,20 +825,20 @@ func _apply_camera_transform(immediate: bool = false) -> void:
 
 	match _camera_lookpoint:
 		"valley_panorama":
-			cam_pos = Vector3(-18.5, 6.2, 8.5)
-			look_target = Vector3(4.5, 1.4, -6.5)
+			cam_pos = Vector3(-16.5, 6.6, 9.2)
+			look_target = Vector3(5.5, 1.1, -5.5)
 			fov = 38.0
 		"heravo_meadow":
-			cam_pos = Vector3(-14.0, 5.0, 5.8)
-			look_target = Vector3(8.0, 1.2, -3.5)
+			cam_pos = Vector3(-11.5, 5.4, 6.2)
+			look_target = Vector3(6.8, 0.9, -3.6)
 			fov = 36.0
 		"nivarel_rapids":
-			cam_pos = Vector3(16.5, 5.6, 7.8)
-			look_target = Vector3(-6.5, 1.5, -6.8)
+			cam_pos = Vector3(17.5, 5.6, 8.8)
+			look_target = Vector3(3.2, 0.9, -7.5)
 			fov = 36.0
 		"settlement_hearth":
-			cam_pos = Vector3(-5.8, 5.4, 4.4)
-			look_target = Vector3(-1.8, 0.9, -2.8)
+			cam_pos = Vector3(2.2, 4.5, 3.6)
+			look_target = Vector3(8.4, 0.55, -3.0)
 			fov = 34.0
 		_:
 			var offset := Vector3(0.0, 12.2, 13.8)

@@ -1,11 +1,11 @@
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
-// Step 1 CBT Proving Ground Terrain Shader (v5 — Artist Polish + Mobile/Desktop GPU LOD):
+// Step 1 + Step 2 CBT Proving Ground Terrain Shader:
 // - Single-pass analytical stone height & gradient evaluation (4x faster on mobile TBDR GPUs).
-// - Distance-adaptive micro-normal LOD (full 4-octave soil crumb near camera, 2-octave mid-range,
-//   zero finite-difference overhead beyond 68m).
-// - Organic turf-lip micro-shadow along cut road shoulders + sunlit clover/wildflower glade warmth.
+// - Distance-adaptive micro-normal LOD (full 4-octave soil crumb near camera, 2-octave mid-range).
+// - Organic two-track roads, turf-lip shadow, and sunlit clover/wildflower glades.
+// - Step 2 Nivarel mountain creek riverbed pebbles, wet shore bank, and shallow stone ford.
 
 uniform float silt_stain = 0.16;
 
@@ -58,8 +58,7 @@ float fbm2(vec2 p) {
 }
 
 // Single-pass analytical fieldstones: returns vec4(stone_height, dh_dx, dh_dz, stone_id)
-// Evaluated ONCE per fragment only inside roadbeds within 40m of origin.
-vec4 irregular_fieldstones_grad(vec2 p) {
+vec4 irregular_fieldstones_grad(vec2 p, float density_threshold) {
 	vec2 warp = vec2(fbm2(p * 1.8) - 0.5, fbm2(p * 1.8 + vec2(4.3, 8.1)) - 0.5) * 0.48;
 	vec2 pw = p + warp;
 	vec2 n = floor(pw);
@@ -72,7 +71,7 @@ vec4 irregular_fieldstones_grad(vec2 p) {
 			vec2 g = vec2(float(i), float(j));
 			vec2 cell = n + g;
 			float id = hash12(cell + vec2(7.1, 3.3));
-			if (id < 0.68) {
+			if (id < density_threshold) {
 				continue;
 			}
 			vec2 o = 0.25 + 0.50 * hash22(cell);
@@ -84,7 +83,7 @@ vec4 irregular_fieldstones_grad(vec2 p) {
 			vec2 aspect = vec2(1.0 + fract(id * 5.7) * 0.65, 1.0 + fract(id * 11.3) * 0.45);
 			vec2 q = abs(rot_r * aspect);
 			float d_oct = max(q.x, q.y) * 0.58 + (q.x + q.y) * 0.42;
-			float rad = 0.11 + fract(id * 13.7) * 0.13;
+			float rad = 0.12 + fract(id * 13.7) * 0.14;
 			if (d_oct < rad) {
 				float norm_d = clamp(d_oct / rad, 0.0, 1.0);
 				float h = smoothstep(1.0, 0.28, norm_d);
@@ -115,6 +114,32 @@ float main_road_z(float wx) {
 	return -2.2 + sin(wx * 0.085 + 0.35) * 3.8 + cos(wx * 0.045 - 0.4) * 1.9 - wx * 0.06;
 }
 
+float river_center_x(float wz) {
+	return 7.8 + wz * 0.22 + sin(wz * 0.088 + 0.35) * 3.6 + cos(wz * 0.044 - 0.2) * 1.8;
+}
+
+float river_half_width(float wz) {
+	float base_w = 2.55 + smoothstep(-32.0, 28.0, wz) * 0.85;
+	float pool_w = exp(-pow((wz - 11.0) / 7.5, 2.0)) * 1.25;
+	return base_w + pool_w;
+}
+
+// Per-pixel river channel & pebble bank mask: returns vec2(river_bed_mask, wet_shore_mask)
+vec2 eval_river_bank(vec2 xz) {
+	float wz = xz.y;
+	float stream_fade = smoothstep(-52.0, -40.0, wz) * (1.0 - smoothstep(38.0, 48.0, wz));
+	if (stream_fade <= 0.001) {
+		return vec2(0.0);
+	}
+	float r_cx = river_center_x(wz);
+	float r_hw = river_half_width(wz);
+	float warp = (fbm2(xz * 0.75) - 0.5) * 0.22;
+	float norm_r = (abs(xz.x - r_cx) + warp) / max(r_hw, 0.5);
+	float bed_mask = (1.0 - smoothstep(0.76, 1.12, norm_r)) * stream_fade;
+	float wet_mask = (1.0 - smoothstep(0.72, 1.04, norm_r)) * stream_fade;
+	return vec2(bed_mask, wet_mask);
+}
+
 // Per-pixel road network evaluation with natural fork/junction blending:
 // Returns vec4(road_core_mask, wheel_rut_intensity, median_strip_mask, verge_soil_halo)
 vec4 eval_road_network(vec2 xz) {
@@ -136,9 +161,9 @@ vec4 eval_road_network(vec2 xz) {
 	float d_north = abs(wx - bx) / sqrt(1.0 + dx_dz_n * dx_dz_n);
 	float fade_north = smoothstep(rz + 0.35, rz - 0.85, wz) * (1.0 - smoothstep(-44.0, -54.0, wz));
 
-	// 3. SE Meadow basin trail
-	float sx = 5.5 + (wz + 1.8) * 0.48 + sin((wz + 1.8) * 0.18) * 1.8;
-	float dx_dz_s = 0.48 + cos((wz + 1.8) * 0.18) * 0.324;
+	// 3. SE Meadow basin trail (runs along the west bank of Nivarel creek)
+	float sx = -0.5 + (wz + 2.6) * 0.22 + sin((wz + 2.6) * 0.16) * 1.4;
+	float dx_dz_s = 0.22 + cos((wz + 2.6) * 0.16) * 0.224;
 	float d_south = abs(wx - sx) / sqrt(1.0 + dx_dz_s * dx_dz_s);
 	float fade_south = smoothstep(rz - 0.35, rz + 0.85, wz) * (1.0 - smoothstep(20.0, 28.0, wz));
 
@@ -151,13 +176,11 @@ vec4 eval_road_network(vec2 xz) {
 	float m_south = (1.0 - smoothstep(0.62, 1.04, u_south)) * fade_south;
 	float road_core = clamp(max(m_main, max(m_north, m_south)), 0.0, 1.0);
 
-	// Wide organic humus halo extending under the roadside grass
 	float h_main = (1.0 - smoothstep(0.75, 1.65, u_main)) * fade_main;
 	float h_north = (1.0 - smoothstep(0.72, 1.68, u_north)) * fade_north;
 	float h_south = (1.0 - smoothstep(0.72, 1.68, u_south)) * fade_south;
 	float verge_halo = clamp(max(h_main, max(h_north, h_south)), 0.0, 1.0);
 
-	// Natural wheel-rut blending at road forks
 	float rut_n_track = exp(-pow((signed_main + 0.50 + warp_a * 0.28) / 0.27, 2.0)) * (1.0 - m_north * 0.55);
 	float rut_s_track = exp(-pow((signed_main - 0.50 - warp_a * 0.28) / 0.27, 2.0)) * (1.0 - m_south * 0.55);
 	float rut_main = max(rut_n_track, rut_s_track) * fade_main;
@@ -168,7 +191,6 @@ vec4 eval_road_network(vec2 xz) {
 	float junction_bowl = m_main * max(m_north, m_south) * 0.52;
 	float ruts = clamp(max(rut_main, max(max(rut_north * 0.82, rut_south * 0.82), junction_bowl)), 0.0, 1.0);
 
-	// Center grassy/mossy crown between the two wheel ruts on the main road
 	float median_noise = fbm(xz * 0.95 + vec2(2.1, -1.4));
 	float median = exp(-pow(signed_main / 0.25, 2.0)) * fade_main * smoothstep(0.24, 0.68, median_noise);
 	median *= (1.0 - max(m_north, m_south) * 0.92);
@@ -176,7 +198,6 @@ vec4 eval_road_network(vec2 xz) {
 	return vec4(road_core, ruts, median, verge_halo);
 }
 
-// Fast distance-adaptive soil & ledge micro-heightfield (without redundant stone loops)
 float eval_soil_micro_height(vec2 xz, vec4 road_info, float slope, bool near_lod) {
 	float road_core = road_info.x;
 	float ruts = road_info.y;
@@ -217,15 +238,19 @@ void fragment() {
 	float ruts = road_info.y;
 	float median = road_info.z;
 	float verge_halo = road_info.w;
+	vec2 river_info = eval_river_bank(xz);
+	float river_bed = river_info.x;
+	float wet_shore = river_info.y;
 
-	// Single-pass analytical stone evaluation (only on roadbeds within 40m)
+	// Single-pass analytical stone evaluation (on roadbeds and river pebble banks within 44m)
 	vec4 st1 = vec4(0.0);
 	vec4 st2 = vec4(0.0);
-	float stone_zone = clamp(ruts * 0.75 + road_core * 0.32 - median * 0.82, 0.0, 1.0);
-	if (road_core > 0.01 && dist_origin < 42.0 && stone_zone > 0.02) {
-		st1 = irregular_fieldstones_grad(xz * 2.4);
-		if (dist_origin < 26.0) {
-			st2 = irregular_fieldstones_grad(xz * 5.6 + vec2(9.4, 3.8));
+	float stone_zone = clamp(max(ruts * 0.75 + road_core * 0.32 - median * 0.82, river_bed * 0.92), 0.0, 1.0);
+	if ((road_core > 0.01 || river_bed > 0.01) && dist_origin < 44.0 && stone_zone > 0.02) {
+		float thresh = mix(0.68, 0.42, river_bed);
+		st1 = irregular_fieldstones_grad(xz * 2.5, thresh);
+		if (dist_origin < 28.0) {
+			st2 = irregular_fieldstones_grad(xz * 5.6 + vec2(9.4, 3.8), thresh);
 		}
 	}
 
@@ -238,8 +263,7 @@ void fragment() {
 		float hx = eval_soil_micro_height(xz + vec2(eps, 0.0), road_info, slope, near_lod);
 		float hz = eval_soil_micro_height(xz + vec2(0.0, eps), road_info, slope, near_lod);
 		vec3 d_h = vec3((h0 - hx) / eps, 0.0, (h0 - hz) / eps);
-		// Add analytical 3D bevel normals from embedded road stones
-		d_h.xz += (st1.yz * 0.038 + st2.yz * 0.020) * stone_zone;
+		d_h.xz += (st1.yz * 0.042 + st2.yz * 0.022) * stone_zone;
 		float dist_atten = 1.0 - smoothstep(26.0, 68.0, dist_origin);
 		world_nrm = normalize(v_world_nrm + d_h * (1.35 * dist_atten + 0.28));
 	}
@@ -259,7 +283,6 @@ void fragment() {
 	detailed_turf = mix(detailed_turf, moss_cushion, smoothstep(0.54, 0.85, moss_n) * 0.65);
 	detailed_turf = mix(detailed_turf, dry_thatch, smoothstep(0.58, 0.86, clod_n) * 0.45);
 
-	// Warm sunlit clover-glade undertone matching wildflower clusters in the grass shader
 	float glade_n = fbm2(xz * 0.14 + vec2(4.2, -1.8));
 	detailed_turf = mix(detailed_turf, vec3(0.28, 0.41, 0.16), smoothstep(0.52, 0.82, glade_n) * 0.38);
 	detailed_turf *= (0.86 + 0.16 * crumb_n + 0.12 * grit_n);
@@ -274,7 +297,7 @@ void fragment() {
 	float rough = 0.92;
 
 	// --- 3. Stratified Limestone & Mossy Rock Ledges on Hillside Terrace Slopes ---
-	float ledge_mask = smoothstep(0.11, 0.25, slope) * (1.0 - road_core * 0.85);
+	float ledge_mask = smoothstep(0.11, 0.25, slope) * (1.0 - road_core * 0.85) * (1.0 - river_bed);
 	if (ledge_mask > 0.01) {
 		float strata = sin(v_world_pos.y * 9.5 + fbm2(xz * 0.85) * 3.2) * 0.5 + 0.5;
 		float fracture = fbm2(xz * 3.4);
@@ -299,13 +322,12 @@ void fragment() {
 		road_soil = mix(road_soil, dark_humus_edge, (1.0 - smoothstep(0.12, 0.62, road_core)) * 0.72);
 		road_soil = mix(road_soil, damp_rut, smoothstep(0.18, 0.82, ruts) * (0.72 + 0.28 * crumb_n));
 
-		// Natural overhanging turf-lip micro-shadow along the cut edge of the road shoulder
 		float turf_lip_ao = 1.0 - smoothstep(0.14, 0.38, road_core) * (1.0 - smoothstep(0.38, 0.64, road_core)) * 0.18;
 		float grain_mod = (0.82 + 0.22 * crumb_n + 0.14 * (grit_n - 0.35)) * turf_lip_ao;
 		road_soil *= grain_mod;
 
 		vec3 median_turf = mix(vec3(0.20, 0.31, 0.13), vec3(0.27, 0.34, 0.15), moss_n) * grain_mod;
-		road_soil = mix(road_soil, median_turf, clamp(median * 0.88, 0.0, 1.0));
+		road_soil = mix(road_soil, median_turf, clamp(median * 0.88 * (1.0 - river_bed), 0.0, 1.0));
 
 		float dust_cover = smoothstep(0.32, 0.78, clod_n);
 		float m_st1 = smoothstep(0.18, 0.65, st1.x) * (1.0 - dust_cover * 0.55) * stone_zone;
@@ -326,11 +348,37 @@ void fragment() {
 		rough = mix(rough, road_rough, smooth_edge);
 	}
 
-	// --- 5. Distant Valley Rim Atmospheric Perspective ---
+	// --- 5. Step 2 Nivarel Creek Pebble Bed & Wet Mossy Shore Bank ---
+	if (river_bed > 0.01) {
+		float grain = 0.84 + 0.20 * crumb_n + 0.12 * (grit_n - 0.35);
+		vec3 river_sand = mix(vec3(0.32, 0.29, 0.22), vec3(0.24, 0.26, 0.22), clod_n) * grain;
+		vec3 bank_moss = mix(vec3(0.17, 0.29, 0.13), vec3(0.23, 0.34, 0.15), moss_n) * grain;
+		vec3 bed_col = mix(bank_moss, river_sand, smoothstep(0.12, 0.58, river_bed));
+
+		float m_p1 = smoothstep(0.14, 0.60, st1.x);
+		float m_p2 = smoothstep(0.18, 0.64, st2.x) * (1.0 - m_p1);
+		vec3 peb_warm = vec3(0.42, 0.37, 0.29) * grain;
+		vec3 peb_slate = vec3(0.28, 0.31, 0.32) * grain;
+		vec3 peb_jade = vec3(0.26, 0.34, 0.28) * grain;
+		vec3 pcol1 = mix(peb_slate, peb_warm, fract(st1.w * 11.3));
+		pcol1 = mix(pcol1, peb_jade, smoothstep(0.65, 0.92, fract(st1.w * 5.7)));
+		vec3 pcol2 = mix(peb_slate, peb_warm, fract(st2.w * 8.9));
+
+		bed_col = mix(bed_col, pcol1, m_p1 * 0.78);
+		bed_col = mix(bed_col, pcol2, m_p2 * 0.62);
+		// Wet darkening near and below water surface (y <= 0.48)
+		float wet_dark = clamp(wet_shore * 0.75 + (1.0 - smoothstep(0.36, 0.56, v_world_pos.y)) * 0.45, 0.0, 0.90);
+		bed_col *= mix(1.0, 0.68, wet_dark);
+
+		col = mix(col, bed_col, smoothstep(0.04, 0.55, river_bed));
+		rough = mix(rough, mix(0.76, 0.24, wet_dark), smoothstep(0.04, 0.55, river_bed));
+	}
+
+	// --- 6. Distant Valley Rim Atmospheric Perspective ---
 	float rim_haze = smoothstep(66.0, 98.0, dist_origin);
 	col = mix(col, vec3(0.32, 0.42, 0.35), rim_haze * 0.42);
 
 	ALBEDO = col;
 	ROUGHNESS = rough;
-	SPECULAR = 0.07;
+	SPECULAR = 0.08;
 }

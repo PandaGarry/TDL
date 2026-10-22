@@ -6,9 +6,9 @@ extends RefCounted
 const TILE_SIZE_M := 1.65
 const VALLEY_WIDTH_M := 160.0
 const VALLEY_DEPTH_M := 120.0
-const WATER_SURFACE_Y := -0.18
+const WATER_SURFACE_Y := 0.42
 const WORLD_SCALE := TILE_SIZE_M / 32.0
-## Step 1 Look-Dev mode: clean rolling meadow + single winding footpath.
+## Look-Dev mode: CBT proving ground with stepped terraces, two-track roads & Nivarel creek.
 const STEP1_CLEAN_MEADOW := true
 
 
@@ -36,14 +36,14 @@ static func pixel_to_world_3d(
 
 
 static func river_center_x(wz: float) -> float:
-	# Nivarel flows from the NW gorge (-24 at z=-55) through the central rapids (x ~ 1.5 at z=0)
-	# and winds SE into the broad Mulane floodplain (x ~ 16 at z=+50).
-	return 1.8 + wz * 0.28 + sin(wz * 0.085 + 0.35) * 4.2 + cos(wz * 0.042) * 2.1
+	# Nivarel mountain creek flows from the northern terraces (x ~ -2 at z=-40), passes right of
+	# the central crossroads through the stone ford (x ~ +9.2 at z=-2.8), and widens into Mulane pool.
+	return 7.8 + wz * 0.22 + sin(wz * 0.088 + 0.35) * 3.6 + cos(wz * 0.044 - 0.2) * 1.8
 
 
 static func river_half_width(wz: float) -> float:
-	var base_w := 3.4 + smoothstep(-25.0, 35.0, wz) * 1.8
-	var pool_w := exp(-pow((wz - 11.0) / 9.5, 2.0)) * 2.8
+	var base_w := 2.55 + smoothstep(-32.0, 28.0, wz) * 0.85
+	var pool_w := exp(-pow((wz - 11.0) / 7.5, 2.0)) * 1.25
 	return base_w + pool_w
 
 
@@ -84,8 +84,8 @@ static func _north_branch_signed_dist(wx: float, wz: float) -> float:
 
 
 static func _south_branch_signed_dist(wx: float, wz: float) -> float:
-	var sx := 5.5 + (wz + 1.8) * 0.48 + sin((wz + 1.8) * 0.18) * 1.8
-	var dx_dz := 0.48 + cos((wz + 1.8) * 0.18) * 0.324
+	var sx := -0.5 + (wz + 2.6) * 0.22 + sin((wz + 2.6) * 0.16) * 1.4
+	var dx_dz := 0.22 + cos((wz + 2.6) * 0.16) * 0.224
 	return (wx - sx) / sqrt(1.0 + dx_dz * dx_dz)
 
 
@@ -167,7 +167,22 @@ static func get_height_at(wx: float, wz: float) -> float:
 		)
 		var branch_carve := road_c * 0.055
 		var micro := sin(wx * 0.42 + wz * 0.37) * 0.032 + cos(wx * 0.27 - wz * 0.49) * 0.026
-		return 0.82 + sculpted_hills + rim_h + micro - maxf(rut_carve, branch_carve)
+		var meadow_h := 0.85 + sculpted_hills + rim_h + micro - maxf(rut_carve, branch_carve)
+
+		# Step 2 Nivarel mountain creek corridor & stone ford carving
+		var r_cx := river_center_x(wz)
+		var r_hw := river_half_width(wz)
+		var dist_river := absf(wx - r_cx)
+		var stream_fade := smoothstep(-52.0, -40.0, wz) * (1.0 - smoothstep(38.0, 48.0, wz))
+		var bank_y := WATER_SURFACE_Y + 0.26 + sin(wz * 0.18 + wx * 0.14) * 0.035
+		var trough_blend := exp(-pow(dist_river / (r_hw * 2.45), 2.2)) * stream_fade
+		var h_bank := lerpf(meadow_h, bank_y, trough_blend)
+
+		var norm_r := dist_river / maxf(r_hw, 0.5)
+		var in_channel := clampf(1.0 - pow(norm_r, 1.9), 0.0, 1.0) * stream_fade
+		var ford_zone := road_c * exp(-pow((wz - (-2.8)) / 3.4, 2.0))
+		var carve_depth := lerpf(0.94, 0.46, clampf(ford_zone * 0.85, 0.0, 0.85))
+		return h_bank - in_channel * carve_depth
 
 	# 1. Toramek NW mountain slope & rocky ridges
 	var nw_slope := smoothstep(4.0, -34.0, wx * 0.68 + wz * 0.74)
@@ -264,40 +279,37 @@ static func build_terrain_mesh(
 
 
 static func build_water_mesh(
-	_width_tiles: int = 32, _height_tiles: int = 24, subdiv_x: int = 128, subdiv_z: int = 96
+	_width_tiles: int = 32, _height_tiles: int = 24, _subdiv_x: int = 128, _subdiv_z: int = 96
 ) -> ArrayMesh:
 	var half_w := VALLEY_WIDTH_M * 0.5
 	var half_d := VALLEY_DEPTH_M * 0.5
-	var step_x := VALLEY_WIDTH_M / float(subdiv_x)
-	var step_z := VALLEY_DEPTH_M / float(subdiv_z)
+	# High-precision stream-following ribbon mesh (perfectly smooth banks, 3x fewer triangles)
+	var z_start := -48.0
+	var z_end := 44.0
+	var steps_z := 184
+	var steps_u := 44
+	var dz := (z_end - z_start) / float(steps_z)
+	var u_span := 1.06
 
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 
-	for gz in range(subdiv_z):
-		for gx in range(subdiv_x):
-			var x0 := -half_w + float(gx) * step_x
-			var z0 := -half_d + float(gz) * step_z
-			var x1 := x0 + step_x
-			var z1 := z0 + step_z
-			var cx := (x0 + x1) * 0.5
-			var cz := (z0 + z1) * 0.5
+	for gz in range(steps_z):
+		var z0 := z_start + float(gz) * dz
+		var z1 := z0 + dz
+		var cx0 := river_center_x(z0)
+		var cx1 := river_center_x(z1)
+		var hw0 := river_half_width(z0) * u_span
+		var hw1 := river_half_width(z1) * u_span
 
-			# Only generate water quads where the terrain dips near or below the water plane
-			var min_ground := minf(
-				minf(get_height_at(x0, z0), get_height_at(x1, z0)),
-				minf(get_height_at(x0, z1), get_height_at(x1, z1))
-			)
-			if (
-				min_ground > WATER_SURFACE_Y + 0.35
-				and absf(cx - river_center_x(cz)) > river_half_width(cz) + 3.5
-			):
-				continue
+		for gu in range(steps_u):
+			var u0 := -1.0 + 2.0 * float(gu) / float(steps_u)
+			var u1 := -1.0 + 2.0 * float(gu + 1) / float(steps_u)
 
-			var p00 := Vector3(x0, WATER_SURFACE_Y, z0)
-			var p10 := Vector3(x1, WATER_SURFACE_Y, z0)
-			var p01 := Vector3(x0, WATER_SURFACE_Y, z1)
-			var p11 := Vector3(x1, WATER_SURFACE_Y, z1)
+			var p00 := Vector3(cx0 + u0 * hw0, WATER_SURFACE_Y, z0)
+			var p10 := Vector3(cx0 + u1 * hw0, WATER_SURFACE_Y, z0)
+			var p01 := Vector3(cx1 + u0 * hw1, WATER_SURFACE_Y, z1)
+			var p11 := Vector3(cx1 + u1 * hw1, WATER_SURFACE_Y, z1)
 
 			_add_water_vertex(st, p00, half_w, half_d)
 			_add_water_vertex(st, p10, half_w, half_d)
@@ -408,9 +420,16 @@ static func _add_terrain_vertex(
 
 static func _add_water_vertex(st: SurfaceTool, pos: Vector3, half_w: float, half_d: float) -> void:
 	var ground_y := get_height_at(pos.x, pos.z)
-	var water_depth := clampf((WATER_SURFACE_Y - ground_y) / 1.15, 0.0, 1.0)
+	var water_depth := clampf((WATER_SURFACE_Y - ground_y) / 0.72, 0.0, 1.0)
 	var shore_prox := clampf(1.0 - water_depth * 1.35, 0.0, 1.0)
-	var rapids_fac := clampf(exp(-pow((pos.z - (-8.0)) / 10.0, 2.0)) * 0.85, 0.0, 1.0)
+	var rapids_fac := clampf(
+		(
+			exp(-pow((pos.z - (-2.8)) / 5.5, 2.0)) * 0.90
+			+ exp(-pow((pos.z - (-15.0)) / 7.5, 2.0)) * 0.70
+		),
+		0.0,
+		1.0
+	)
 	var uv := Vector2((pos.x + half_w) / (half_w * 2.0), (pos.z + half_d) / (half_d * 2.0))
 	st.set_color(Color(shore_prox, water_depth, rapids_fac, 1.0))
 	st.set_uv(uv)

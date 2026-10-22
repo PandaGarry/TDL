@@ -477,7 +477,14 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 			# Leave only steep limestone terrace ledges exposed so rock strata read clearly
 			if gn.y < 0.81 and path_w < 0.02:
 				continue
-			var edge_taper := 1.0 - smoothstep(0.02, 0.28, path_w) * 0.65
+			var bank_taper := smoothstep(
+				SevaraTerrainGen3D.WATER_SURFACE_Y + 0.12,
+				SevaraTerrainGen3D.WATER_SURFACE_Y + 0.30,
+				wy
+			)
+			var edge_taper := (
+				(1.0 - smoothstep(0.02, 0.28, path_w) * 0.65) * lerpf(0.45, 1.0, bank_taper)
+			)
 			var height_mult := clampf(edge_taper * rng.randf_range(0.86, 1.16), 0.26, 1.28)
 			var patch_scale := clampf(
 				(0.60 + 0.40 * edge_taper) * rng.randf_range(0.92, 1.12), 0.50, 1.15
@@ -522,21 +529,27 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 		for vx in range(vx_count):
 			var wx := -52.0 + (float(vx) + rng.randf_range(0.15, 0.85)) * v_step
 			var wz := -44.0 + (float(vz) + rng.randf_range(0.15, 0.85)) * v_step
-			var pw := SevaraTerrainGen3D.get_path_weight_at(wx, wz)
-			if pw < 0.03:
-				continue
-			var d_main := absf(SevaraTerrainGen3D._main_road_signed_dist(wx, wz))
-			var is_median := d_main < 0.23 and absf(wx) > 1.8 and rng.randf() < 0.72
-			var is_shoulder := pw >= 0.04 and pw <= 0.62
-			if not is_median and not is_shoulder:
-				continue
 			var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
+			if wy < SevaraTerrainGen3D.WATER_SURFACE_Y + 0.04:
+				continue
+			var pw := SevaraTerrainGen3D.get_path_weight_at(wx, wz)
+			var r_cx := SevaraTerrainGen3D.river_center_x(wz)
+			var r_hw := SevaraTerrainGen3D.river_half_width(wz)
+			var norm_r := absf(wx - r_cx) / maxf(r_hw, 0.5)
+			var is_riverbank := norm_r >= 0.86 and norm_r <= 1.22 and pw < 0.35
+			var d_main := absf(SevaraTerrainGen3D._main_road_signed_dist(wx, wz))
+			var is_median := (
+				d_main < 0.23 and absf(wx) > 1.8 and norm_r > 0.95 and rng.randf() < 0.72
+			)
+			var is_shoulder := pw >= 0.04 and pw <= 0.62 and norm_r > 0.92
+			if not is_median and not is_shoulder and not is_riverbank:
+				continue
 			var gn := SevaraTerrainGen3D.get_ground_normal(wx, wz)
 			if gn.y < 0.74:
 				continue
 			var h_mult := (
 				rng.randf_range(0.24, 0.44)
-				if is_median
+				if (is_median or is_riverbank)
 				else lerpf(0.72, 0.22, smoothstep(0.04, 0.62, pw)) * rng.randf_range(0.84, 1.16)
 			)
 			var sc := rng.randf_range(0.72, 1.12)
@@ -551,6 +564,13 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 	verge_mmi.visibility_range_end_margin = 5.0
 	verge_mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	root.add_child(verge_mmi)
+
+	# 3. Step 2 3D Riverbank & Stone-Ford Pebbles (`Pebble_Round_1`)
+	var pebble_mesh := SevaraAssetLibrary3D.nature_mesh(
+		"Pebble_Round_1",
+		{"rock": {"moss_amount": 0.28, "snow_amount": 0.0, "wetness": 0.62, "triplanar": 1.0}}
+	)
+	_scatter_river_pebbles_multimesh(root, "RiverPebblesMM", pebble_mesh, int(420.0 * dens), 407305)
 	return root
 
 
@@ -613,21 +633,23 @@ static func _scatter_river_pebbles_multimesh(
 	for _i in range(target_count * 2):
 		if xforms.size() >= target_count:
 			break
-		var wz := rng.randf_range(-48.0, 48.0)
+		var wz := rng.randf_range(-38.0, 26.0)
 		var r_cx := SevaraTerrainGen3D.river_center_x(wz)
 		var r_hw := SevaraTerrainGen3D.river_half_width(wz)
 		var side := -1.0 if rng.randf() < 0.5 else 1.0
-		var wx := r_cx + side * rng.randf_range(r_hw * 0.65, r_hw * 1.45)
+		var wx := r_cx + side * rng.randf_range(r_hw * 0.72, r_hw * 1.12)
 		var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
-		var sc := rng.randf_range(0.45, 1.35)
+		var sc := rng.randf_range(0.32, 0.92)
 		var basis := (
 			Basis
 			. from_euler(
-				Vector3(rng.randf_range(-0.2, 0.2), rng.randf() * TAU, rng.randf_range(-0.2, 0.2))
+				Vector3(
+					rng.randf_range(-0.18, 0.18), rng.randf() * TAU, rng.randf_range(-0.18, 0.18)
+				)
 			)
-			. scaled(Vector3(sc, sc * rng.randf_range(0.65, 1.1), sc))
+			. scaled(Vector3(sc, sc * rng.randf_range(0.55, 0.95), sc))
 		)
-		xforms.append(Transform3D(basis, Vector3(wx, wy - 0.04, wz)))
+		xforms.append(Transform3D(basis, Vector3(wx, wy - 0.03, wz)))
 		var shade := rng.randf_range(0.78, 1.12)
 		customs.append(Color(shade, shade, shade, rng.randf_range(0.2, 0.75)))
 	parent.add_child(_create_multimesh_node(node_name, mesh, xforms, customs))
