@@ -61,11 +61,15 @@ func _capture_stage_states(abs_dir: String) -> void:
 	SettingsManager.set_texture_quality(SettingsManager.TEXTURE_QUALITY_HIGH)
 	stage.refresh_presentation()
 	stage.debug_overlay().visible = false
-	stage.camera().position = stage.chunk_view().field_center_world()
-	stage.camera().zoom = Vector2(1.0, 1.0)
+	stage.world_3d().set_camera_preset(1, Vector2i(12, 11))
 
 	await _wait_frames(4)
 	_save_viewport_png(abs_dir.path_join("02_godot_stage_p1_morning_clean.png"))
+
+	# Capture close-up low-angle 3D view showing 3D buildings, trees, horizon & sky
+	stage.world_3d().set_camera_preset(2, Vector2i(11, 11))
+	await _wait_frames(4)
+	_save_viewport_png(abs_dir.path_join("04_godot_stage_greybox_comparison.png"))
 
 	stage.session().submit_intent(
 		SessionProtocol.INTENT_ECO_INTERVENTION,
@@ -79,21 +83,11 @@ func _capture_stage_states(abs_dir: String) -> void:
 	stage.session().advance_simulation_minutes(600)
 	stage.refresh_presentation()
 	stage.debug_overlay().visible = true
-	stage.camera().position = stage.chunk_view().field_center_world()
-	stage.camera().zoom = Vector2(1.0, 1.0)
+	stage.world_3d().set_camera_preset(1, Vector2i(12, 11))
 
 	await _wait_frames(4)
 	_save_viewport_png(abs_dir.path_join("03_godot_stage_p1_dusk_silted_debug.png"))
 
-	SettingsManager.set_texture_quality(SettingsManager.TEXTURE_QUALITY_GREYBOX)
-	stage.refresh_presentation()
-	stage.camera().position = stage.chunk_view().field_center_world()
-	stage.camera().zoom = Vector2(1.0, 1.0)
-
-	await _wait_frames(4)
-	_save_viewport_png(abs_dir.path_join("04_godot_stage_greybox_comparison.png"))
-
-	SettingsManager.set_texture_quality(SettingsManager.TEXTURE_QUALITY_HIGH)
 	stage.free()
 
 

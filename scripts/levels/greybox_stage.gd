@@ -26,6 +26,7 @@ static var next_launch_load_slot_id: String = ""
 
 var _session: GameSession
 var _owns_session: bool = false
+var _world_3d: SevaraWorld3D
 var _chunk_view: GreyboxChunkView
 var _camera: Camera2D
 var _camera_zoom_index: int = 1
@@ -148,6 +149,10 @@ func cycle_camera_zoom() -> float:
 	var z := float(presets[_camera_zoom_index])
 	if _camera != null:
 		_camera.zoom = Vector2(z, z)
+	if _world_3d != null:
+		var local_actor := _chunk_view.local_actor_view()
+		var focus_tile := local_actor.tile_position if local_actor != null else Vector2i(12, 11)
+		_world_3d.set_camera_preset(_camera_zoom_index, focus_tile)
 	return z
 
 
@@ -162,6 +167,11 @@ func apply_lobby_rules_patch(patch: Dictionary) -> Dictionary:
 func refresh_presentation() -> Dictionary:
 	_chunk_view.tile_size_px = tile_size_px
 	_chunk_view.sync_from_session(_session)
+	_chunk_view.visible = (
+		SettingsManager.texture_quality == SettingsManager.TEXTURE_QUALITY_GREYBOX
+	)
+	if _world_3d != null:
+		_world_3d.sync_from_session(_session)
 	_sync_camera_to_focus()
 	_debug_overlay.refresh(_session, _chunk_view)
 	return stage_status()
@@ -198,6 +208,10 @@ func chunk_view() -> GreyboxChunkView:
 	return _chunk_view
 
 
+func world_3d() -> SevaraWorld3D:
+	return _world_3d
+
+
 func camera() -> Camera2D:
 	return _camera
 
@@ -227,6 +241,9 @@ func stage_status() -> Dictionary:
 
 func _build_stage_nodes() -> void:
 	name = "GreyboxStage"
+	_world_3d = SevaraWorld3D.new()
+	add_child(_world_3d)
+
 	_chunk_view = GreyboxChunkView.new()
 	_chunk_view.name = "GreyboxChunkView"
 	add_child(_chunk_view)

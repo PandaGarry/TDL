@@ -33,19 +33,10 @@ func _ready() -> void:
 
 
 func _install_backdrop_texture() -> void:
-	var bg_tex := SevaraVisualTheme.load_canvas_texture("chunk_nivara_silted_dusk", false)
-	if bg_tex == null:
-		return
-	var backdrop := TextureRect.new()
-	backdrop.name = "SevaraBackdrop"
-	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
-	backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	backdrop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	backdrop.modulate = Color(0.28, 0.30, 0.32, 0.92)
-	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	backdrop.texture = bg_tex
-	add_child(backdrop)
-	move_child(backdrop, 1)
+	var bg_world := SevaraWorld3D.new()
+	bg_world.name = "MainMenuWorld3D"
+	bg_world.set_camera_preset(2, Vector2i(11, 11))
+	add_child(bg_world)
 
 
 func _exit_tree() -> void:
