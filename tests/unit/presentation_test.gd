@@ -122,30 +122,42 @@ func _test_step2_creek_ford_and_boulders() -> void:
 	var r_cx0 := SevaraTerrainGen3D.river_center_x(0.0)
 	_check(
 		SevaraTerrainGen3D.is_water_at(r_cx0, 0.0),
-		"Nivarel creek channel center at z=0 is submerged below WATER_SURFACE_Y"
+		"Nivarel river channel center at z=0 is submerged below WATER_SURFACE_Y"
 	)
-	var ford_x := SevaraTerrainGen3D.river_center_x(2.68)
-	var ford_road := SevaraTerrainGen3D.get_road_core_at(ford_x, 2.68)
-	_check(ford_road > 0.85, "Main two-track road crosses Nivarel creek at the Stone Ford (z=2.68)")
-	var deep_bed_y := SevaraTerrainGen3D.get_height_at(
-		SevaraTerrainGen3D.river_center_x(-10.0), -10.0
-	)
-	var ford_bed_y := SevaraTerrainGen3D.get_height_at(ford_x, 2.68)
 	_check(
-		ford_bed_y > deep_bed_y + 0.35,
-		"Stone Ford riverbed is significantly shallower than deep creek thalweg"
+		SevaraTerrainGen3D.river_half_width(0.0) * 2.0 > 9.0,
+		"Nivarel is a full-bodied wide mountain river (> 9m across)"
 	)
-	var walk_y := SevaraTerrainGen3D.get_walkable_height_at(r_cx0, 0.0)
+	var deep_bed_y := SevaraTerrainGen3D.get_height_at(r_cx0, 0.0)
 	_check(
-		walk_y >= SevaraTerrainGen3D.WATER_SURFACE_Y - 0.17,
-		"Walkable height clamps actor immersion in creek channel"
+		SevaraTerrainGen3D.WATER_SURFACE_Y - deep_bed_y > 1.35,
+		"Nivarel river thalweg has substantial water depth (> 1.35m)"
+	)
+	var bridge_mid_x := 12.0
+	var bridge_mid_z := SevaraTerrainGen3D._main_road_z(bridge_mid_x)
+	_check_equal(
+		SevaraTerrainGen3D.get_road_core_at(bridge_mid_x, bridge_mid_z),
+		0.0,
+		"Earthen roadbed stops cleanly at riverbanks with zero underwater dirt path"
+	)
+	_check(
+		SevaraTerrainGen3D.is_on_bridge(bridge_mid_x, bridge_mid_z),
+		"Main road crosses Nivarel river via the aligned timber-and-stone bridge"
+	)
+	var bridge_walk_y := SevaraTerrainGen3D.get_walkable_height_at(bridge_mid_x, bridge_mid_z)
+	_check(
+		bridge_walk_y > SevaraTerrainGen3D.WATER_SURFACE_Y + 0.65,
+		"Bridge walkable deck keeps travellers and carts dry high above the river"
 	)
 	var blocked_roads := 0
 	for spec: Dictionary in SevaraPropsFactory3D.get_step2_boulder_specs():
 		var p: Vector2 = spec["pos"]
-		if SevaraTerrainGen3D.get_road_core_at(p.x, p.y) >= 0.08:
+		if (
+			SevaraTerrainGen3D.get_road_core_at(p.x, p.y) >= 0.08
+			or SevaraTerrainGen3D.is_on_bridge(p.x, p.y)
+		):
 			blocked_roads += 1
-	_check_equal(blocked_roads, 0, "No Step 2 boulder obstructs the active two-track roadbed")
+	_check_equal(blocked_roads, 0, "No Step 2 boulder obstructs roadbeds or the river bridge")
 	_check(
 		(
 			(

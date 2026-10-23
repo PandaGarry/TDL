@@ -411,6 +411,10 @@ func _populate_static_settlement() -> void:
 
 
 func _populate_step2_boulders() -> void:
+	var bridge := SevaraPropsFactory3D.create_bridge_3d()
+	bridge.name = "NivarelBridge3D"
+	_ecology_root.add_child(bridge)
+
 	var step2_rocks := SevaraPropsFactory3D.get_step2_boulder_specs()
 	for r_idx in range(step2_rocks.size()):
 		var rs: Dictionary = step2_rocks[r_idx]
@@ -418,7 +422,7 @@ func _populate_step2_boulders() -> void:
 		var sc_v: Vector3 = rs["sc"]
 		var boulder := SevaraPropsFactory3D.create_boulder_3d(sc_v, bool(rs["moss"]))
 		boulder.position = Vector3(
-			rp.x, SevaraTerrainGen3D.get_height_at(rp.x, rp.y) - 0.11 * sc_v.y, rp.y
+			rp.x, SevaraTerrainGen3D.get_height_at(rp.x, rp.y) - 0.14 * sc_v.y, rp.y
 		)
 		boulder.rotation.y = float(r_idx) * 1.18
 		_ecology_root.add_child(boulder)
@@ -828,13 +832,13 @@ func _apply_camera_transform(immediate: bool = false) -> void:
 			look_target = Vector3(5.8, 0.85, -3.8)
 			fov = 36.0
 		"nivarel_rapids":
-			cam_pos = Vector3(19.6, 6.1, 11.6)
-			look_target = Vector3(5.8, 0.78, -3.5)
-			fov = 36.0
+			cam_pos = Vector3(22.4, 7.2, 13.8)
+			look_target = Vector3(6.8, 0.85, -2.2)
+			fov = 37.0
 		"settlement_hearth":
-			cam_pos = Vector3(4.2, 5.2, 8.6)
-			look_target = Vector3(11.8, 0.45, 2.2)
-			fov = 35.0
+			cam_pos = Vector3(3.4, 5.8, 9.6)
+			look_target = Vector3(11.8, 0.85, 2.3)
+			fov = 36.0
 		_:
 			var offset := Vector3(0.0, 12.2, 13.8)
 			fov = 38.0

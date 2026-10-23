@@ -473,21 +473,40 @@ static func _enhance_materials_recursive(
 
 
 static func _make_arch_shader_material(
-	_stem: String,
+	stem: String,
 	primary_col: Color,
 	_secondary_col: Color,
-	_scale_val: float,
+	scale_val: float,
 	_detail_mix_val: float,
-	_nrm_strength: float,
+	nrm_strength: float,
 	rough_val: float,
 	metal_val: float = 0.0,
-	_moss_str: float = 0.45,
+	moss_str: float = 0.45,
 	_bevel_str: float = 0.24
 ) -> Material:
+	if stem == "pbr_cliff_rock" or stem == "pbr_cobble_masonry":
+		var rmat := ShaderMaterial.new()
+		rmat.shader = load_shader("sevara_rock_3d.gdshader")
+		var tex_name := (
+			"PathRocks_Diffuse.png" if stem == "pbr_cobble_masonry" else "Rocks_Diffuse.png"
+		)
+		rmat.set_shader_parameter("albedo_tex", load_texture(NATURE_DIR + tex_name))
+		rmat.set_shader_parameter("tint", primary_col)
+		rmat.set_shader_parameter("moss_amount", moss_str)
+		rmat.set_shader_parameter("triplanar_scale", clampf(scale_val, 0.28, 1.25))
+		return rmat
 	var sm := StandardMaterial3D.new()
 	sm.albedo_color = primary_col
 	sm.roughness = rough_val
 	sm.metallic = metal_val
+	if stem == "pbr_aged_timber":
+		sm.albedo_texture = load_texture(NATURE_DIR + "Bark_NormalTree.png")
+		sm.normal_enabled = true
+		sm.normal_texture = load_texture(NATURE_DIR + "Bark_NormalTree_Normal.png")
+		sm.normal_scale = nrm_strength
+		sm.uv1_triplanar = true
+		var uv_s := clampf(scale_val, 0.32, 1.4)
+		sm.uv1_scale = Vector3(uv_s, uv_s, uv_s)
 	return sm
 
 

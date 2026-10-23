@@ -57,36 +57,39 @@ static func create_tree_3d(variant: int = 0, is_stump: bool = false) -> Node3D:
 
 static func get_step2_boulder_specs() -> Array[Dictionary]:
 	return [
-		{"pos": Vector2(5.9, -4.5), "sc": Vector3(1.15, 0.72, 1.05), "moss": true},
-		{"pos": Vector2(6.3, -1.2), "sc": Vector3(0.95, 0.62, 0.90), "moss": true},
-		{"pos": Vector2(12.2, -4.3), "sc": Vector3(1.25, 0.78, 1.15), "moss": true},
-		{"pos": Vector2(12.5, -1.1), "sc": Vector3(1.05, 0.68, 0.95), "moss": true},
-		{"pos": Vector2(8.3, -4.6), "sc": Vector3(0.78, 0.45, 0.72), "moss": false},
-		{"pos": Vector2(10.2, -4.5), "sc": Vector3(0.72, 0.42, 0.68), "moss": false},
-		{"pos": Vector2(8.6, -1.0), "sc": Vector3(0.68, 0.38, 0.64), "moss": false},
-		{"pos": Vector2(10.2, 1.15), "sc": Vector3(0.74, 0.32, 0.68), "moss": false},
-		{"pos": Vector2(11.5, 1.18), "sc": Vector3(0.80, 0.34, 0.72), "moss": false},
-		{"pos": Vector2(12.8, 1.12), "sc": Vector3(0.76, 0.32, 0.70), "moss": false},
-		{"pos": Vector2(14.0, 1.08), "sc": Vector3(0.70, 0.30, 0.64), "moss": false},
-		{"pos": Vector2(8.6, 0.8), "sc": Vector3(1.12, 0.74, 1.04), "moss": true},
-		{"pos": Vector2(15.4, 0.9), "sc": Vector3(1.18, 0.78, 1.08), "moss": true},
-		{"pos": Vector2(9.0, 4.4), "sc": Vector3(1.08, 0.72, 1.02), "moss": true},
-		{"pos": Vector2(15.0, 4.3), "sc": Vector3(1.14, 0.76, 1.06), "moss": true},
-		{"pos": Vector2(2.6, -9.8), "sc": Vector3(1.38, 0.98, 1.28), "moss": true},
-		{"pos": Vector2(9.2, -9.2), "sc": Vector3(1.26, 0.88, 1.18), "moss": true},
-		{"pos": Vector2(0.4, -15.6), "sc": Vector3(1.52, 1.12, 1.40), "moss": true},
-		{"pos": Vector2(3.4, -15.0), "sc": Vector3(0.85, 0.52, 0.80), "moss": false},
-		{"pos": Vector2(6.8, -16.2), "sc": Vector3(1.42, 1.04, 1.32), "moss": true},
-		{"pos": Vector2(-1.4, -24.5), "sc": Vector3(1.68, 1.20, 1.52), "moss": true},
-		{"pos": Vector2(4.8, -23.2), "sc": Vector3(1.45, 1.08, 1.36), "moss": true},
-		{"pos": Vector2(7.8, 5.2), "sc": Vector3(1.30, 0.90, 1.20), "moss": true},
-		{"pos": Vector2(14.6, 5.4), "sc": Vector3(1.48, 1.05, 1.36), "moss": true},
-		{"pos": Vector2(11.4, 6.2), "sc": Vector3(0.82, 0.48, 0.76), "moss": false},
-		{"pos": Vector2(9.2, 10.4), "sc": Vector3(1.52, 1.10, 1.40), "moss": true},
-		{"pos": Vector2(16.8, 11.0), "sc": Vector3(1.62, 1.18, 1.50), "moss": true},
-		{"pos": Vector2(-9.6, -12.8), "sc": Vector3(1.55, 1.10, 1.42), "moss": true},
-		{"pos": Vector2(-8.2, -12.1), "sc": Vector3(0.90, 0.62, 0.84), "moss": true},
-		{"pos": Vector2(-6.8, -5.8), "sc": Vector3(1.06, 0.72, 0.98), "moss": true},
+		# Bridge west & east abutment guardian boulders (flanking the stone approach ramps)
+		{"pos": Vector2(6.2, 0.1), "sc": Vector3(1.28, 0.92, 1.18), "moss": true},
+		{"pos": Vector2(6.4, 4.5), "sc": Vector3(1.22, 0.88, 1.14), "moss": true},
+		{"pos": Vector2(17.5, 0.0), "sc": Vector3(1.32, 0.96, 1.22), "moss": true},
+		{"pos": Vector2(17.4, 4.4), "sc": Vector3(1.26, 0.90, 1.16), "moss": true},
+		# West riverbank boulder clusters (north & south of bridge)
+		{"pos": Vector2(5.2, -3.5), "sc": Vector3(1.42, 1.04, 1.32), "moss": true},
+		{"pos": Vector2(4.5, -7.8), "sc": Vector3(1.18, 0.82, 1.10), "moss": false},
+		{"pos": Vector2(2.4, -13.5), "sc": Vector3(1.56, 1.14, 1.44), "moss": true},
+		{"pos": Vector2(-0.5, -19.5), "sc": Vector3(1.48, 1.08, 1.36), "moss": true},
+		{"pos": Vector2(-2.8, -25.0), "sc": Vector3(1.68, 1.22, 1.54), "moss": true},
+		{"pos": Vector2(7.2, 7.2), "sc": Vector3(1.38, 0.98, 1.28), "moss": true},
+		{"pos": Vector2(8.4, 11.8), "sc": Vector3(1.52, 1.12, 1.42), "moss": true},
+		{"pos": Vector2(9.6, 16.5), "sc": Vector3(1.35, 0.95, 1.24), "moss": false},
+		# East riverbank boulder clusters (north & south of bridge)
+		{"pos": Vector2(16.2, -3.2), "sc": Vector3(1.46, 1.06, 1.34), "moss": true},
+		{"pos": Vector2(14.8, -8.2), "sc": Vector3(1.25, 0.88, 1.16), "moss": false},
+		{"pos": Vector2(12.6, -14.2), "sc": Vector3(1.54, 1.12, 1.42), "moss": true},
+		{"pos": Vector2(9.8, -20.5), "sc": Vector3(1.44, 1.04, 1.32), "moss": true},
+		{"pos": Vector2(18.5, 6.8), "sc": Vector3(1.50, 1.08, 1.38), "moss": true},
+		{"pos": Vector2(19.8, 11.5), "sc": Vector3(1.64, 1.18, 1.52), "moss": true},
+		{"pos": Vector2(20.6, 16.2), "sc": Vector3(1.40, 1.00, 1.30), "moss": false},
+		# In-river wet rocks & mossy island boulders along the shallow shelves
+		{"pos": Vector2(8.4, -2.2), "sc": Vector3(1.12, 0.72, 1.04), "moss": false},
+		{"pos": Vector2(14.4, -2.8), "sc": Vector3(1.18, 0.78, 1.08), "moss": true},
+		{"pos": Vector2(7.4, -8.8), "sc": Vector3(1.08, 0.68, 1.00), "moss": false},
+		{"pos": Vector2(12.2, -11.5), "sc": Vector3(1.24, 0.84, 1.14), "moss": true},
+		{"pos": Vector2(9.2, 6.5), "sc": Vector3(1.14, 0.74, 1.06), "moss": false},
+		{"pos": Vector2(16.2, 7.4), "sc": Vector3(1.28, 0.86, 1.18), "moss": true},
+		{"pos": Vector2(10.8, 12.8), "sc": Vector3(1.16, 0.76, 1.08), "moss": false},
+		# Crossroads & hillside boulders (outside all roadbeds)
+		{"pos": Vector2(-10.4, -12.8), "sc": Vector3(1.55, 1.12, 1.42), "moss": true},
+		{"pos": Vector2(-7.5, -5.8), "sc": Vector3(1.18, 0.84, 1.10), "moss": true},
 		{"pos": Vector2(-15.5, -19.5), "sc": Vector3(1.75, 1.26, 1.60), "moss": true},
 	]
 
@@ -100,18 +103,18 @@ static func create_boulder_3d(scale_vec: Vector3 = Vector3.ONE, mossy: bool = tr
 	var style := {
 		"rock":
 		{
-			"moss_amount": 0.56 if mossy else 0.08,
+			"moss_amount": 0.86 if mossy else 0.08,
 			"snow_amount": 0.06 if scale_vec.y > 1.35 else 0.0,
-			"wetness": 0.20 if mossy else 0.65,
+			"wetness": 0.22 if mossy else 0.68,
 			"triplanar": 1.0,
 		}
 	}
 	var mesh := SevaraAssetLibrary3D.nature_mesh(model_name, style)
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
-	# Raw `Rock_Medium` glTF is ~3.2x2.2x3.0m; 0.28x gives natural 0.5..1.25m valley boulders
-	mi.scale = scale_vec * 0.28
-	mi.rotation = Vector3(0.10 * sin(hash_v * 1.7), 0.0, -0.09 * cos(hash_v * 2.3))
+	# Substantial 1.2m..2.6m riverbank & valley boulders (`0.44x` of the raw 3.2m glTF mesh)
+	mi.scale = scale_vec * 0.44
+	mi.rotation = Vector3(0.09 * sin(hash_v * 1.7), 0.0, -0.08 * cos(hash_v * 2.3))
 	root.add_child(mi)
 
 	if mossy and scale_vec.x > 0.92:
@@ -120,19 +123,29 @@ static func create_boulder_3d(scale_vec: Vector3 = Vector3.ONE, mossy: bool = tr
 		var sub_mi := MeshInstance3D.new()
 		sub_mi.mesh = sub_mesh
 		var ang := hash_v * 2.4
-		var rad := 0.34 * scale_vec.x
-		sub_mi.scale = scale_vec * Vector3(0.13, 0.10, 0.13)
+		var rad := 0.52 * scale_vec.x
+		sub_mi.scale = scale_vec * Vector3(0.22, 0.17, 0.22)
 		sub_mi.position = Vector3(cos(ang) * rad, -0.04, sin(ang) * rad)
 		sub_mi.rotation = Vector3(-0.14 * cos(ang), ang + 1.2, 0.10 * sin(ang))
 		root.add_child(sub_mi)
 
+		# Physical 3D plush "fur-moss" blanket crowning the top dome of mossy boulders
+		var fur_mesh := SevaraAssetLibrary3D.build_grass_patch_mesh(
+			58, 0.46, 0.024, 709, {"segments": 2}
+		)
+		var fur_mi := MeshInstance3D.new()
+		fur_mi.mesh = fur_mesh
+		fur_mi.scale = Vector3(scale_vec.x * 0.92, 0.28, scale_vec.z * 0.92)
+		fur_mi.position = Vector3(0.0, 0.72 * scale_vec.y, 0.0)
+		root.add_child(fur_mi)
+
 		# Ground-hugging grass tuft collar so the boulder sits nestled in meadow turf
 		var collar_mesh := SevaraAssetLibrary3D.build_grass_patch_mesh(
-			32, 0.68, 0.030, 503, {"segments": 2}
+			38, 0.86, 0.032, 503, {"segments": 2}
 		)
 		var collar_mi := MeshInstance3D.new()
 		collar_mi.mesh = collar_mesh
-		collar_mi.scale = Vector3(scale_vec.x * 1.05, 0.52, scale_vec.z * 1.05)
+		collar_mi.scale = Vector3(scale_vec.x * 1.18, 0.58, scale_vec.z * 1.18)
 		collar_mi.position = Vector3(0.0, 0.04, 0.0)
 		collar_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		root.add_child(collar_mi)
@@ -282,7 +295,7 @@ static func create_hearth_3d() -> Node3D:
 	return root
 
 
-static func create_bridge_3d(length_m: float = 7.2, width_m: float = 2.4) -> Node3D:
+static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> Node3D:
 	var root := Node3D.new()
 	root.name = "TimberBridge3D"
 	var wood_mat := SevaraAssetLibrary3D._make_arch_shader_material(
@@ -311,97 +324,207 @@ static func create_bridge_3d(length_m: float = 7.2, width_m: float = 2.4) -> Nod
 	)
 	var stone_mat := SevaraAssetLibrary3D._make_arch_shader_material(
 		"pbr_cliff_rock",
-		Color(0.54, 0.54, 0.52),
+		Color(0.88, 0.86, 0.82),
 		Color(0.38, 0.39, 0.38),
-		0.46,
+		0.52,
 		0.45,
 		0.82,
 		0.80,
 		0.0,
-		0.62,
+		0.58,
 		0.32
 	)
+	var cobble_mat := SevaraAssetLibrary3D._make_arch_shader_material(
+		"pbr_cobble_masonry",
+		Color(0.90, 0.86, 0.80),
+		Color(0.42, 0.40, 0.36),
+		0.58,
+		0.50,
+		0.85,
+		0.82,
+		0.0,
+		0.48,
+		0.28
+	)
 
-	# Heavy stone bridge abutments & wing walls on both banks
-	for side in [-1.0, 1.0]:
-		var side_f := float(side)
-		var abut := MeshInstance3D.new()
-		var abut_box := BoxMesh.new()
-		abut_box.size = Vector3(1.35, 1.25, width_m + 0.65)
-		abut.mesh = abut_box
-		abut.position = Vector3(side_f * (length_m * 0.46), -0.22, 0.0)
-		abut.material_override = stone_mat
-		root.add_child(abut)
+	var x_min := SevaraTerrainGen3D.BRIDGE_X_MIN
+	var x_max := SevaraTerrainGen3D.BRIDGE_X_MAX
+	var deck_w := 2.96
 
-	# Submerged timber pilings supporting the central span
-	for pier_x in [-length_m * 0.20, length_m * 0.20]:
-		for side_z in [-1.0, 1.0]:
-			var piling := MeshInstance3D.new()
-			var p_cyl := CylinderMesh.new()
-			p_cyl.top_radius = 0.13
-			p_cyl.bottom_radius = 0.16
-			p_cyl.height = 1.65
-			piling.mesh = p_cyl
-			piling.position = Vector3(pier_x, -0.25, float(side_z) * (width_m * 0.42))
-			piling.material_override = dark_beam_mat
-			root.add_child(piling)
+	# 1. Graded Stone Approach Ramps & Wing-Wall Parapets (flush with earthen road on both banks)
+	var ramp_ranges: Array[Vector2] = [
+		Vector2(x_min - 0.3, x_min + 1.85), Vector2(x_max - 1.85, x_max + 0.3)
+	]
+	for rr: Vector2 in ramp_ranges:
+		var steps := 7
+		var step_dx := (rr.y - rr.x) / float(steps)
+		for s in range(steps):
+			var sx := rr.x + (float(s) + 0.5) * step_dx
+			var sz := SevaraTerrainGen3D._main_road_z(sx)
+			var sy := SevaraTerrainGen3D.get_bridge_deck_y_at_x(sx)
+			var dy := (
+				(
+					SevaraTerrainGen3D.get_bridge_deck_y_at_x(sx + 0.15)
+					- SevaraTerrainGen3D.get_bridge_deck_y_at_x(sx - 0.15)
+				)
+				/ 0.30
+			)
+			var dz := (
+				(
+					SevaraTerrainGen3D._main_road_z(sx + 0.15)
+					- SevaraTerrainGen3D._main_road_z(sx - 0.15)
+				)
+				/ 0.30
+			)
+			var yaw := -atan2(dz, 1.0)
+			var pitch := atan2(dy, 1.0)
+			var ramp_block := MeshInstance3D.new()
+			var rbox := BoxMesh.new()
+			rbox.size = Vector3(step_dx + 0.08, 0.72, deck_w + 0.24)
+			ramp_block.mesh = rbox
+			ramp_block.position = Vector3(sx, sy - 0.35, sz)
+			ramp_block.rotation = Vector3(0.0, yaw, pitch)
+			ramp_block.material_override = cobble_mat
+			root.add_child(ramp_block)
 
-	# Arched longitudinal carrier beams + timber plank deck
-	var plank_count := maxi(int(length_m / 0.32), 12)
+			# Low stone wing-wall curbs along the approach ramp edges
+			for side_z in [-1.0, 1.0]:
+				var curb := MeshInstance3D.new()
+				var cbox := BoxMesh.new()
+				cbox.size = Vector3(step_dx + 0.06, 0.88, 0.28)
+				curb.mesh = cbox
+				var n_off := float(side_z) * (deck_w * 0.5 + 0.12)
+				curb.position = Vector3(sx - sin(yaw) * n_off, sy - 0.20, sz + cos(yaw) * n_off)
+				curb.rotation = Vector3(0.0, yaw, pitch)
+				curb.material_override = stone_mat
+				root.add_child(curb)
+
+	# 2. Deep-Channel Stone Masonry Piers & Timber Knee Braces in the Nivarel River
+	for pier_x in [9.65, 14.35]:
+		var pz := SevaraTerrainGen3D._main_road_z(pier_x)
+		var py := SevaraTerrainGen3D.get_bridge_deck_y_at_x(pier_x)
+		var dz := (
+			(
+				SevaraTerrainGen3D._main_road_z(pier_x + 0.2)
+				- SevaraTerrainGen3D._main_road_z(pier_x - 0.2)
+			)
+			/ 0.4
+		)
+		var yaw := -atan2(dz, 1.0)
+		var pier := MeshInstance3D.new()
+		var pbox := BoxMesh.new()
+		pbox.size = Vector3(1.05, 2.70, deck_w + 0.36)
+		pier.mesh = pbox
+		pier.position = Vector3(pier_x, py - 1.44, pz)
+		pier.rotation.y = yaw
+		pier.material_override = stone_mat
+		root.add_child(pier)
+
+	# 3. Timber Deck Planks, Longitudinal Carrier Stringers, Wheel Runners & Guard Curbs
+	var span_start := x_min + 1.65
+	var span_end := x_max - 1.65
+	var plank_count := 34
+	var span_dx := (span_end - span_start) / float(plank_count)
 	for i in range(plank_count):
-		var t := float(i) / float(plank_count - 1)
-		var px := lerpf(-length_m * 0.46, length_m * 0.46, t)
-		var arch_y := sin(t * PI) * 0.44 + 0.14
-		var slope_z := -cos(t * PI) * (0.44 * PI / length_m)
+		var px := span_start + (float(i) + 0.5) * span_dx
+		var pz := SevaraTerrainGen3D._main_road_z(px)
+		var py := SevaraTerrainGen3D.get_bridge_deck_y_at_x(px)
+		var dy := (
+			(
+				SevaraTerrainGen3D.get_bridge_deck_y_at_x(px + 0.15)
+				- SevaraTerrainGen3D.get_bridge_deck_y_at_x(px - 0.15)
+			)
+			/ 0.30
+		)
+		var dz := (
+			(
+				SevaraTerrainGen3D._main_road_z(px + 0.15)
+				- SevaraTerrainGen3D._main_road_z(px - 0.15)
+			)
+			/ 0.30
+		)
+		var yaw := -atan2(dz, 1.0)
+		var pitch := atan2(dy, 1.0)
+
 		var plank := MeshInstance3D.new()
 		var pmesh := BoxMesh.new()
-		var jitter_w := width_m + sin(float(i) * 2.3) * 0.06
-		pmesh.size = Vector3(0.28, 0.11, jitter_w)
+		var jitter_w := deck_w + sin(float(i) * 2.1) * 0.04
+		pmesh.size = Vector3(span_dx * 0.92, 0.10, jitter_w)
 		plank.mesh = pmesh
-		plank.position = Vector3(px, arch_y, 0.0)
-		plank.rotation.z = slope_z * 0.55
+		plank.position = Vector3(px, py - 0.04, pz)
+		plank.rotation = Vector3(0.0, yaw, pitch)
 		plank.material_override = wood_mat if (i % 3 != 0) else dark_beam_mat
 		root.add_child(plank)
 
-	# Timber posts, diagonal knee braces, and arched top/mid rails
+		# Heavy under-deck longitudinal carrier beams + wheel-track wear planks + side curbs
+		for r_off in [-0.52, 0.52]:
+			var runner := MeshInstance3D.new()
+			var rmesh := BoxMesh.new()
+			rmesh.size = Vector3(span_dx + 0.02, 0.035, 0.36)
+			runner.mesh = rmesh
+			runner.position = Vector3(
+				px - sin(yaw) * float(r_off), py + 0.015, pz + cos(yaw) * float(r_off)
+			)
+			runner.rotation = Vector3(0.0, yaw, pitch)
+			runner.material_override = dark_beam_mat
+			root.add_child(runner)
+		for side_z in [-1.0, 1.0]:
+			var off_z := float(side_z) * (deck_w * 0.46)
+			var beam := MeshInstance3D.new()
+			var bmesh := BoxMesh.new()
+			bmesh.size = Vector3(span_dx + 0.04, 0.22, 0.22)
+			beam.mesh = bmesh
+			beam.position = Vector3(px - sin(yaw) * off_z, py - 0.18, pz + cos(yaw) * off_z)
+			beam.rotation = Vector3(0.0, yaw, pitch)
+			beam.material_override = dark_beam_mat
+			root.add_child(beam)
+
+	# 4. Timber Railing Posts & Double Handrails along the span
+	var post_count := 7
 	for side_z in [-1.0, 1.0]:
-		var sz := float(side_z) * (width_m * 0.46)
-		for p in range(5):
-			var pt := float(p) / 4.0
-			var post_x := lerpf(-length_m * 0.44, length_m * 0.44, pt)
-			var post_y := sin(pt * PI) * 0.44 + 0.62
+		for p in range(post_count):
+			var pt := float(p) / float(post_count - 1)
+			var post_x := lerpf(span_start + 0.15, span_end - 0.15, pt)
+			var post_z := SevaraTerrainGen3D._main_road_z(post_x)
+			var post_y := SevaraTerrainGen3D.get_bridge_deck_y_at_x(post_x)
+			var dz := (
+				(
+					SevaraTerrainGen3D._main_road_z(post_x + 0.2)
+					- SevaraTerrainGen3D._main_road_z(post_x - 0.2)
+				)
+				/ 0.4
+			)
+			var yaw := -atan2(dz, 1.0)
+			var off_z := float(side_z) * (deck_w * 0.47)
+			var w_pos := Vector3(
+				post_x - sin(yaw) * off_z, post_y + 0.44, post_z + cos(yaw) * off_z
+			)
 			var post := MeshInstance3D.new()
 			var post_mesh := BoxMesh.new()
-			post_mesh.size = Vector3(0.16, 1.02, 0.16)
+			post_mesh.size = Vector3(0.16, 0.96, 0.16)
 			post.mesh = post_mesh
-			post.position = Vector3(post_x, post_y, sz)
+			post.position = w_pos
+			post.rotation.y = yaw
 			post.material_override = dark_beam_mat
 			root.add_child(post)
-			if p < 4:
-				var next_pt := float(p + 1) / 4.0
-				var next_x := lerpf(-length_m * 0.44, length_m * 0.44, next_pt)
-				var next_y := sin(next_pt * PI) * 0.44 + 0.62
-				var seg_len := Vector2(next_x - post_x, next_y - post_y).length()
-				var seg_ang := atan2(next_y - post_y, next_x - post_x)
+			if p < post_count - 1:
+				var next_pt := float(p + 1) / float(post_count - 1)
+				var nx := lerpf(span_start + 0.15, span_end - 0.15, next_pt)
+				var nz := SevaraTerrainGen3D._main_road_z(nx)
+				var ny := SevaraTerrainGen3D.get_bridge_deck_y_at_x(nx)
+				var nw_pos := Vector3(nx - sin(yaw) * off_z, ny + 0.44, nz + cos(yaw) * off_z)
+				var delta := nw_pos - w_pos
+				var seg_len := delta.length()
+				var pitch := atan2(delta.y, Vector2(delta.x, delta.z).length())
 				for rail_h in [0.38, 0.08]:
 					var rail := MeshInstance3D.new()
 					var rmesh := BoxMesh.new()
-					rmesh.size = Vector3(seg_len + 0.08, 0.09, 0.10)
+					rmesh.size = Vector3(seg_len + 0.06, 0.085, 0.095)
 					rail.mesh = rmesh
-					rail.position = Vector3(
-						(post_x + next_x) * 0.5, (post_y + next_y) * 0.5 + float(rail_h), sz
-					)
-					rail.rotation.z = seg_ang
+					rail.position = (w_pos + nw_pos) * 0.5 + Vector3(0.0, float(rail_h), 0.0)
+					rail.rotation = Vector3(0.0, yaw, pitch)
 					rail.material_override = wood_mat
 					root.add_child(rail)
-
-	for end_x in [-1.0, 1.0]:
-		var tx := float(end_x) * (length_m * 0.44)
-		var torch := SevaraAssetLibrary3D.instantiate_model(
-			SevaraAssetLibrary3D.ITEMS_DIR + "WoodenTorch_Fire.glb", 0.62, {}, false
-		)
-		torch.position = Vector3(tx, 1.12, -width_m * 0.46)
-		root.add_child(torch)
 	return root
 
 
@@ -630,60 +753,62 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 	verge_mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	root.add_child(verge_mmi)
 
-	# 3. Step 2 3D Riverbank & Stone-Ford Pebbles (`Pebble_Round_1`)
+	# 3. Step 2 3D Riverbank Pebbles, Road Cobblestones & Roadside Clover
 	var pebble_mesh := SevaraAssetLibrary3D.nature_mesh(
 		"Pebble_Round_1",
-		{"rock": {"moss_amount": 0.28, "snow_amount": 0.0, "wetness": 0.62, "triplanar": 1.0}}
+		{"rock": {"moss_amount": 0.28, "snow_amount": 0.0, "wetness": 0.32, "triplanar": 1.0}}
 	)
 	_scatter_river_pebbles_multimesh(root, "RiverPebblesMM", pebble_mesh, int(420.0 * dens), 407305)
+	_scatter_road_cobbles_and_clover(root, pebble_mesh, dens)
 	return root
 
 
-static func _scatter_botanical_multimesh(
-	parent: Node3D,
-	node_name: String,
-	mesh: ArrayMesh,
-	target_count: int,
-	seed_val: int,
-	scale_range: Vector2,
-	flower_tint: bool
+static func _scatter_road_cobbles_and_clover(
+	parent: Node3D, pebble_mesh: ArrayMesh, dens: float
 ) -> void:
-	if mesh == null or mesh.get_surface_count() == 0 or target_count <= 0:
-		return
 	var rng := RandomNumberGenerator.new()
-	rng.seed = seed_val
-	var xforms: Array[Transform3D] = []
-	var customs: Array[Color] = []
-	var blossom_palette: Array[Color] = [
-		Color(0.98, 0.94, 0.78),
-		Color(0.96, 0.78, 0.28),
-		Color(0.72, 0.82, 0.98),
-		Color(0.94, 0.66, 0.78),
-		Color(0.84, 0.72, 0.96),
-	]
-	for _i in range(target_count * 3):
-		if xforms.size() >= target_count:
+	rng.seed = 618209
+	var cob_xf: Array[Transform3D] = []
+	var cob_cu: Array[Color] = []
+	var clv_xf: Array[Transform3D] = []
+	var clv_cu: Array[Color] = []
+	var target_cob := int(560.0 * dens)
+	var target_clv := int(220.0 * dens)
+	for i in range(target_cob * 4):
+		if cob_xf.size() >= target_cob and clv_xf.size() >= target_clv:
 			break
-		var wx := rng.randf_range(-64.0, 66.0)
-		var wz := rng.randf_range(-48.0, 50.0)
+		var wx := rng.randf_range(-44.0, 44.0)
+		var wz := rng.randf_range(-34.0, 26.0)
+		if SevaraTerrainGen3D.is_on_bridge(wx, wz):
+			continue
+		var r_cx := SevaraTerrainGen3D.river_center_x(wz)
+		var r_hw := SevaraTerrainGen3D.river_half_width(wz)
+		if absf(wx - r_cx) < r_hw * 1.04:
+			continue
+		var pw := SevaraTerrainGen3D.get_path_weight_at(wx, wz)
+		if pw < 0.08:
+			continue
 		var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
-		if wy < SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14 or wy > 4.4:
-			continue
-		if SevaraTerrainGen3D.get_path_weight_at(wx, wz) > 0.25:
-			continue
 		var gn := SevaraTerrainGen3D.get_ground_normal(wx, wz)
-		if gn.y < 0.78:
-			continue
-		var sc := rng.randf_range(scale_range.x, scale_range.y)
-		var basis := _align_up_with_yaw(gn, rng.randf() * TAU, sc)
-		xforms.append(Transform3D(basis, Vector3(wx, wy - 0.02, wz)))
-		if flower_tint:
-			var bc: Color = blossom_palette[rng.randi_range(0, blossom_palette.size() - 1)]
-			customs.append(Color(bc.r, bc.g, bc.b, rng.randf_range(0.55, 0.98)))
-		else:
-			var gc := Color(0.36, 0.60, 0.20).lerp(Color(0.54, 0.66, 0.24), rng.randf())
-			customs.append(Color(gc.r, gc.g, gc.b, rng.randf()))
-	parent.add_child(_create_multimesh_node(node_name, mesh, xforms, customs))
+		if pw >= 0.18 and cob_xf.size() < target_cob:
+			var is_rut_stone := i % 3 == 0
+			var sc := rng.randf_range(0.54, 0.96) if is_rut_stone else rng.randf_range(0.28, 0.56)
+			var sy := sc * (0.44 if is_rut_stone else 0.52)
+			var b := _align_up_with_yaw(gn, rng.randf() * TAU, 1.0).scaled(Vector3(sc, sy, sc))
+			var sink := -0.016 if is_rut_stone else -0.010
+			cob_xf.append(Transform3D(b, Vector3(wx, wy + sink, wz)))
+			var sh := rng.randf_range(0.76, 1.08)
+			cob_cu.append(Color(sh, sh * 0.96, sh * 0.90, rng.randf_range(0.08, 0.42)))
+		elif pw <= 0.48 and clv_xf.size() < target_clv:
+			var c_sc := rng.randf_range(0.22, 0.38)
+			var cb := _align_up_with_yaw(gn, rng.randf() * TAU, c_sc)
+			clv_xf.append(Transform3D(cb, Vector3(wx, wy - 0.015, wz)))
+			clv_cu.append(Color(0.32, 0.52, 0.18, rng.randf_range(0.35, 0.85)))
+	if not cob_xf.is_empty():
+		parent.add_child(_create_multimesh_node("RoadCobblesMM", pebble_mesh, cob_xf, cob_cu))
+	var clover_mesh := SevaraAssetLibrary3D.nature_mesh("Clover_1", {})
+	if clover_mesh != null and not clv_xf.is_empty():
+		parent.add_child(_create_multimesh_node("RoadsideCloverMM", clover_mesh, clv_xf, clv_cu))
 
 
 static func _scatter_river_pebbles_multimesh(
@@ -695,24 +820,18 @@ static func _scatter_river_pebbles_multimesh(
 	rng.seed = seed_val
 	var xforms: Array[Transform3D] = []
 	var customs: Array[Color] = []
-	for i in range(target_count * 2):
+	for _i in range(target_count * 2):
 		if xforms.size() >= target_count:
 			break
 		var wz := rng.randf_range(-38.0, 26.0)
 		var r_cx := SevaraTerrainGen3D.river_center_x(wz)
 		var r_hw := SevaraTerrainGen3D.river_half_width(wz)
-		var wx := 0.0
-		# Place 25% of pebbles along the shallow Stone Ford causeway (z ~ 1.4..3.8)
-		if i % 4 == 0:
-			wz = rng.randf_range(1.4, 3.8)
-			r_cx = SevaraTerrainGen3D.river_center_x(wz)
-			r_hw = SevaraTerrainGen3D.river_half_width(wz)
-			wx = r_cx + rng.randf_range(-r_hw * 0.95, r_hw * 0.95)
-		else:
-			var side := -1.0 if rng.randf() < 0.5 else 1.0
-			wx = r_cx + side * rng.randf_range(r_hw * 0.68, r_hw * 1.12)
+		var side := -1.0 if rng.randf() < 0.5 else 1.0
+		var wx := r_cx + side * rng.randf_range(r_hw * 0.72, r_hw * 1.14)
+		if SevaraTerrainGen3D.is_on_bridge(wx, wz):
+			continue
 		var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
-		var sc := rng.randf_range(0.28, 0.68)
+		var sc := rng.randf_range(0.34, 0.78)
 		var basis := (
 			Basis
 			. from_euler(
@@ -720,9 +839,9 @@ static func _scatter_river_pebbles_multimesh(
 					rng.randf_range(-0.12, 0.12), rng.randf() * TAU, rng.randf_range(-0.12, 0.12)
 				)
 			)
-			. scaled(Vector3(sc, sc * rng.randf_range(0.22, 0.42), sc))
+			. scaled(Vector3(sc, sc * rng.randf_range(0.24, 0.46), sc))
 		)
-		xforms.append(Transform3D(basis, Vector3(wx, wy - 0.042, wz)))
+		xforms.append(Transform3D(basis, Vector3(wx, wy - 0.036, wz)))
 		var shade := rng.randf_range(0.78, 1.12)
 		customs.append(Color(shade, shade, shade, rng.randf_range(0.15, 0.68)))
 	parent.add_child(_create_multimesh_node(node_name, mesh, xforms, customs))
@@ -851,13 +970,6 @@ static func populate_static_settlement(settlement_root: Node3D) -> void:
 	)
 	scout_tent.rotation.y = -0.55
 	settlement_root.add_child(scout_tent)
-
-	var bridge_z := -4.6
-	var bridge_x := SevaraTerrainGen3D.river_center_x(bridge_z)
-	var bridge := create_bridge_3d(8.6, 2.6)
-	bridge.position = Vector3(bridge_x, SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14, bridge_z)
-	bridge.rotation.y = -0.24
-	settlement_root.add_child(bridge)
 
 	var weir1_z := -10.2
 	var weir1 := create_weir_barrier_3d(5.2)
