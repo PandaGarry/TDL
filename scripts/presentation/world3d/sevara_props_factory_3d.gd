@@ -530,7 +530,10 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 			if Vector2(wx, wz).length() > 84.0:
 				continue
 			var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
-			if wy < SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14 or wy > 9.2:
+			var r_cx := SevaraTerrainGen3D.river_center_x(wz)
+			var r_hw := SevaraTerrainGen3D.river_half_width(wz)
+			var in_stream_corridor := absf(wx - r_cx) < r_hw * 1.25
+			if (in_stream_corridor and wy < SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14) or wy > 9.2:
 				continue
 			var path_w := SevaraTerrainGen3D.get_path_weight_at(wx, wz)
 			if path_w > 0.22:

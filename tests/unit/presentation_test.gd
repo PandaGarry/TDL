@@ -146,6 +146,16 @@ func _test_step2_creek_ford_and_boulders() -> void:
 		if SevaraTerrainGen3D.get_road_core_at(p.x, p.y) >= 0.08:
 			blocked_roads += 1
 	_check_equal(blocked_roads, 0, "No Step 2 boulder obstructs the active two-track roadbed")
+	_check(
+		(
+			(
+				SevaraTerrainGen3D.get_height_at(-12.0, 10.0)
+				> SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14
+			)
+			and not SevaraTerrainGen3D.is_water_at(-12.0, 10.0)
+		),
+		"Dry meadow hollows outside the Nivarel stream corridor stay above the water table"
+	)
 
 
 func _test_grid_metrics_and_physics_layers() -> void:

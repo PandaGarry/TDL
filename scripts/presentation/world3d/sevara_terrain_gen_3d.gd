@@ -59,6 +59,10 @@ static func wetland_pool_factor(wx: float, wz: float) -> float:
 
 
 static func is_water_at(wx: float, wz: float) -> bool:
+	var r_cx := river_center_x(wz)
+	var r_hw := river_half_width(wz)
+	if absf(wx - r_cx) > r_hw * 1.25:
+		return false
 	return get_height_at(wx, wz) < WATER_SURFACE_Y - 0.03
 
 
@@ -173,7 +177,9 @@ static func get_height_at(wx: float, wz: float) -> float:
 		)
 		var branch_carve := road_c * 0.055
 		var micro := sin(wx * 0.42 + wz * 0.37) * 0.032 + cos(wx * 0.27 - wz * 0.49) * 0.026
-		var meadow_h := 0.85 + sculpted_hills + rim_h + micro - maxf(rut_carve, branch_carve)
+		var meadow_h := (
+			1.02 + maxf(sculpted_hills, -0.24) + rim_h + micro - maxf(rut_carve, branch_carve)
+		)
 
 		# Step 2 Nivarel mountain creek corridor & stone ford carving
 		var r_cx := river_center_x(wz)
