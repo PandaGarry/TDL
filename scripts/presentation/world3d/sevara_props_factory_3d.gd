@@ -709,17 +709,17 @@ static func _scatter_river_pebbles_multimesh(
 			var side := -1.0 if rng.randf() < 0.5 else 1.0
 			wx = r_cx + side * rng.randf_range(r_hw * 0.68, r_hw * 1.12)
 		var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
-		var sc := rng.randf_range(0.34, 0.95)
+		var sc := rng.randf_range(0.28, 0.68)
 		var basis := (
 			Basis
 			. from_euler(
 				Vector3(
-					rng.randf_range(-0.18, 0.18), rng.randf() * TAU, rng.randf_range(-0.18, 0.18)
+					rng.randf_range(-0.12, 0.12), rng.randf() * TAU, rng.randf_range(-0.12, 0.12)
 				)
 			)
-			. scaled(Vector3(sc, sc * rng.randf_range(0.45, 0.85), sc))
+			. scaled(Vector3(sc, sc * rng.randf_range(0.22, 0.42), sc))
 		)
-		xforms.append(Transform3D(basis, Vector3(wx, wy - 0.03, wz)))
+		xforms.append(Transform3D(basis, Vector3(wx, wy - 0.042, wz)))
 		var shade := rng.randf_range(0.78, 1.12)
 		customs.append(Color(shade, shade, shade, rng.randf_range(0.15, 0.68)))
 	parent.add_child(_create_multimesh_node(node_name, mesh, xforms, customs))
