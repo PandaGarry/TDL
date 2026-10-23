@@ -68,9 +68,9 @@ float triplanar_soft_fbm(vec3 p, vec3 n, float scale) {
 vec3 triplanar_soft_tex(vec3 p, vec3 n, float scale) {
 	vec3 w = pow(abs(n), vec3(3.2));
 	w /= max(w.x + w.y + w.z, 0.0001);
-	vec3 tx = textureLod(albedo_tex, p.yz * scale + vec2(0.19, 0.43), 1.5).rgb;
-	vec3 ty = textureLod(albedo_tex, p.xz * scale + vec2(0.07, 0.13), 1.5).rgb;
-	vec3 tz = textureLod(albedo_tex, p.xy * scale + vec2(0.61, 0.29), 1.5).rgb;
+	vec3 tx = texture(albedo_tex, p.yz * scale + vec2(0.19, 0.43)).rgb;
+	vec3 ty = texture(albedo_tex, p.xz * scale + vec2(0.07, 0.13)).rgb;
+	vec3 tz = texture(albedo_tex, p.xy * scale + vec2(0.61, 0.29)).rgb;
 	return tx * w.x + ty * w.y + tz * w.z;
 }
 

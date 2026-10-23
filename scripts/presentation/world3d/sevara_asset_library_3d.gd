@@ -212,9 +212,9 @@ static func build_grass_patch_mesh(
 	return mesh
 
 
-static func _bevel_subdivide_rock(src: ArrayMesh) -> ArrayMesh:
+static func _bevel_subdivide_rock_arrays(src: ArrayMesh) -> Array:
 	if src == null or src.get_surface_count() == 0:
-		return ArrayMesh.new()
+		return []
 	var arrays := src.surface_get_arrays(0)
 	var in_v: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 	var in_idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
@@ -242,6 +242,7 @@ static func _bevel_subdivide_rock(src: ArrayMesh) -> ArrayMesh:
 	var out_v := PackedVector3Array()
 	var out_n := PackedVector3Array()
 	var out_uv := PackedVector2Array()
+	var out_idx := PackedInt32Array()
 	for t in range(tri_cnt):
 		var raw_pts: Array[Vector3] = [
 			in_v[in_idx[t * 3]], in_v[in_idx[t * 3 + 1]], in_v[in_idx[t * 3 + 2]]
@@ -271,6 +272,7 @@ static func _bevel_subdivide_rock(src: ArrayMesh) -> ArrayMesh:
 			sm_n[0], nm01, nm20, nm01, sm_n[1], nm12, nm20, nm12, sm_n[2], nm01, nm12, nm20
 		]
 		for j in range(12):
+			out_idx.append(out_v.size())
 			out_v.append(sub_p[j])
 			out_n.append((fn * 0.34 + sub_n[j] * 0.66).normalized())
 			out_uv.append(Vector2(sub_p[j].x, sub_p[j].z) * 0.5)
@@ -279,23 +281,28 @@ static func _bevel_subdivide_rock(src: ArrayMesh) -> ArrayMesh:
 	arr[Mesh.ARRAY_VERTEX] = out_v
 	arr[Mesh.ARRAY_NORMAL] = out_n
 	arr[Mesh.ARRAY_TEX_UV] = out_uv
-	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
-	return mesh
+	arr[Mesh.ARRAY_INDEX] = out_idx
+	return arr
+
+
+static func _get_bevel_rock_arrays(model_name: String) -> Array:
+	var base_key := "BevelRockArr_" + model_name
+	if _raw_meshes.has(base_key):
+		return _raw_meshes[base_key] as Array
+	var arr := _bevel_subdivide_rock_arrays(raw_nature_mesh(model_name))
+	_raw_meshes[base_key] = arr
+	return arr
 
 
 static func build_bevel_smoothed_rock_mesh(model_name: String, style: Dictionary = {}) -> ArrayMesh:
 	var key := "BevelRock_%s_%s" % [model_name, str(style)]
 	if _styled_meshes.has(key):
 		return _styled_meshes[key] as ArrayMesh
-	var base_key := "BevelRockGeo_" + model_name
-	var geo: ArrayMesh = null
-	if _raw_meshes.has(base_key):
-		geo = _raw_meshes[base_key] as ArrayMesh
-	else:
-		geo = _bevel_subdivide_rock(raw_nature_mesh(model_name))
-		_raw_meshes[base_key] = geo
-	var mesh := geo.duplicate(false) as ArrayMesh
+	var arr := _get_bevel_rock_arrays(model_name)
+	if arr.is_empty():
+		return ArrayMesh.new()
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
 	var rock_st: Dictionary = style.get("rock", {})
 	var mat := ShaderMaterial.new()
 	mat.shader = load_shader("sevara_rock_3d.gdshader")
@@ -304,8 +311,7 @@ static func build_bevel_smoothed_rock_mesh(model_name: String, style: Dictionary
 	for k: String in rock_st.keys():
 		if k != "texture":
 			mat.set_shader_parameter(k, rock_st[k])
-	if mesh.get_surface_count() > 0:
-		mesh.surface_set_material(0, mat)
+	mesh.surface_set_material(0, mat)
 	_styled_meshes[key] = mesh
 	return mesh
 
@@ -314,14 +320,17 @@ static func build_rock_crown_moss_fur_mesh(model_name: String, seed_val: int) ->
 	var key := "RockCrownFur_%s_%d" % [model_name, seed_val]
 	if _styled_meshes.has(key):
 		return _styled_meshes[key] as ArrayMesh
-	var geo := build_bevel_smoothed_rock_mesh(model_name, {})
-	if geo.get_surface_count() == 0:
+	var arrays := _get_bevel_rock_arrays(model_name)
+	if arrays.is_empty():
 		return ArrayMesh.new()
-	var arrays := geo.surface_get_arrays(0)
 	var in_v: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 	var in_n: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
-	var box := geo.get_aabb()
-	var min_y := box.position.y + box.size.y * 0.46
+	var min_v_y := 999.0
+	var max_v_y := -999.0
+	for v: Vector3 in in_v:
+		min_v_y = minf(min_v_y, v.y)
+		max_v_y = maxf(max_v_y, v.y)
+	var min_y := min_v_y + (max_v_y - min_v_y) * 0.46
 	var top_tris: Array[int] = []
 	var tri_cnt := int(in_v.size() / 3.0)
 	for t in range(tri_cnt):
