@@ -212,6 +212,142 @@ static func build_grass_patch_mesh(
 	return mesh
 
 
+static func _sculpted_stone_point(theta: float, phi: float, variant: int) -> Vector3:
+	var st := sin(theta)
+	var ct := cos(theta)
+	var dir := Vector3(st * cos(phi), ct, st * sin(phi))
+	var p1 := float(variant) * 1.37 + 0.4
+	var p2 := float(variant) * 2.51 - 0.8
+	var p3 := float(variant) * 0.93 + 1.2
+	var w1 := sin(dir.x * 2.1 + p1) * cos(dir.z * 1.9 + p2) * 0.13
+	var w2 := cos(dir.y * 2.3 - dir.x * 1.6 + p3) * 0.09
+	var w3 := sin((dir.x + dir.z) * 2.7 + p2) * 0.05
+	var r := 1.0 + w1 + w2 + w3
+	var y_scale := 0.78 if dir.y >= 0.0 else 0.42
+	return Vector3(dir.x * 1.16 * r, dir.y * y_scale * r + 0.46, dir.z * 1.12 * r)
+
+
+static func _sculpted_stone_normal(theta: float, phi: float, variant: int) -> Vector3:
+	var t_clamped := clampf(theta, 0.04, PI - 0.04)
+	var eps := 0.025
+	var p_t1 := _sculpted_stone_point(t_clamped + eps, phi, variant)
+	var p_t0 := _sculpted_stone_point(t_clamped - eps, phi, variant)
+	var p_p1 := _sculpted_stone_point(t_clamped, phi + eps, variant)
+	var p_p0 := _sculpted_stone_point(t_clamped, phi - eps, variant)
+	var dp_dt := p_t1 - p_t0
+	var dp_dp := p_p1 - p_p0
+	var n := dp_dp.cross(dp_dt).normalized()
+	return n if n.length_squared() > 0.1 else Vector3.UP
+
+
+static func build_sculpted_stone_mesh(
+	variant: int, style: Dictionary = {}, rings: int = 18, segs: int = 28
+) -> ArrayMesh:
+	var key := "SculptStone_%d_%d_%d_%s" % [variant, rings, segs, str(style)]
+	if _styled_meshes.has(key):
+		return _styled_meshes[key] as ArrayMesh
+	var verts := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var indices := PackedInt32Array()
+	for r in range(rings + 1):
+		var v := float(r) / float(rings)
+		var theta := v * PI
+		for s in range(segs + 1):
+			var u := float(s) / float(segs)
+			var phi := u * TAU
+			verts.append(_sculpted_stone_point(theta, phi, variant))
+			normals.append(_sculpted_stone_normal(theta, phi, variant))
+			uvs.append(Vector2(u, v))
+	var stride := segs + 1
+	for r in range(rings):
+		for s in range(segs):
+			var i0 := r * stride + s
+			var i1 := i0 + 1
+			var i2 := (r + 1) * stride + s
+			var i3 := i2 + 1
+			indices.append_array([i0, i1, i2, i1, i3, i2])
+	var arr := []
+	arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = verts
+	arr[Mesh.ARRAY_NORMAL] = normals
+	arr[Mesh.ARRAY_TEX_UV] = uvs
+	arr[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	var rock_st: Dictionary = style.get("rock", {})
+	var mat := ShaderMaterial.new()
+	mat.shader = load_shader("sevara_rock_3d.gdshader")
+	mat.set_shader_parameter("surface_mode", 0)
+	for k: String in rock_st.keys():
+		if k != "texture":
+			mat.set_shader_parameter(k, rock_st[k])
+	mesh.surface_set_material(0, mat)
+	_styled_meshes[key] = mesh
+	return mesh
+
+
+static func build_boulder_moss_fur_mesh(variant: int) -> ArrayMesh:
+	var key := "BoulderMossFur_%d" % variant
+	if _styled_meshes.has(key):
+		return _styled_meshes[key] as ArrayMesh
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 9103 + variant * 131
+	var verts := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var colors := PackedColorArray()
+	var indices := PackedInt32Array()
+	for _b in range(115):
+		var theta := sqrt(rng.randf()) * 0.92
+		var phi := rng.randf() * TAU
+		var base_p := _sculpted_stone_point(theta, phi, variant) - Vector3(0.0, 0.018, 0.0)
+		var surf_n := _sculpted_stone_normal(theta, phi, variant)
+		var grow_dir := (surf_n * 0.55 + Vector3.UP * 0.65).normalized()
+		var ang := rng.randf() * TAU
+		var perp := Vector3(cos(ang), 0.0, sin(ang))
+		var facing := grow_dir.cross(perp).normalized()
+		var h := rng.randf_range(0.15, 0.27) * (1.0 - theta * 0.32)
+		var w := rng.randf_range(0.024, 0.038)
+		var lean := rng.randf_range(0.04, 0.11)
+		var rnd_col := Color(rng.randf(), rng.randf(), rng.randf(), rng.randf())
+		var b_idx := verts.size()
+		for s in range(2):
+			var t := float(s) * 0.5
+			var hw := w * 0.5 * (1.0 - t * 0.55)
+			var p_mid := base_p + grow_dir * (t * h) + facing * (t * t * lean)
+			for side in [-1.0, 1.0]:
+				verts.append(p_mid + perp * (float(side) * hw))
+				normals.append((grow_dir + facing * 0.25).normalized())
+				uvs.append(Vector2(float(side) * 0.5 + 0.5, t))
+				colors.append(rnd_col)
+		verts.append(base_p + grow_dir * h + facing * lean)
+		normals.append(grow_dir)
+		uvs.append(Vector2(0.5, 1.0))
+		colors.append(rnd_col)
+		indices.append_array([b_idx, b_idx + 1, b_idx + 2, b_idx + 1, b_idx + 3, b_idx + 2])
+		indices.append_array([b_idx + 2, b_idx + 3, b_idx + 4])
+	var arr := []
+	arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = verts
+	arr[Mesh.ARRAY_NORMAL] = normals
+	arr[Mesh.ARRAY_TEX_UV] = uvs
+	arr[Mesh.ARRAY_COLOR] = colors
+	arr[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	var mat := ShaderMaterial.new()
+	mat.shader = load_shader("sevara_grass_3d.gdshader")
+	mat.set_shader_parameter("root_color", Color(0.12, 0.24, 0.09))
+	mat.set_shader_parameter("tip_color", Color(0.28, 0.45, 0.17))
+	mat.set_shader_parameter("tip_color_warm", Color(0.42, 0.50, 0.20))
+	mat.set_shader_parameter("blade_height", 0.22)
+	mat.set_shader_parameter("wind_strength", 0.35)
+	mesh.surface_set_material(0, mat)
+	_styled_meshes[key] = mesh
+	return mesh
+
+
 static func instantiate_model(
 	res_path: String,
 	target_height: float,
@@ -478,35 +614,24 @@ static func _make_arch_shader_material(
 	_secondary_col: Color,
 	scale_val: float,
 	_detail_mix_val: float,
-	nrm_strength: float,
+	_nrm_strength: float,
 	rough_val: float,
 	metal_val: float = 0.0,
 	moss_str: float = 0.45,
 	_bevel_str: float = 0.24
 ) -> Material:
-	if stem == "pbr_cliff_rock" or stem == "pbr_cobble_masonry":
+	if stem == "pbr_cliff_rock" or stem == "pbr_cobble_masonry" or stem == "pbr_aged_timber":
 		var rmat := ShaderMaterial.new()
 		rmat.shader = load_shader("sevara_rock_3d.gdshader")
-		var tex_name := (
-			"PathRocks_Diffuse.png" if stem == "pbr_cobble_masonry" else "Rocks_Diffuse.png"
-		)
-		rmat.set_shader_parameter("albedo_tex", load_texture(NATURE_DIR + tex_name))
+		rmat.set_shader_parameter("surface_mode", 1 if stem == "pbr_aged_timber" else 0)
 		rmat.set_shader_parameter("tint", primary_col)
-		rmat.set_shader_parameter("moss_amount", moss_str)
+		rmat.set_shader_parameter("moss_amount", 0.0 if stem == "pbr_aged_timber" else moss_str)
 		rmat.set_shader_parameter("triplanar_scale", clampf(scale_val, 0.28, 1.25))
 		return rmat
 	var sm := StandardMaterial3D.new()
 	sm.albedo_color = primary_col
 	sm.roughness = rough_val
 	sm.metallic = metal_val
-	if stem == "pbr_aged_timber":
-		sm.albedo_texture = load_texture(NATURE_DIR + "Bark_NormalTree.png")
-		sm.normal_enabled = true
-		sm.normal_texture = load_texture(NATURE_DIR + "Bark_NormalTree_Normal.png")
-		sm.normal_scale = nrm_strength * 0.65
-		sm.uv1_triplanar = true
-		var uv_s := clampf(scale_val, 0.24, 1.2)
-		sm.uv1_scale = Vector3(uv_s * 0.55, uv_s * 0.65, uv_s * 0.22)
 	return sm
 
 
@@ -805,33 +930,6 @@ static func _build_procedural_plant(model_name: String) -> ArrayMesh:
 	return mesh
 
 
-static func _proc_blade(
-	st: SurfaceTool,
-	a: Vector3,
-	b: Vector3,
-	side: Vector3,
-	w_bottom: float,
-	w_top: float,
-	c_bottom: Color,
-	c_top: Color,
-	out_dir: Vector3
-) -> void:
-	var n := (out_dir * 0.75 + Vector3.UP * 1.25).normalized()
-	var pts: Array[Vector3] = [
-		a - side * w_bottom,
-		a + side * w_bottom,
-		b + side * w_top,
-		b - side * w_top,
-	]
-	var cols: Array[Color] = [c_bottom, c_bottom, c_top, c_top]
-	var tri_order: Array[int] = [0, 1, 2, 0, 2, 3]
-	for idx: int in tri_order:
-		st.set_color(cols[idx])
-		st.set_normal(n)
-		st.set_uv(Vector2(0.5, 0.5))
-		st.add_vertex(pts[idx])
-
-
 static func _proc_cross(
 	st: SurfaceTool,
 	a: Vector3,
@@ -847,10 +945,19 @@ static func _proc_cross(
 		if Vector2(a.x, a.z).length() > 0.01
 		else Vector3(cos(rot), 0.0, sin(rot))
 	)
+	var n := (out_dir * 0.75 + Vector3.UP * 1.25).normalized()
 	for k in range(2):
 		var ang := rot + float(k) * PI * 0.5
 		var side := Vector3(cos(ang), 0.0, sin(ang))
-		_proc_blade(st, a, b, side, w_bottom, w_top, c_bottom, c_top, out_dir)
+		var pts: Array[Vector3] = [
+			a - side * w_bottom, a + side * w_bottom, b + side * w_top, b - side * w_top
+		]
+		var cols: Array[Color] = [c_bottom, c_bottom, c_top, c_top]
+		for idx: int in [0, 1, 2, 0, 2, 3]:
+			st.set_color(cols[idx])
+			st.set_normal(n)
+			st.set_uv(Vector2(0.5, 0.5))
+			st.add_vertex(pts[idx])
 
 
 static func _proc_reeds(st: SurfaceTool, rng: RandomNumberGenerator) -> void:

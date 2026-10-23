@@ -98,35 +98,45 @@ static func create_boulder_3d(scale_vec: Vector3 = Vector3.ONE, mossy: bool = tr
 	var root := Node3D.new()
 	root.name = "Boulder3D"
 	var hash_v := scale_vec.x * 17.3 + scale_vec.y * 11.1 + scale_vec.z * 23.7
-	var idx := posmod(int(round(hash_v * 10.0)), ROCK_MODELS.size())
-	var model_name: String = ROCK_MODELS[idx]
+	var variant := posmod(int(round(hash_v * 10.0)), 8)
 	var style := {
 		"rock":
 		{
-			"moss_amount": 0.86 if mossy else 0.08,
-			"snow_amount": 0.06 if scale_vec.y > 1.35 else 0.0,
-			"wetness": 0.22 if mossy else 0.68,
+			"moss_amount": 0.88 if mossy else 0.06,
+			"snow_amount": 0.0,
+			"wetness": 0.18 if mossy else 0.58,
 			"triplanar": 1.0,
 		}
 	}
-	var mesh := SevaraAssetLibrary3D.nature_mesh(model_name, style)
+	var mesh := SevaraAssetLibrary3D.build_sculpted_stone_mesh(variant, style, 18, 28)
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
-	# Substantial 1.2m..2.6m riverbank & valley boulders (`0.44x` of the raw 3.2m glTF mesh)
-	mi.scale = scale_vec * 0.44
-	mi.rotation = Vector3(0.09 * sin(hash_v * 1.7), 0.0, -0.08 * cos(hash_v * 2.3))
+	var body_scale := scale_vec * Vector3(0.68, 0.64, 0.68)
+	var body_rot := Vector3(0.06 * sin(hash_v * 1.7), hash_v * 0.9, -0.06 * cos(hash_v * 2.3))
+	mi.scale = body_scale
+	mi.rotation = body_rot
+	mi.position = Vector3(0.0, -0.08 * scale_vec.y, 0.0)
 	root.add_child(mi)
 
 	if mossy and scale_vec.x > 0.92:
-		var sub_idx := (idx + 1) % ROCK_MODELS.size()
-		var sub_mesh := SevaraAssetLibrary3D.nature_mesh(ROCK_MODELS[sub_idx], style)
+		# Exact surface-conforming 3D moss fur growing directly out of the sculpted boulder crown
+		var fur_mi := MeshInstance3D.new()
+		fur_mi.mesh = SevaraAssetLibrary3D.build_boulder_moss_fur_mesh(variant)
+		fur_mi.scale = body_scale
+		fur_mi.rotation = body_rot
+		fur_mi.position = mi.position
+		fur_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(fur_mi)
+
+		# Smooth companion river stone nestled beside the main boulder
+		var sub_var := (variant + 3) % 8
 		var sub_mi := MeshInstance3D.new()
-		sub_mi.mesh = sub_mesh
+		sub_mi.mesh = SevaraAssetLibrary3D.build_sculpted_stone_mesh(sub_var, style, 12, 20)
 		var ang := hash_v * 2.4
-		var rad := 0.52 * scale_vec.x
-		sub_mi.scale = scale_vec * Vector3(0.22, 0.17, 0.22)
-		sub_mi.position = Vector3(cos(ang) * rad, -0.04, sin(ang) * rad)
-		sub_mi.rotation = Vector3(-0.14 * cos(ang), ang + 1.2, 0.10 * sin(ang))
+		var rad := 0.58 * scale_vec.x
+		sub_mi.scale = scale_vec * Vector3(0.32, 0.26, 0.32)
+		sub_mi.position = Vector3(cos(ang) * rad, -0.06, sin(ang) * rad)
+		sub_mi.rotation = Vector3(-0.08 * cos(ang), ang + 1.2, 0.08 * sin(ang))
 		root.add_child(sub_mi)
 
 		# Lush 3D clover cluster nestled against the boulder's mossy shoulder
@@ -135,7 +145,7 @@ static func create_boulder_3d(scale_vec: Vector3 = Vector3.ONE, mossy: bool = tr
 			var clv_mi := MeshInstance3D.new()
 			clv_mi.mesh = clv_mesh
 			clv_mi.scale = Vector3.ONE * (0.28 * scale_vec.x)
-			clv_mi.position = Vector3(-cos(ang) * rad * 0.82, 0.06, -sin(ang) * rad * 0.82)
+			clv_mi.position = Vector3(-cos(ang) * rad * 0.82, 0.04, -sin(ang) * rad * 0.82)
 			clv_mi.rotation.y = ang * 1.7
 			root.add_child(clv_mi)
 
@@ -300,58 +310,63 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 	root.name = "TimberBridge3D"
 	var wood_mat := SevaraAssetLibrary3D._make_arch_shader_material(
 		"pbr_aged_timber",
-		Color(0.68, 0.56, 0.42),
+		Color(0.58, 0.47, 0.35),
 		Color(0.46, 0.36, 0.26),
-		0.56,
+		0.52,
 		0.48,
-		0.82,
-		0.82,
+		0.45,
+		0.78,
 		0.0,
-		0.18,
-		0.26
+		0.0,
+		0.22
+	)
+	var warm_plank_alt_mat := SevaraAssetLibrary3D._make_arch_shader_material(
+		"pbr_aged_timber",
+		Color(0.54, 0.43, 0.32),
+		Color(0.42, 0.33, 0.24),
+		0.50,
+		0.45,
+		0.45,
+		0.78,
+		0.0,
+		0.0,
+		0.22
 	)
 	var dark_beam_mat := SevaraAssetLibrary3D._make_arch_shader_material(
 		"pbr_aged_timber",
-		Color(0.50, 0.40, 0.29),
+		Color(0.45, 0.35, 0.25),
 		Color(0.34, 0.26, 0.18),
-		0.52,
+		0.48,
 		0.45,
-		0.85,
-		0.85,
+		0.45,
+		0.80,
 		0.0,
-		0.22,
-		0.24
+		0.0,
+		0.22
 	)
 	var stone_mat := SevaraAssetLibrary3D._make_arch_shader_material(
 		"pbr_cliff_rock",
-		Color(0.86, 0.84, 0.80),
-		Color(0.38, 0.39, 0.38),
-		0.52,
+		Color(0.92, 0.90, 0.86),
+		Color(0.42, 0.42, 0.40),
+		0.48,
 		0.45,
-		0.82,
+		0.42,
 		0.80,
 		0.0,
 		0.08,
-		0.32
-	)
-	var cobble_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_cobble_masonry",
-		Color(0.84, 0.80, 0.74),
-		Color(0.42, 0.40, 0.36),
-		0.58,
-		0.50,
-		0.85,
-		0.82,
-		0.0,
-		0.06,
-		0.28
+		0.24
 	)
 
 	var x_min := SevaraTerrainGen3D.BRIDGE_X_MIN
 	var x_max := SevaraTerrainGen3D.BRIDGE_X_MAX
 	var deck_w := 2.92
 
-	# 1. Bank Stone Abutment Foundations & Deep-Channel Masonry Piers in the Nivarel River
+	# 1. Rounded Oval Cutwater Stone Piers & Sculpted River Foundation Stones (no boxy cubes!)
+	var pier_cyl := CylinderMesh.new()
+	pier_cyl.top_radius = 0.56
+	pier_cyl.bottom_radius = 0.66
+	pier_cyl.height = 2.45
+	pier_cyl.radial_segments = 24
 	var pier_xs: Array[float] = [6.35, 9.85, 14.15, 17.65]
 	for pier_x: float in pier_xs:
 		var pz := SevaraTerrainGen3D._main_road_z(pier_x)
@@ -366,19 +381,23 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 		var yaw := -atan2(dz, 1.0)
 		var is_bank: bool = pier_x < 7.5 or pier_x > 16.5
 		var pier := MeshInstance3D.new()
-		var pbox := BoxMesh.new()
-		pbox.size = Vector3(1.25 if is_bank else 0.96, 2.50, deck_w + 0.24)
-		pier.mesh = pbox
-		pier.position = Vector3(pier_x, py - 1.36, pz)
+		pier.mesh = pier_cyl
+		pier.scale = Vector3(1.05 if is_bank else 0.88, 1.0, (deck_w + 0.18) / 1.12)
+		pier.position = Vector3(pier_x, py - 1.34, pz)
 		pier.rotation.y = yaw
-		pier.material_override = cobble_mat if is_bank else stone_mat
+		pier.material_override = stone_mat
 		root.add_child(pier)
 
-	# 2. Continuous Timber Plank Deck, Under-Deck Carrier Beams & Side Wheel-Guard Curbs
+	# 2. Smooth Rounded Timber Plank Deck, Under-Deck Carrier Logs & Rounded Log Curbs
 	var span_start := x_min
 	var span_end := x_max
-	var plank_count := 42
+	var plank_count := 36
 	var span_dx := (span_end - span_start) / float(plank_count)
+	var curb_cyl := CylinderMesh.new()
+	curb_cyl.top_radius = 0.068
+	curb_cyl.bottom_radius = 0.068
+	curb_cyl.height = span_dx + 0.05
+	curb_cyl.radial_segments = 14
 	for i in range(plank_count):
 		var px := span_start + (float(i) + 0.5) * span_dx
 		var pz := SevaraTerrainGen3D._main_road_z(px)
@@ -402,41 +421,49 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 
 		var plank := MeshInstance3D.new()
 		var pmesh := BoxMesh.new()
-		var jitter_w := deck_w + sin(float(i) * 2.1) * 0.03
-		pmesh.size = Vector3(span_dx * 0.93, 0.09, jitter_w)
+		var jitter_w := deck_w + sin(float(i) * 1.9) * 0.025
+		pmesh.size = Vector3(span_dx * 0.96, 0.085, jitter_w)
 		plank.mesh = pmesh
-		plank.position = Vector3(px, py - 0.035, pz)
+		plank.position = Vector3(px, py - 0.032, pz)
 		plank.rotation = Vector3(0.0, yaw, pitch)
-		plank.material_override = wood_mat if (i % 3 != 0) else dark_beam_mat
+		plank.material_override = wood_mat if (i % 2 == 0) else warm_plank_alt_mat
 		root.add_child(plank)
 
 		for side_z in [-1.0, 1.0]:
-			var off_z := float(side_z) * (deck_w * 0.45)
+			var off_z := float(side_z) * (deck_w * 0.44)
 			var beam := MeshInstance3D.new()
 			var bmesh := BoxMesh.new()
-			bmesh.size = Vector3(span_dx + 0.04, 0.20, 0.20)
+			bmesh.size = Vector3(span_dx + 0.04, 0.18, 0.18)
 			beam.mesh = bmesh
-			beam.position = Vector3(px - sin(yaw) * off_z, py - 0.16, pz + cos(yaw) * off_z)
+			beam.position = Vector3(px - sin(yaw) * off_z, py - 0.15, pz + cos(yaw) * off_z)
 			beam.rotation = Vector3(0.0, yaw, pitch)
 			beam.material_override = dark_beam_mat
 			root.add_child(beam)
 
 			var curb := MeshInstance3D.new()
-			var cmesh := BoxMesh.new()
-			cmesh.size = Vector3(span_dx + 0.03, 0.09, 0.14)
-			curb.mesh = cmesh
+			curb.mesh = curb_cyl
 			var c_off := float(side_z) * (deck_w * 0.46)
-			curb.position = Vector3(px - sin(yaw) * c_off, py + 0.045, pz + cos(yaw) * c_off)
-			curb.rotation = Vector3(0.0, yaw, pitch)
+			curb.position = Vector3(px - sin(yaw) * c_off, py + 0.038, pz + cos(yaw) * c_off)
+			curb.rotation = Vector3(0.0, yaw, pitch - PI * 0.5)
 			curb.material_override = dark_beam_mat
 			root.add_child(curb)
 
-	# 3. Timber Railing Posts & Double Handrails along the entire bridge span
+	# 3. Turned Round Timber Railing Posts with Rounded Finial Caps & Smooth Cylindrical Handrails
+	var post_cyl := CylinderMesh.new()
+	post_cyl.top_radius = 0.072
+	post_cyl.bottom_radius = 0.082
+	post_cyl.height = 0.92
+	post_cyl.radial_segments = 16
+	var cap_sphere := SphereMesh.new()
+	cap_sphere.radius = 0.088
+	cap_sphere.height = 0.14
+	cap_sphere.radial_segments = 16
+	cap_sphere.rings = 8
 	var post_count := 8
 	for side_z in [-1.0, 1.0]:
 		for p in range(post_count):
 			var pt := float(p) / float(post_count - 1)
-			var post_x := lerpf(span_start + 0.15, span_end - 0.15, pt)
+			var post_x := lerpf(span_start + 0.18, span_end - 0.18, pt)
 			var post_z := SevaraTerrainGen3D._main_road_z(post_x)
 			var post_y := SevaraTerrainGen3D.get_bridge_deck_y_at_x(post_x)
 			var dz := (
@@ -447,34 +474,42 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 				/ 0.4
 			)
 			var yaw := -atan2(dz, 1.0)
-			var off_z := float(side_z) * (deck_w * 0.47)
+			var off_z := float(side_z) * (deck_w * 0.465)
 			var w_pos := Vector3(
-				post_x - sin(yaw) * off_z, post_y + 0.44, post_z + cos(yaw) * off_z
+				post_x - sin(yaw) * off_z, post_y + 0.42, post_z + cos(yaw) * off_z
 			)
 			var post := MeshInstance3D.new()
-			var post_mesh := BoxMesh.new()
-			post_mesh.size = Vector3(0.16, 0.96, 0.16)
-			post.mesh = post_mesh
+			post.mesh = post_cyl
 			post.position = w_pos
 			post.rotation.y = yaw
 			post.material_override = dark_beam_mat
 			root.add_child(post)
+
+			var cap := MeshInstance3D.new()
+			cap.mesh = cap_sphere
+			cap.position = w_pos + Vector3(0.0, 0.47, 0.0)
+			cap.material_override = wood_mat
+			root.add_child(cap)
+
 			if p < post_count - 1:
 				var next_pt := float(p + 1) / float(post_count - 1)
-				var nx := lerpf(span_start + 0.15, span_end - 0.15, next_pt)
+				var nx := lerpf(span_start + 0.18, span_end - 0.18, next_pt)
 				var nz := SevaraTerrainGen3D._main_road_z(nx)
 				var ny := SevaraTerrainGen3D.get_bridge_deck_y_at_x(nx)
-				var nw_pos := Vector3(nx - sin(yaw) * off_z, ny + 0.44, nz + cos(yaw) * off_z)
+				var nw_pos := Vector3(nx - sin(yaw) * off_z, ny + 0.42, nz + cos(yaw) * off_z)
 				var delta := nw_pos - w_pos
 				var seg_len := delta.length()
 				var pitch := atan2(delta.y, Vector2(delta.x, delta.z).length())
-				for rail_h in [0.38, 0.08]:
+				for rail_h in [0.36, 0.06]:
 					var rail := MeshInstance3D.new()
-					var rmesh := BoxMesh.new()
-					rmesh.size = Vector3(seg_len + 0.06, 0.085, 0.095)
+					var rmesh := CylinderMesh.new()
+					rmesh.top_radius = 0.044
+					rmesh.bottom_radius = 0.044
+					rmesh.height = seg_len + 0.06
+					rmesh.radial_segments = 14
 					rail.mesh = rmesh
 					rail.position = (w_pos + nw_pos) * 0.5 + Vector3(0.0, float(rail_h), 0.0)
-					rail.rotation = Vector3(0.0, yaw, pitch)
+					rail.rotation = Vector3(0.0, yaw, pitch - PI * 0.5)
 					rail.material_override = wood_mat
 					root.add_child(rail)
 	return root
@@ -711,9 +746,11 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 	root.add_child(verge_mmi)
 
 	# 3. Step 2 3D Riverbank Pebbles, Road Cobblestones & Roadside Clover
-	var pebble_mesh := SevaraAssetLibrary3D.nature_mesh(
-		"Pebble_Round_1",
-		{"rock": {"moss_amount": 0.28, "snow_amount": 0.0, "wetness": 0.32, "triplanar": 1.0}}
+	var pebble_mesh := SevaraAssetLibrary3D.build_sculpted_stone_mesh(
+		5,
+		{"rock": {"moss_amount": 0.24, "snow_amount": 0.0, "wetness": 0.32, "triplanar": 1.0}},
+		10,
+		16
 	)
 	_scatter_river_pebbles_multimesh(root, "RiverPebblesMM", pebble_mesh, int(420.0 * dens), 407305)
 	_scatter_road_cobbles_and_clover(root, pebble_mesh, dens)
@@ -729,22 +766,25 @@ static func _scatter_road_cobbles_and_clover(
 	var cob_cu: Array[Color] = []
 	var clv_xf: Array[Transform3D] = []
 	var clv_cu: Array[Color] = []
-	var target_cob := int(780.0 * dens)
+	var target_cob := int(640.0 * dens)
 	var target_clv := int(240.0 * dens)
+	# Smooth sculpted river cobble mesh (no sharp low-poly facets!) blended with warm road loam
 	var road_stone_mesh := (
 		SevaraAssetLibrary3D
-		. nature_mesh(
-			"Pebble_Round_1",
+		. build_sculpted_stone_mesh(
+			11,
 			{
 				"rock":
 				{
-					"moss_amount": 0.06,
+					"moss_amount": 0.04,
 					"snow_amount": 0.0,
-					"wetness": 0.10,
+					"wetness": 0.08,
 					"triplanar": 1.0,
-					"tint": Color(1.08, 1.04, 0.96),
+					"tint": Color(0.84, 0.77, 0.66),
 				}
-			}
+			},
+			10,
+			16
 		)
 	)
 	for i in range(target_cob * 4):
@@ -765,13 +805,13 @@ static func _scatter_road_cobbles_and_clover(
 		var gn := SevaraTerrainGen3D.get_ground_normal(wx, wz)
 		if pw >= 0.16 and cob_xf.size() < target_cob:
 			var is_rut_stone := i % 3 == 0
-			var sc := rng.randf_range(0.62, 1.12) if is_rut_stone else rng.randf_range(0.34, 0.66)
-			var sy := sc * (0.48 if is_rut_stone else 0.56)
+			var sc := rng.randf_range(0.11, 0.19) if is_rut_stone else rng.randf_range(0.06, 0.12)
+			var sy := sc * (0.42 if is_rut_stone else 0.48)
 			var b := _align_up_with_yaw(gn, rng.randf() * TAU, 1.0).scaled(Vector3(sc, sy, sc))
-			var sink := -0.008 if is_rut_stone else -0.005
+			var sink := -0.024 if is_rut_stone else -0.014
 			cob_xf.append(Transform3D(b, Vector3(wx, wy + sink, wz)))
-			var sh := rng.randf_range(0.88, 1.16)
-			cob_cu.append(Color(sh, sh * 0.97, sh * 0.92, rng.randf_range(0.02, 0.16)))
+			var sh := rng.randf_range(0.88, 1.08)
+			cob_cu.append(Color(sh, sh * 0.96, sh * 0.90, rng.randf_range(0.0, 0.10)))
 		elif pw <= 0.48 and clv_xf.size() < target_clv:
 			var c_sc := rng.randf_range(0.22, 0.38)
 			var cb := _align_up_with_yaw(gn, rng.randf() * TAU, c_sc)
@@ -804,17 +844,17 @@ static func _scatter_river_pebbles_multimesh(
 		if SevaraTerrainGen3D.is_on_bridge(wx, wz):
 			continue
 		var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
-		var sc := rng.randf_range(0.34, 0.78)
+		var sc := rng.randf_range(0.08, 0.18)
 		var basis := (
 			Basis
 			. from_euler(
 				Vector3(
-					rng.randf_range(-0.12, 0.12), rng.randf() * TAU, rng.randf_range(-0.12, 0.12)
+					rng.randf_range(-0.10, 0.10), rng.randf() * TAU, rng.randf_range(-0.10, 0.10)
 				)
 			)
-			. scaled(Vector3(sc, sc * rng.randf_range(0.24, 0.46), sc))
+			. scaled(Vector3(sc, sc * rng.randf_range(0.32, 0.52), sc))
 		)
-		xforms.append(Transform3D(basis, Vector3(wx, wy - 0.036, wz)))
+		xforms.append(Transform3D(basis, Vector3(wx, wy - 0.024, wz)))
 		var shade := rng.randf_range(0.78, 1.12)
 		customs.append(Color(shade, shade, shade, rng.randf_range(0.15, 0.68)))
 	parent.add_child(_create_multimesh_node(node_name, mesh, xforms, customs))
@@ -856,6 +896,9 @@ static func populate_static_settlement(settlement_root: Node3D) -> void:
 		{"file": "House_4.glb", "pos": Vector2(-14.5, 1.8), "h": 4.4, "rot": 2.45},
 		{"file": "Blacksmith.glb", "pos": Vector2(-24.0, -8.2), "h": 4.3, "rot": 1.15},
 		{"file": "Stable.glb", "pos": Vector2(-18.8, 5.2), "h": 3.9, "rot": 0.42},
+		{"file": "Sawmill.glb", "pos": Vector2(-4.8, -12.6), "h": 4.4, "rot": -0.35},
+		{"file": "Mill.glb", "pos": Vector2(6.8, -15.2), "h": 5.4, "rot": -0.55},
+		{"file": "Well.glb", "pos": Vector2(-16.2, -4.8), "h": 2.35, "rot": 0.0},
 	]
 	for hspec: Dictionary in houses:
 		var p2: Vector2 = hspec["pos"]
@@ -865,28 +908,6 @@ static func populate_static_settlement(settlement_root: Node3D) -> void:
 		node.position = Vector3(p2.x, SevaraTerrainGen3D.get_height_at(p2.x, p2.y) - 0.06, p2.y)
 		node.rotation.y = float(hspec["rot"])
 		settlement_root.add_child(node)
-
-	var sawmill_pos := Vector2(-4.8, -12.6)
-	var sawmill := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.VILLAGE_DIR + "Sawmill.glb", 4.4, {}, true
-	)
-	sawmill.position = Vector3(
-		sawmill_pos.x,
-		SevaraTerrainGen3D.get_height_at(sawmill_pos.x, sawmill_pos.y) - 0.08,
-		sawmill_pos.y
-	)
-	sawmill.rotation.y = -0.35
-	settlement_root.add_child(sawmill)
-
-	var mill_pos := Vector2(6.8, -15.2)
-	var mill := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.VILLAGE_DIR + "Mill.glb", 5.4, {}, true
-	)
-	mill.position = Vector3(
-		mill_pos.x, SevaraTerrainGen3D.get_height_at(mill_pos.x, mill_pos.y) - 0.06, mill_pos.y
-	)
-	mill.rotation.y = -0.55
-	settlement_root.add_child(mill)
 
 	var pav_pos := Vector2(-9.2, -8.8)
 	var pavilion := create_chronicle_pavilion_3d()
@@ -902,15 +923,6 @@ static func populate_static_settlement(settlement_root: Node3D) -> void:
 		hearth_pos.x, SevaraTerrainGen3D.get_height_at(hearth_pos.x, hearth_pos.y), hearth_pos.y
 	)
 	settlement_root.add_child(hearth)
-
-	var well_pos := Vector2(-16.2, -4.8)
-	var well := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.VILLAGE_DIR + "Well.glb", 2.35, {}, true
-	)
-	well.position = Vector3(
-		well_pos.x, SevaraTerrainGen3D.get_height_at(well_pos.x, well_pos.y) - 0.03, well_pos.y
-	)
-	settlement_root.add_child(well)
 
 	var village_props: Array[Dictionary] = [
 		{"file": "MarketStand_1.glb", "pos": Vector2(-8.8, 4.8), "h": 2.4, "rot": 0.45},
