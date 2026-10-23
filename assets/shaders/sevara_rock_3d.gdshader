@@ -162,16 +162,16 @@ void fragment() {
 		vec3 soft_tex = triplanar_soft_tex(v_world, base_n, triplanar_scale);
 		float tex_tone = dot(soft_tex, vec3(0.333));
 		float macro_tone = triplanar_soft_fbm(v_world, base_n, 0.85);
-		floatstrata = triplanar_soft_fbm(v_world + vec3(3.7, -2.1, 1.4), base_n, 2.1);
+		float strata = triplanar_soft_fbm(v_world + vec3(3.7, -2.1, 1.4), base_n, 2.1);
 
 		vec3 deep_slate = vec3(0.28, 0.30, 0.31);
 		vec3 mid_granite = vec3(0.42, 0.40, 0.37);
 		vec3 warm_limestone = vec3(0.53, 0.49, 0.43);
 
 		vec3 c = mix(deep_slate, mid_granite, smoothstep(0.20, 0.72, macro_tone * 0.65 + tex_tone * 0.35));
-		c = mix(c, warm_limestone, smoothstep(0.42, 0.82, floatstrata) * 0.62);
+		c = mix(c, warm_limestone, smoothstep(0.42, 0.82, strata) * 0.62);
 		// Soft mineral crevices and warm lichen flecks (smooth, never pixelated)
-		float soft_crevice = smoothstep(0.46, 0.22, tex_tone * 0.6 + floatstrata * 0.4);
+		float soft_crevice = smoothstep(0.46, 0.22, tex_tone * 0.6 + strata * 0.4);
 		c *= mix(1.0, 0.68, soft_crevice * 0.65);
 		c *= tint;
 		if (length(v_custom.rgb) > 0.02) {
