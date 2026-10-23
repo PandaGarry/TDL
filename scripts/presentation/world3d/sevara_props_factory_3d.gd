@@ -4,14 +4,7 @@ extends RefCounted
 ## and river engineering props for the Sevara Valley using CC0 glTF/GLB assets and custom shaders.
 
 const PINE_MODELS: Array[String] = ["Pine_1", "Pine_2", "Pine_3", "Pine_4", "Pine_5"]
-const BROADLEAF_MODELS: Array[String] = [
-	"CommonTree_1",
-	"CommonTree_2",
-	"CommonTree_3",
-	"CommonTree_4",
-	"TwistedTree_1",
-	"TwistedTree_2",
-]
+const BROADLEAF_MODELS: Array[String] = ["TwistedTree_1", "TwistedTree_2"]
 const ROCK_MODELS: Array[String] = ["Rock_Medium_1", "Rock_Medium_2", "Rock_Medium_3"]
 
 
@@ -29,7 +22,7 @@ static func create_tree_3d(variant: int = 0, is_stump: bool = false) -> Node3D:
 		root.add_child(stump)
 		return root
 
-	var is_pine := (variant % 3) == 0
+	var is_pine := (variant % 2) == 0
 	var model_name := (
 		PINE_MODELS[posmod(variant, PINE_MODELS.size())]
 		if is_pine
@@ -41,16 +34,17 @@ static func create_tree_3d(variant: int = 0, is_stump: bool = false) -> Node3D:
 		"leaves":
 		{
 			"color_dark": Color(0.07, 0.16, 0.06) if is_pine else Color(0.08, 0.18, 0.07),
-			"color_light": Color(0.22, 0.35, 0.13) if is_pine else Color(0.26, 0.39, 0.14),
+			"color_light": Color(0.22, 0.35, 0.13) if is_pine else Color(0.25, 0.38, 0.14),
 			"texture_color_mix": 0.24,
 		},
 	}
 	var mesh := SevaraAssetLibrary3D.nature_mesh(model_name, style)
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
-	var base_sc := 0.44 if is_twisted else (0.82 if is_pine else 0.86)
-	var scale_f := base_sc * (0.90 + float(posmod(variant * 7, 5)) * 0.06)
-	mi.scale = Vector3(scale_f, scale_f, scale_f)
+	var base_sc := 0.40 if is_twisted else (0.84 if is_pine else 0.86)
+	var scale_f := base_sc * (0.88 + float(posmod(variant * 7, 5)) * 0.06)
+	var h_stretch := 1.0 + float(posmod(variant, 3) - 1) * 0.07
+	mi.scale = Vector3(scale_f, scale_f * h_stretch, scale_f)
 	mi.rotation.y = float(variant) * 0.93
 	mi.visibility_range_end = 135.0
 	mi.visibility_range_end_margin = 10.0
@@ -209,20 +203,26 @@ static func create_kevar_bush_3d(is_kevalu: bool = false) -> Node3D:
 			"texture_color_mix": 0.22,
 		}
 	}
-	var base_mi := MeshInstance3D.new()
-	base_mi.mesh = SevaraAssetLibrary3D.nature_mesh("Bush_Common", bush_style)
-	base_mi.scale = Vector3(0.68, 0.60, 0.68)
-	base_mi.visibility_range_end = 86.0
-	root.add_child(base_mi)
 	var fern_mesh := SevaraAssetLibrary3D.nature_mesh("Fern_1", bush_style)
 	if fern_mesh != null:
-		var fern_mi := MeshInstance3D.new()
-		fern_mi.mesh = fern_mesh
-		fern_mi.scale = Vector3.ONE * 0.11
-		fern_mi.position = Vector3(0.38, 0.02, 0.24)
-		fern_mi.rotation.y = 1.15
-		fern_mi.visibility_range_end = 68.0
-		root.add_child(fern_mi)
+		for f in range(3):
+			var fern_mi := MeshInstance3D.new()
+			fern_mi.mesh = fern_mesh
+			var fang := float(f) * 2.09
+			var fsc := 0.11 + float(f % 2) * 0.02
+			fern_mi.scale = Vector3(fsc, fsc * 0.95, fsc)
+			fern_mi.position = Vector3(cos(fang) * 0.22, 0.02, sin(fang) * 0.22)
+			fern_mi.rotation = Vector3(0.06, fang, -0.05)
+			fern_mi.visibility_range_end = 78.0
+			root.add_child(fern_mi)
+	var collar_mi := MeshInstance3D.new()
+	collar_mi.mesh = SevaraAssetLibrary3D.build_grass_patch_mesh(
+		32, 0.82, 0.032, 709, {"segments": 2}
+	)
+	collar_mi.scale = Vector3(1.15, 0.62, 1.15)
+	collar_mi.position = Vector3(0.0, 0.02, 0.0)
+	collar_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(collar_mi)
 	var spike_mi := MeshInstance3D.new()
 	spike_mi.mesh = SevaraAssetLibrary3D.nature_mesh("Proc_Kevalu" if is_kevalu else "Proc_Kevar")
 	spike_mi.scale = Vector3(0.76, 0.76, 0.76)
