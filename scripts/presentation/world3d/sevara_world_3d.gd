@@ -471,42 +471,35 @@ func _rebuild_ecology_and_npcs(
 	var scav_press := float(meadow_node.get("karune_predators", 0.22)) if p1_active else 0.22
 
 	var tree_coords: Array[Vector2] = [
-		# Scenic foreground/midground framing trees visible from valley, meadow & bridge cameras
-		Vector2(-13.8, -4.6),
-		Vector2(-17.6, 3.8),
-		Vector2(-8.8, -11.6),
-		Vector2(-3.2, -14.2),
-		Vector2(15.6, -12.8),
-		Vector2(21.8, -6.4),
-		Vector2(24.6, 0.6),
-		Vector2(22.4, 8.8),
-		# Toramek & northern/eastern hillside groves
+		# Scenic left & right framing groves (keeps central river bend, bridge & snow peaks open!)
+		Vector2(-18.5, -10.5),
+		Vector2(-22.0, -3.5),
+		Vector2(-19.5, 4.8),
+		Vector2(21.5, -8.2),
+		Vector2(24.8, -1.2),
+		Vector2(23.2, 8.6),
+		# Toramek north-west & eastern hillside groves
 		Vector2(-34.0, -28.0),
-		Vector2(-28.0, -32.0),
-		Vector2(-21.0, -29.0),
-		Vector2(-14.0, -31.0),
+		Vector2(-27.5, -31.0),
+		Vector2(-20.5, -27.5),
 		Vector2(-38.0, -19.0),
 		Vector2(-31.0, -21.0),
-		Vector2(-24.5, -22.0),
-		Vector2(-17.5, -23.5),
-		Vector2(-10.5, -24.0),
-		Vector2(-4.5, -26.0),
-		Vector2(3.5, -28.0),
-		Vector2(11.0, -26.5),
+		Vector2(-24.5, -20.5),
+		Vector2(-17.5, -22.5),
+		Vector2(14.5, -25.5),
+		Vector2(22.5, -23.5),
 		Vector2(-35.0, -11.0),
 		Vector2(-28.5, -14.5),
-		Vector2(-22.0, -17.0),
-		Vector2(-15.0, -18.8),
-		Vector2(8.5, -21.0),
-		Vector2(16.5, -22.5),
-		Vector2(24.5, -24.0),
+		Vector2(-22.5, -15.8),
+		Vector2(18.5, -17.5),
+		Vector2(26.5, -18.0),
 		Vector2(-36.0, -2.0),
 		Vector2(-30.0, 5.5),
 		Vector2(-26.0, 13.5),
 		Vector2(-21.0, 20.5),
-		Vector2(29.5, -16.5),
-		Vector2(35.0, -10.5),
-		Vector2(32.5, -2.5),
+		Vector2(29.5, -14.5),
+		Vector2(35.0, -9.5),
+		Vector2(32.5, -2.0),
 		Vector2(36.5, 5.5),
 		Vector2(32.0, 14.5),
 		Vector2(26.5, 21.5),
@@ -519,7 +512,7 @@ func _rebuild_ecology_and_npcs(
 			continue
 		var r_cx := SevaraTerrainGen3D.river_center_x(tc.y)
 		var r_hw := SevaraTerrainGen3D.river_half_width(tc.y)
-		if absf(tc.x - r_cx) < r_hw + 1.8:
+		if absf(tc.x - r_cx) < r_hw + 2.4:
 			continue
 		var is_toramek := tc.x < -6.0 and tc.y < -15.0
 		var felled := is_toramek and (float(i % 9) / 9.0) > canopy
@@ -527,13 +520,12 @@ func _rebuild_ecology_and_npcs(
 		tree.position = Vector3(tc.x, SevaraTerrainGen3D.get_height_at(tc.x, tc.y) - 0.06, tc.y)
 		_ecology_root.add_child(tree)
 
-	# Riverbank Talina willows aligned along the actual Nivarel channel (clear of bridge)
+	# Riverbank Talina willows along upper & lower river bends (clear of bridge sightlines)
 	var willow_z_side: Array[Vector2] = [
-		Vector2(-6.8, -1.0),
-		Vector2(-12.5, 1.0),
-		Vector2(-18.5, -1.0),
-		Vector2(7.8, -1.0),
-		Vector2(11.6, 1.0),
+		Vector2(-9.8, 1.0),
+		Vector2(-15.5, -1.0),
+		Vector2(-21.5, 1.0),
+		Vector2(11.8, 1.0),
 		Vector2(16.8, -1.0),
 	]
 	for wi in range(willow_z_side.size()):
@@ -541,7 +533,7 @@ func _rebuild_ecology_and_npcs(
 		var side := willow_z_side[wi].y
 		var wx := (
 			SevaraTerrainGen3D.river_center_x(wz)
-			+ side * (SevaraTerrainGen3D.river_half_width(wz) + 2.35)
+			+ side * (SevaraTerrainGen3D.river_half_width(wz) + 2.65)
 		)
 		if SevaraTerrainGen3D.get_path_weight_at(wx, wz) > 0.08:
 			continue
@@ -550,7 +542,7 @@ func _rebuild_ecology_and_npcs(
 		_ecology_root.add_child(willow)
 
 	# Shoreline Selave reed clumps & floating water lilies along quiet river shelves
-	var reed_z_list: Array[float] = [-16.5, -12.2, -8.4, -4.8, -3.2, 6.2, 8.6, 11.4, 14.2, 17.5]
+	var reed_z_list: Array[float] = [-16.5, -12.2, -8.4, -4.8, 6.8, 9.4, 12.2, 15.8]
 	for ri in range(reed_z_list.size()):
 		var rz := reed_z_list[ri]
 		var r_side := -1.0 if (ri % 2 == 0) else 1.0
@@ -562,7 +554,7 @@ func _rebuild_ecology_and_npcs(
 		reed.position = Vector3(rx, SevaraTerrainGen3D.WATER_SURFACE_Y - 0.06, rz)
 		_ecology_root.add_child(reed)
 
-	var lily_z_list: Array[float] = [-11.0, -5.6, 6.8, 10.4, 14.8]
+	var lily_z_list: Array[float] = [-11.0, -5.6, 7.4, 11.2, 15.2]
 	for li in range(lily_z_list.size()):
 		var lz := lily_z_list[li]
 		var l_side := 1.0 if (li % 2 == 0) else -1.0
@@ -577,20 +569,18 @@ func _rebuild_ecology_and_npcs(
 		lily.rotation.y = float(li) * 1.37
 		_ecology_root.add_child(lily)
 
-	# Botanical bushes, flowering shrubs & Kevar/Kevalu clusters across meadows, roadsides & riverbanks
+	# Botanical bushes, ferns & Kevar/Kevalu clusters nestled near boulders, groves & outer riverbanks
 	var kevar_coords: Array[Vector2] = [
-		Vector2(-5.4, -2.2),
-		Vector2(-9.2, 2.8),
-		Vector2(-3.8, 5.6),
-		Vector2(2.6, -4.8),
-		Vector2(4.8, 6.4),
-		Vector2(16.8, -4.6),
-		Vector2(18.6, 5.8),
+		Vector2(3.6, -4.4),
+		Vector2(17.2, -4.4),
+		Vector2(19.2, 6.8),
+		Vector2(7.8, 8.4),
 		Vector2(12.2, -15.5),
-		Vector2(-11.4, -14.2),
-		Vector2(-16.2, -8.5),
-		Vector2(6.8, 11.2),
-		Vector2(20.4, 10.6),
+		Vector2(-13.4, -13.2),
+		Vector2(-16.8, -8.5),
+		Vector2(-19.5, -1.2),
+		Vector2(21.2, -4.8),
+		Vector2(20.4, 11.2),
 	]
 	for ki in range(kevar_coords.size()):
 		var kc: Vector2 = kevar_coords[ki]

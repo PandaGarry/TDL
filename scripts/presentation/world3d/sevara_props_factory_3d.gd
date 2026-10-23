@@ -40,9 +40,9 @@ static func create_tree_3d(variant: int = 0, is_stump: bool = false) -> Node3D:
 		"stiffness": 3.8 if is_pine else 3.1,
 		"leaves":
 		{
-			"color_dark": Color(0.09, 0.21, 0.09) if is_pine else Color(0.11, 0.25, 0.09),
-			"color_light": Color(0.25, 0.40, 0.16) if is_pine else Color(0.34, 0.47, 0.17),
-			"texture_color_mix": 0.36,
+			"color_dark": Color(0.07, 0.16, 0.06) if is_pine else Color(0.08, 0.18, 0.07),
+			"color_light": Color(0.22, 0.35, 0.13) if is_pine else Color(0.26, 0.39, 0.14),
+			"texture_color_mix": 0.24,
 		},
 	}
 	var mesh := SevaraAssetLibrary3D.nature_mesh(model_name, style)
@@ -201,27 +201,31 @@ static func create_boulder_3d(scale_vec: Vector3 = Vector3.ONE, mossy: bool = tr
 static func create_kevar_bush_3d(is_kevalu: bool = false) -> Node3D:
 	var root := Node3D.new()
 	root.name = "KevaluLocus3D" if is_kevalu else "KevarBush3D"
-
 	var bush_style := {
 		"plant":
 		{
-			"color_dark": Color(0.18, 0.25, 0.28) if is_kevalu else Color(0.10, 0.23, 0.09),
-			"color_light": Color(0.42, 0.52, 0.58) if is_kevalu else Color(0.29, 0.44, 0.16),
-			"texture_color_mix": 0.36,
+			"color_dark": Color(0.14, 0.20, 0.22) if is_kevalu else Color(0.08, 0.18, 0.07),
+			"color_light": Color(0.34, 0.44, 0.48) if is_kevalu else Color(0.24, 0.37, 0.13),
+			"texture_color_mix": 0.22,
 		}
 	}
-	var bush_model := "Bush_Common_Flowers" if not is_kevalu else "Bush_Common"
-	var base_mesh := SevaraAssetLibrary3D.nature_mesh(bush_model, bush_style)
 	var base_mi := MeshInstance3D.new()
-	base_mi.mesh = base_mesh
-	base_mi.scale = Vector3(0.76, 0.72, 0.76)
+	base_mi.mesh = SevaraAssetLibrary3D.nature_mesh("Bush_Common", bush_style)
+	base_mi.scale = Vector3(0.68, 0.60, 0.68)
 	base_mi.visibility_range_end = 86.0
 	root.add_child(base_mi)
-
-	var spike_mesh := SevaraAssetLibrary3D.nature_mesh("Proc_Kevalu" if is_kevalu else "Proc_Kevar")
+	var fern_mesh := SevaraAssetLibrary3D.nature_mesh("Fern_1", bush_style)
+	if fern_mesh != null:
+		var fern_mi := MeshInstance3D.new()
+		fern_mi.mesh = fern_mesh
+		fern_mi.scale = Vector3.ONE * 0.11
+		fern_mi.position = Vector3(0.38, 0.02, 0.24)
+		fern_mi.rotation.y = 1.15
+		fern_mi.visibility_range_end = 68.0
+		root.add_child(fern_mi)
 	var spike_mi := MeshInstance3D.new()
-	spike_mi.mesh = spike_mesh
-	spike_mi.scale = Vector3(0.88, 0.88, 0.88)
+	spike_mi.mesh = SevaraAssetLibrary3D.nature_mesh("Proc_Kevalu" if is_kevalu else "Proc_Kevar")
+	spike_mi.scale = Vector3(0.76, 0.76, 0.76)
 	spike_mi.visibility_range_end = 68.0
 	root.add_child(spike_mi)
 	return root
@@ -235,15 +239,15 @@ static func create_talina_willow_3d(variant: int = 0) -> Node3D:
 		"stiffness": 2.6,
 		"leaves":
 		{
-			"color_dark": Color(0.10, 0.23, 0.10),
-			"color_light": Color(0.32, 0.46, 0.18),
-			"texture_color_mix": 0.35,
+			"color_dark": Color(0.08, 0.19, 0.08),
+			"color_light": Color(0.25, 0.38, 0.15),
+			"texture_color_mix": 0.24,
 		},
 	}
 	var mesh := SevaraAssetLibrary3D.nature_mesh(model_name, style)
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
-	var scale_f := 0.39 + float(posmod(variant, 3)) * 0.04
+	var scale_f := 0.36 + float(posmod(variant, 3)) * 0.035
 	mi.scale = Vector3(scale_f * 1.04, scale_f * 0.92, scale_f * 1.04)
 	mi.rotation = Vector3(0.05, float(variant) * 1.28, -0.04)
 	mi.visibility_range_end = 135.0
