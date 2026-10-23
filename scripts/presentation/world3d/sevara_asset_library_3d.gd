@@ -471,18 +471,56 @@ static func play_best_animation(
 
 
 static func _strip_leaf_lods(src: ArrayMesh) -> ArrayMesh:
-	var raw_surfaces: Variant = src.get("_surfaces")
-	if not (raw_surfaces is Array):
-		return src.duplicate(true) as ArrayMesh
-	var surfaces: Array = (raw_surfaces as Array).duplicate(true)
-	for s in range(surfaces.size()):
+	var out := ArrayMesh.new()
+	for s in range(src.get_surface_count()):
 		var mat := src.surface_get_material(s)
 		var mname := mat.resource_name if mat != null else ""
-		if mname.begins_with("Leaves") and mname != "Leaves" and surfaces[s] is Dictionary:
-			(surfaces[s] as Dictionary)["lods"] = []
-	var out := ArrayMesh.new()
-	out.set("_surfaces", surfaces)
+		var arr := src.surface_get_arrays(s).duplicate(true)
+		if mname in ["Leaves_NormalTree", "Leaves_TwistedTree"]:
+			_unfold_crossed_leaf_quads(arr, _surface_aabb(src, s))
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+		if mat != null:
+			out.surface_set_material(s, mat)
 	return out
+
+
+static func _unfold_crossed_leaf_quads(arr: Array, crown_box: AABB) -> void:
+	var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+	var normals: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+	if verts.size() < 4 or verts.size() % 4 != 0:
+		return
+	var c_center := crown_box.get_center()
+	var c_ext := Vector3(
+		maxf(crown_box.size.x * 0.5, 0.5),
+		maxf(crown_box.size.y * 0.5, 0.5),
+		maxf(crown_box.size.z * 0.5, 0.5)
+	)
+	var quad_count := verts.size() / 4
+	for q in range(quad_count):
+		var i0 := q * 4
+		var qc := (verts[i0] + verts[i0 + 1] + verts[i0 + 2] + verts[i0 + 3]) * 0.25
+		var dome_n := ((qc - c_center) / c_ext + Vector3(0.0, 0.42, 0.0)).normalized()
+		var cur_n := (verts[i0 + 1] - verts[i0]).cross(verts[i0 + 3] - verts[i0]).normalized()
+		if cur_n.length_squared() < 0.01:
+			cur_n = dome_n
+		elif cur_n.dot(dome_n) < 0.0:
+			cur_n = -cur_n
+		var ref_up := Vector3.FORWARD if absf(dome_n.y) > 0.92 else Vector3.UP
+		var tang_u := ref_up.cross(dome_n).normalized()
+		var tang_v := dome_n.cross(tang_u).normalized()
+		var ang := float(q % 3) * 2.094395 + float(q / 3) * 0.618034
+		var petal_dir := tang_u * cos(ang) + tang_v * sin(ang)
+		var target_n := (dome_n + petal_dir * 0.40).normalized()
+		var rot_q := Quaternion(cur_n, cur_n.slerp(target_n, 0.84).normalized())
+		var shift := dome_n * (float((q % 3) - 1) * 0.16) + petal_dir * 0.12
+		var card_sc := clampf(2.05 / maxf(verts[i0].distance_to(verts[i0 + 2]), 0.01), 0.72, 0.96)
+		for k in range(4):
+			verts[i0 + k] = qc + shift + (rot_q * (verts[i0 + k] - qc)) * card_sc
+			if normals.size() > i0 + k:
+				normals[i0 + k] = target_n
+	arr[Mesh.ARRAY_VERTEX] = verts
+	if normals.size() == verts.size():
+		arr[Mesh.ARRAY_NORMAL] = normals
 
 
 static func _build_nature_material(
@@ -783,16 +821,9 @@ static func _create_styled_surface_material(
 				clampf(pow(maxf(raw_col.g, 0.02), 0.67), 0.12, 0.90),
 				clampf(pow(maxf(raw_col.b, 0.02), 0.67), 0.12, 0.90)
 			)
-		var cmat := StandardMaterial3D.new()
-		cmat.albedo_color = c_col
-		cmat.roughness = 0.74
-		return cmat
-
+		return _make_creature_shader_material(c_col, c_col, c_col, 0.74)
 	if not apply_structural_textures:
-		var pmat := StandardMaterial3D.new()
-		pmat.albedo_color = raw_col
-		pmat.roughness = 0.78
-		return pmat
+		return _make_creature_shader_material(raw_col, raw_col, raw_col, 0.78)
 
 	# 5. Medieval Village Architecture & Props
 	if ml.contains("roof") or (ml == "red" and not is_tent):
@@ -803,43 +834,26 @@ static func _create_styled_surface_material(
 		return _make_arch_shader_material("pbr_lime_plaster", w_col, w_col, 0.42, 0.45, 0.65, 0.86)
 	if ml.contains("stone") or ml.contains("grey") or ml.contains("gray"):
 		var s_pri := Color(0.68, 0.67, 0.64) if ml.contains("light") else Color(0.50, 0.51, 0.50)
-		return _make_arch_shader_material(
-			"pbr_cliff_rock", s_pri, s_pri, 0.46, 0.42, 0.78, 0.80, 0.0, 0.55
-		)
+		return _make_arch_shader_material("pbr_cliff_rock", s_pri, s_pri, 0.46, 0.42, 0.78, 0.80)
 	if ml.contains("metal") or ml.contains("steel") or ml.contains("gold"):
 		var m_pri := Color(0.88, 0.70, 0.34) if ml.contains("gold") else Color(0.42, 0.45, 0.49)
 		return _make_arch_shader_material(
 			"pbr_cliff_rock", m_pri, m_pri, 0.85, 0.25, 0.40, 0.34, 0.82, 0.0
 		)
-
 	if ml.contains("green") or ml.contains("pink") or is_tent:
 		if is_tent:
-			var t_col := (
-				Color(0.78, 0.74, 0.58) if ml.contains("light") else Color(0.54, 0.62, 0.44)
-			)
-			return _make_arch_shader_material(
-				"pbr_woven_fabric", t_col, t_col.darkened(0.22), 0.75, 0.4, 0.65, 0.86
-			)
-		var l_col := (
-			Color(0.84, 0.48, 0.58)
-			if ml.contains("pink")
-			else (Color(0.24, 0.46, 0.20) if ml.contains("dark") else Color(0.36, 0.58, 0.26))
-		)
-		return _make_arch_shader_material(
-			"pbr_foliage_canopy", l_col, l_col.darkened(0.25), 0.65, 0.55, 0.75, 0.74
-		)
-
+			var tc := Color(0.78, 0.74, 0.58) if ml.contains("light") else Color(0.54, 0.62, 0.44)
+			return _make_arch_shader_material("pbr_woven_fabric", tc, tc, 0.75, 0.4, 0.65, 0.86)
+		var lc := Color(0.84, 0.48, 0.58) if ml.contains("pink") else Color(0.32, 0.52, 0.24)
+		return _make_arch_shader_material("pbr_foliage_canopy", lc, lc, 0.65, 0.55, 0.75, 0.74)
 	if ml.contains("wood") or ml.contains("brown") or ml.contains("bag"):
-		var w_pri := Color(0.56, 0.40, 0.26)
+		var wp := Color(0.56, 0.40, 0.26)
 		if ml.contains("side") or ml.contains("light"):
-			w_pri = Color(0.72, 0.55, 0.37)
+			wp = Color(0.72, 0.55, 0.37)
 		elif ml.contains("dark"):
-			w_pri = Color(0.38, 0.26, 0.17)
-		return _make_arch_shader_material(
-			"pbr_aged_timber", w_pri, w_pri.darkened(0.25), 0.48, 0.48, 0.75, 0.78
-		)
-
-	var fallback_col := (
+			wp = Color(0.38, 0.26, 0.17)
+		return _make_arch_shader_material("pbr_aged_timber", wp, wp, 0.48, 0.48, 0.75, 0.78)
+	var fc := (
 		raw_col
 		if has_override
 		else Color(
@@ -848,18 +862,7 @@ static func _create_styled_surface_material(
 			clampf(pow(maxf(raw_col.b, 0.02), 0.65), 0.14, 0.88)
 		)
 	)
-	return _make_arch_shader_material(
-		"pbr_aged_timber",
-		fallback_col,
-		fallback_col.darkened(0.22),
-		0.52,
-		0.38,
-		0.60,
-		0.80,
-		0.0,
-		0.30,
-		0.20
-	)
+	return _make_arch_shader_material("pbr_aged_timber", fc, fc, 0.52, 0.38, 0.60, 0.80)
 
 
 static func _fit_instance_to_height(inst: Node3D, target_height: float) -> void:
@@ -977,22 +980,20 @@ static func _proc_reeds(st: SurfaceTool, rng: RandomNumberGenerator) -> void:
 
 
 static func _proc_kevar(st: SurfaceTool, rng: RandomNumberGenerator, is_kevalu: bool) -> void:
-	var stem_dark := Color(0.26, 0.32, 0.34) if is_kevalu else Color(0.20, 0.36, 0.18)
-	var stem_mid := Color(0.46, 0.54, 0.58) if is_kevalu else Color(0.34, 0.56, 0.28)
-	for _i in range(28):
+	var stem_dark := Color(0.14, 0.22, 0.24) if is_kevalu else Color(0.08, 0.18, 0.07)
+	var stem_mid := Color(0.24, 0.34, 0.38) if is_kevalu else Color(0.16, 0.29, 0.12)
+	for _i in range(22):
 		var ang := rng.randf() * TAU
 		var r0 := sqrt(rng.randf()) * 0.22
 		var base := Vector3(cos(ang) * r0, 0.0, sin(ang) * r0)
-		var lean := rng.randf_range(0.18, 0.52)
-		var h := rng.randf_range(0.55, 0.92)
+		var lean := rng.randf_range(0.18, 0.48)
+		var h := rng.randf_range(0.48, 0.78)
 		var tip := base + Vector3(cos(ang) * lean * h, h, sin(ang) * lean * h)
 		var mid := base.lerp(tip, 0.58)
 		var blossom := (
-			Color(0.66, 0.78, 0.86)
+			Color(0.32, 0.46, 0.56)
 			if is_kevalu
-			else Color(0.92, 0.88, 0.72).lerp(Color(0.46, 0.72, 0.42), rng.randf() * 0.45)
+			else Color(0.34, 0.44, 0.62).lerp(Color(0.54, 0.44, 0.20), rng.randf() * 0.48)
 		)
-		_proc_cross(st, base, mid, 0.018, 0.014, stem_dark, stem_mid, ang)
-		_proc_cross(
-			st, mid, tip, 0.044, 0.018, blossom.darkened(0.18), blossom.lightened(0.12), ang + 0.4
-		)
+		_proc_cross(st, base, mid, 0.016, 0.012, stem_dark, stem_mid, ang)
+		_proc_cross(st, mid, tip, 0.032, 0.014, blossom.darkened(0.22), blossom, ang + 0.4)

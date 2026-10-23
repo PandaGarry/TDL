@@ -471,14 +471,13 @@ func _rebuild_ecology_and_npcs(
 	var scav_press := float(meadow_node.get("karune_predators", 0.22)) if p1_active else 0.22
 
 	var tree_coords: Array[Vector2] = [
-		# Scenic left & right framing groves (keeps central river bend, TDL title & snow peaks open)
+		# Scenic left & right framing groves (keeps central river bend, TDL title & cameras open)
 		Vector2(-18.5, -10.5),
 		Vector2(-22.0, -3.5),
 		Vector2(-19.5, 4.8),
 		Vector2(22.5, -8.2),
 		Vector2(25.2, -1.2),
-		Vector2(23.5, 8.6),
-		# Toramek north-west & eastern hillside groves
+		# Toramek north-west & eastern hillside groves (clear of camera 02 at (28, 21, 25))
 		Vector2(-34.0, -28.0),
 		Vector2(-27.5, -31.0),
 		Vector2(-20.5, -27.5),
@@ -501,10 +500,7 @@ func _rebuild_ecology_and_npcs(
 		Vector2(-21.0, 20.5),
 		Vector2(31.5, -12.5),
 		Vector2(35.0, -7.5),
-		Vector2(32.5, -1.5),
-		Vector2(36.5, 5.5),
-		Vector2(32.0, 14.5),
-		Vector2(26.5, 21.5),
+		Vector2(34.5, -1.0),
 	]
 	for i in range(tree_coords.size()):
 		var tc: Vector2 = tree_coords[i]
@@ -522,12 +518,12 @@ func _rebuild_ecology_and_npcs(
 		tree.position = Vector3(tc.x, SevaraTerrainGen3D.get_height_at(tc.x, tc.y) - 0.06, tc.y)
 		_ecology_root.add_child(tree)
 
-	# Riverbank Talina willows along upper & lower river bends (clear of bridge & TDL title)
+	# Riverbank Talina willows along upper & lower river bends (clear of bridge & cameras)
 	var willow_z_side: Array[Vector2] = [
 		Vector2(-12.5, -1.0),
 		Vector2(-18.5, -1.0),
-		Vector2(11.8, 1.0),
-		Vector2(16.8, -1.0),
+		Vector2(-15.2, 1.0),
+		Vector2(15.8, -1.0),
 	]
 	for wi in range(willow_z_side.size()):
 		var wz := willow_z_side[wi].x
