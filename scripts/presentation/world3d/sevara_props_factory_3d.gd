@@ -55,6 +55,42 @@ static func create_tree_3d(variant: int = 0, is_stump: bool = false) -> Node3D:
 	return root
 
 
+static func get_step2_boulder_specs() -> Array[Dictionary]:
+	return [
+		{"pos": Vector2(5.9, -4.5), "sc": Vector3(1.15, 0.72, 1.05), "moss": true},
+		{"pos": Vector2(6.3, -1.2), "sc": Vector3(0.95, 0.62, 0.90), "moss": true},
+		{"pos": Vector2(12.2, -4.3), "sc": Vector3(1.25, 0.78, 1.15), "moss": true},
+		{"pos": Vector2(12.5, -1.1), "sc": Vector3(1.05, 0.68, 0.95), "moss": true},
+		{"pos": Vector2(8.3, -4.6), "sc": Vector3(0.78, 0.45, 0.72), "moss": false},
+		{"pos": Vector2(10.2, -4.5), "sc": Vector3(0.72, 0.42, 0.68), "moss": false},
+		{"pos": Vector2(8.6, -1.0), "sc": Vector3(0.68, 0.38, 0.64), "moss": false},
+		{"pos": Vector2(10.2, 1.15), "sc": Vector3(0.74, 0.32, 0.68), "moss": false},
+		{"pos": Vector2(11.5, 1.18), "sc": Vector3(0.80, 0.34, 0.72), "moss": false},
+		{"pos": Vector2(12.8, 1.12), "sc": Vector3(0.76, 0.32, 0.70), "moss": false},
+		{"pos": Vector2(14.0, 1.08), "sc": Vector3(0.70, 0.30, 0.64), "moss": false},
+		{"pos": Vector2(8.6, 0.8), "sc": Vector3(1.12, 0.74, 1.04), "moss": true},
+		{"pos": Vector2(15.4, 0.9), "sc": Vector3(1.18, 0.78, 1.08), "moss": true},
+		{"pos": Vector2(9.0, 4.4), "sc": Vector3(1.08, 0.72, 1.02), "moss": true},
+		{"pos": Vector2(15.0, 4.3), "sc": Vector3(1.14, 0.76, 1.06), "moss": true},
+		{"pos": Vector2(2.6, -9.8), "sc": Vector3(1.38, 0.98, 1.28), "moss": true},
+		{"pos": Vector2(9.2, -9.2), "sc": Vector3(1.26, 0.88, 1.18), "moss": true},
+		{"pos": Vector2(0.4, -15.6), "sc": Vector3(1.52, 1.12, 1.40), "moss": true},
+		{"pos": Vector2(3.4, -15.0), "sc": Vector3(0.85, 0.52, 0.80), "moss": false},
+		{"pos": Vector2(6.8, -16.2), "sc": Vector3(1.42, 1.04, 1.32), "moss": true},
+		{"pos": Vector2(-1.4, -24.5), "sc": Vector3(1.68, 1.20, 1.52), "moss": true},
+		{"pos": Vector2(4.8, -23.2), "sc": Vector3(1.45, 1.08, 1.36), "moss": true},
+		{"pos": Vector2(7.8, 5.2), "sc": Vector3(1.30, 0.90, 1.20), "moss": true},
+		{"pos": Vector2(14.6, 5.4), "sc": Vector3(1.48, 1.05, 1.36), "moss": true},
+		{"pos": Vector2(11.4, 6.2), "sc": Vector3(0.82, 0.48, 0.76), "moss": false},
+		{"pos": Vector2(9.2, 10.4), "sc": Vector3(1.52, 1.10, 1.40), "moss": true},
+		{"pos": Vector2(16.8, 11.0), "sc": Vector3(1.62, 1.18, 1.50), "moss": true},
+		{"pos": Vector2(-9.6, -12.8), "sc": Vector3(1.55, 1.10, 1.42), "moss": true},
+		{"pos": Vector2(-8.2, -12.1), "sc": Vector3(0.90, 0.62, 0.84), "moss": true},
+		{"pos": Vector2(-6.8, -5.8), "sc": Vector3(1.06, 0.72, 0.98), "moss": true},
+		{"pos": Vector2(-15.5, -19.5), "sc": Vector3(1.75, 1.26, 1.60), "moss": true},
+	]
+
+
 static func create_boulder_3d(scale_vec: Vector3 = Vector3.ONE, mossy: bool = true) -> Node3D:
 	var root := Node3D.new()
 	root.name = "Boulder3D"

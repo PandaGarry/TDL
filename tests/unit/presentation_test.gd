@@ -141,7 +141,7 @@ func _test_step2_creek_ford_and_boulders() -> void:
 		"Walkable height clamps actor immersion in creek channel"
 	)
 	var blocked_roads := 0
-	for spec: Dictionary in SevaraWorld3D.get_step2_boulder_specs():
+	for spec: Dictionary in SevaraPropsFactory3D.get_step2_boulder_specs():
 		var p: Vector2 = spec["pos"]
 		if SevaraTerrainGen3D.get_road_core_at(p.x, p.y) >= 0.08:
 			blocked_roads += 1
