@@ -222,6 +222,11 @@ static func _bevel_subdivide_rock_arrays(src: ArrayMesh) -> Array:
 		in_idx.resize(in_v.size())
 		for i in range(in_v.size()):
 			in_idx[i] = i
+	var mesh_center := Vector3.ZERO
+	for v_pt: Vector3 in in_v:
+		mesh_center += v_pt
+	if not in_v.is_empty():
+		mesh_center /= float(in_v.size())
 	var n_sum: Dictionary = {}
 	var c_sum: Dictionary = {}
 	var c_cnt: Dictionary = {}
@@ -232,7 +237,7 @@ static func _bevel_subdivide_rock_arrays(src: ArrayMesh) -> Array:
 		var c := in_v[in_idx[t * 3 + 2]]
 		var fn := (c - a).cross(b - a).normalized()
 		var fc := (a + b + c) / 3.0
-		if fn.dot(fc - Vector3(0.0, 0.25, 0.0)) < 0.0:
+		if fn.dot(fc - mesh_center) < 0.0:
 			fn = -fn
 		for p: Vector3 in [a, b, c]:
 			var k := Vector3i((p * 200.0).round())
@@ -249,7 +254,7 @@ static func _bevel_subdivide_rock_arrays(src: ArrayMesh) -> Array:
 		]
 		var fn := (raw_pts[2] - raw_pts[0]).cross(raw_pts[1] - raw_pts[0]).normalized()
 		var fc := (raw_pts[0] + raw_pts[1] + raw_pts[2]) / 3.0
-		if fn.dot(fc - Vector3(0.0, 0.25, 0.0)) < 0.0:
+		if fn.dot(fc - mesh_center) < 0.0:
 			fn = -fn
 		var sm_p: Array[Vector3] = []
 		var sm_n: Array[Vector3] = []
@@ -347,30 +352,30 @@ static func build_rock_crown_moss_fur_mesh(model_name: String, seed_val: int) ->
 	var uvs := PackedVector2Array()
 	var colors := PackedColorArray()
 	var indices := PackedInt32Array()
-	for _b in range(150):
+	for _b in range(280):
 		var t_idx := top_tris[rng.randi() % top_tris.size()]
 		var r1 := sqrt(rng.randf())
 		var r2 := rng.randf()
 		var w0 := 1.0 - r1
 		var w1 := r1 * (1.0 - r2)
 		var w2 := r1 * r2
-		var base_p := (
-			in_v[t_idx * 3] * w0
-			+ in_v[t_idx * 3 + 1] * w1
-			+ in_v[t_idx * 3 + 2] * w2
-			- Vector3(0.0, 0.02, 0.0)
-		)
 		var surf_n := (
 			(in_n[t_idx * 3] * w0 + in_n[t_idx * 3 + 1] * w1 + in_n[t_idx * 3 + 2] * w2)
 			. normalized()
 		)
-		var grow_dir := (surf_n * 0.45 + Vector3.UP * 0.75).normalized()
+		var base_p := (
+			in_v[t_idx * 3] * w0
+			+ in_v[t_idx * 3 + 1] * w1
+			+ in_v[t_idx * 3 + 2] * w2
+			- surf_n * 0.025
+		)
+		var grow_dir := (surf_n * 0.52 + Vector3.UP * 0.68).normalized()
 		var ang := rng.randf() * TAU
 		var perp := Vector3(cos(ang), 0.0, sin(ang))
 		var facing := grow_dir.cross(perp).normalized()
-		var h := rng.randf_range(0.24, 0.42)
-		var w := rng.randf_range(0.045, 0.072)
-		var lean := rng.randf_range(0.06, 0.16)
+		var h := rng.randf_range(0.18, 0.34)
+		var w := rng.randf_range(0.052, 0.088)
+		var lean := rng.randf_range(0.05, 0.14)
 		var rnd_col := Color(rng.randf(), rng.randf(), rng.randf(), rng.randf())
 		var b_idx := verts.size()
 		for s in range(2):
@@ -399,7 +404,8 @@ static func build_rock_crown_moss_fur_mesh(model_name: String, seed_val: int) ->
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
 	var mat := ShaderMaterial.new()
 	mat.shader = load_shader("sevara_grass_3d.gdshader")
-	mat.set_shader_parameter("root_color", Color(0.11, 0.23, 0.08))
+	mat.set_shader_parameter("surface_fur_mode", 1.0)
+	mat.set_shader_parameter("root_color", Color(0.12, 0.24, 0.09))
 	mat.set_shader_parameter("tip_color", Color(0.26, 0.43, 0.16))
 	mat.set_shader_parameter("tip_color_warm", Color(0.38, 0.48, 0.19))
 	mat.set_shader_parameter("blade_height", 0.28)
@@ -720,20 +726,14 @@ static func _create_styled_surface_material(
 	apply_structural_textures: bool
 ) -> Material:
 	var ml := mname.to_lower()
-
-	# If original mesh already carries an embedded UV texture, keep it cleanly
 	if orig_tex != null:
 		var tmat := StandardMaterial3D.new()
 		tmat.albedo_texture = orig_tex
 		tmat.albedo_color = raw_col
 		tmat.roughness = 0.78
 		return tmat
-
 	var is_animal := (
-		model_hint.contains("stag")
-		or model_hint.contains("deer")
-		or model_hint.contains("wolf")
-		or model_hint.contains("fox")
+		model_hint.contains("stag") or model_hint.contains("deer") or model_hint.contains("wolf")
 	)
 	var is_character := model_hint.contains("viking")
 	var is_tent := model_hint.contains("tent")

@@ -147,15 +147,17 @@ void fragment() {
 		float inst_moss = v_custom.a > 0.01 ? v_custom.a : moss_amount;
 		float moss_mask = eval_moss_blanket(v_world, base_n, v_dome_dir, inst_moss);
 
-		// Soft, natural geological contour normals (quintic noise, zero pixelation)
+		// Soft, natural geological contour + moss-tuft normals (quintic noise, zero pixelation)
 		float eps = 0.042;
-		float h0 = triplanar_soft_fbm(v_world, base_n, 1.65) * 0.024;
-		float hx = triplanar_soft_fbm(v_world + vec3(eps, 0.0, 0.0), base_n, 1.65) * 0.024;
-		float hy = triplanar_soft_fbm(v_world + vec3(0.0, eps, 0.0), base_n, 1.65) * 0.024;
-		float hz = triplanar_soft_fbm(v_world + vec3(0.0, 0.0, eps), base_n, 1.65) * 0.024;
+		float n_freq = mix(1.65, 3.4, moss_mask);
+		float n_amp = mix(0.024, 0.042, moss_mask);
+		float h0 = triplanar_soft_fbm(v_world, base_n, n_freq) * n_amp;
+		float hx = triplanar_soft_fbm(v_world + vec3(eps, 0.0, 0.0), base_n, n_freq) * n_amp;
+		float hy = triplanar_soft_fbm(v_world + vec3(0.0, eps, 0.0), base_n, n_freq) * n_amp;
+		float hz = triplanar_soft_fbm(v_world + vec3(0.0, 0.0, eps), base_n, n_freq) * n_amp;
 		vec3 grad = vec3(h0 - hx, h0 - hy, h0 - hz) / eps;
 		grad -= base_n * dot(grad, base_n);
-		vec3 world_nrm = normalize(base_n + grad * 0.68);
+		vec3 world_nrm = normalize(base_n + grad * 0.72);
 		NORMAL = normalize((VIEW_MATRIX * vec4(world_nrm, 0.0)).xyz);
 
 		// Painterly Mountain Limestone & River Granite (with blurred mip-1.5 texture modulation)
@@ -185,26 +187,26 @@ void fragment() {
 		vec3 ground_bounce = vec3(0.24, 0.30, 0.18);
 		c = mix(c * 0.74 + ground_bounce * 0.07, c * 1.06, smoothstep(-0.45, 0.85, up));
 
-		// Multi-layered Painterly Velvet Moss Blanket (matches Step 1 Meadow Grass & 3D Moss Tufts)
+		// Deep Velvet Moss Undercoat Blanket (matches Step 1 soil/moss under 3D grass blades)
 		if (moss_mask > 0.01) {
-			float cushion_macro = soft_fbm(v_world.xz * 2.6 + vec2(1.7, -1.3));
-			float tuft_meso = soft_fbm(v_world.xz * 6.4 - vec2(v_world.y * 2.1, 0.8));
+			float cushion_macro = soft_fbm(v_world.xz * 2.8 + vec2(1.7, -1.3));
+			float tuft_meso = soft_fbm(v_world.xz * 6.8 - vec2(v_world.y * 2.1, 0.8));
 
 			vec3 ground_moss = meadow_ground_palette(v_world.xz);
-			vec3 deep_hollow = vec3(0.11, 0.21, 0.07);
-			vec3 lush_mid = mix(vec3(0.20, 0.35, 0.12), ground_moss, 0.65);
-			vec3 sunlit_crown = vec3(0.31, 0.46, 0.16);
+			vec3 deep_hollow = vec3(0.09, 0.17, 0.06);
+			vec3 lush_mid = mix(vec3(0.16, 0.28, 0.10), ground_moss * 0.82, 0.55);
+			vec3 sunlit_crown = vec3(0.24, 0.37, 0.14);
 
-			vec3 moss_col = mix(deep_hollow, lush_mid, smoothstep(0.22, 0.72, cushion_macro));
-			moss_col = mix(moss_col, sunlit_crown, smoothstep(0.38, 0.82, tuft_meso) * 0.68);
+			vec3 moss_col = mix(deep_hollow, lush_mid, smoothstep(0.20, 0.72, cushion_macro));
+			moss_col = mix(moss_col, sunlit_crown, smoothstep(0.40, 0.84, tuft_meso) * 0.65);
 
 			float ndotv = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
 			float velvet_rim = pow(1.0 - ndotv, 2.5) * smoothstep(-0.1, 0.8, up);
-			moss_col += vec3(0.06, 0.10, 0.03) * velvet_rim * 0.58;
+			moss_col += vec3(0.05, 0.08, 0.02) * velvet_rim * 0.50;
 
-			float border_ao = smoothstep(0.05, 0.26, moss_mask) * (1.0 - smoothstep(0.26, 0.62, moss_mask));
-			c = mix(c, vec3(0.11, 0.16, 0.07), border_ao * 0.52);
-			c = mix(c, moss_col, smoothstep(0.08, 0.66, moss_mask));
+			float border_ao = smoothstep(0.05, 0.28, moss_mask) * (1.0 - smoothstep(0.28, 0.66, moss_mask));
+			c = mix(c, vec3(0.10, 0.14, 0.06), border_ao * 0.56);
+			c = mix(c, moss_col, smoothstep(0.10, 0.70, moss_mask));
 		}
 
 		// Smooth Nivarel River Waterline Interaction (`WATER_SURFACE_Y = 0.42`)

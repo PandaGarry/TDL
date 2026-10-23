@@ -11,6 +11,7 @@ uniform vec3 root_color : source_color = vec3(0.16, 0.28, 0.12);
 uniform vec3 tip_color : source_color = vec3(0.25, 0.40, 0.15);
 uniform vec3 tip_color_warm : source_color = vec3(0.35, 0.46, 0.18);
 uniform float blade_height : hint_range(0.12, 1.5) = 0.34;
+uniform float surface_fur_mode : hint_range(0.0, 1.0) = 0.0;
 uniform vec2 wind_direction = vec2(0.88, 0.47);
 uniform float wind_strength : hint_range(0.0, 3.0) = 0.72;
 uniform vec3 player_pos = vec3(0.0, -100.0, 0.0);
@@ -103,9 +104,14 @@ void vertex() {
 		h_scale *= (1.0 - push * 0.24);
 	}
 
-	VERTEX.y *= blade_height * h_scale;
-	VERTEX.x += total_xz.x;
-	VERTEX.z += total_xz.y;
+	if (surface_fur_mode > 0.5) {
+		VERTEX.x += total_xz.x * 0.28;
+		VERTEX.z += total_xz.y * 0.28;
+	} else {
+		VERTEX.y *= blade_height * h_scale;
+		VERTEX.x += total_xz.x;
+		VERTEX.z += total_xz.y;
+	}
 
 	// Lock normal to smooth terrain-up vector so front and back of blades shade identically
 	vec3 terrain_up_local = vec3(0.0, 1.0, 0.0);
