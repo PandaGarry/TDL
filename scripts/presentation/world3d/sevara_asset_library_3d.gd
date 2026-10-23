@@ -503,10 +503,10 @@ static func _make_arch_shader_material(
 		sm.albedo_texture = load_texture(NATURE_DIR + "Bark_NormalTree.png")
 		sm.normal_enabled = true
 		sm.normal_texture = load_texture(NATURE_DIR + "Bark_NormalTree_Normal.png")
-		sm.normal_scale = nrm_strength
+		sm.normal_scale = nrm_strength * 0.65
 		sm.uv1_triplanar = true
-		var uv_s := clampf(scale_val, 0.32, 1.4)
-		sm.uv1_scale = Vector3(uv_s, uv_s, uv_s)
+		var uv_s := clampf(scale_val, 0.24, 1.2)
+		sm.uv1_scale = Vector3(uv_s * 0.55, uv_s * 0.65, uv_s * 0.22)
 	return sm
 
 

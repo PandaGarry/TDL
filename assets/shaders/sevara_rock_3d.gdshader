@@ -73,14 +73,15 @@ vec3 triplanar_rock_tex(vec3 p, vec3 n, float scale) {
 }
 
 float eval_moss_blanket(vec3 p, vec3 base_n, vec3 dome_dir, float affinity) {
-	float crag = triplanar_fbm(p, base_n, 2.2);
-	float tuft_lobes = triplanar_fbm(p + vec3(3.1, 1.7, -2.4), base_n, 4.8);
-	float dome_up = mix(dome_dir.y, base_n.y, 0.45);
-	// Clustered organic moss cushions leaving chiseled granite ridges exposed
-	float patch_mask = smoothstep(0.38, 0.66, tuft_lobes * 0.65 + crag * 0.35);
-	float raw_m = dome_up * 0.78 + (tuft_lobes - 0.48) * 0.55;
-	float above_water = smoothstep(0.46, 0.62, p.y);
-	return smoothstep(0.36, 0.68, raw_m) * patch_mask * affinity * above_water;
+	if (affinity <= 0.15) {
+		return 0.0;
+	}
+	float crag = triplanar_fbm(p, base_n, 2.1);
+	float tuft_lobes = triplanar_fbm(p + vec3(3.1, 1.7, -2.4), base_n, 4.6);
+	float dome_up = mix(dome_dir.y, base_n.y, 0.42);
+	float raw_m = dome_up + (tuft_lobes - 0.45) * 0.68 + (crag - 0.46) * 0.42;
+	float above_water = smoothstep(0.45, 0.58, p.y);
+	return smoothstep(0.20, 0.54, raw_m) * affinity * above_water;
 }
 
 float rock_and_moss_micro_height(vec3 p, vec3 n, float moss_mask) {
@@ -110,17 +111,16 @@ vec3 meadow_ground_palette(vec2 xz) {
 }
 
 void vertex() {
-	vec3 origin = MODEL_MATRIX[3].xyz;
-	float b_seed = hash12(floor(origin.xz * 2.5 + vec2(13.7, 29.3)));
-	// ~62% of boulders get thick velvety moss coats; ~38% stay bare chiseled granite with crevice moss
-	v_moss_affinity = (b_seed > 0.36) ? mix(0.78, 1.0, (b_seed - 0.36) / 0.64) : mix(0.10, 0.26, b_seed / 0.36);
+	// Respect explicit `moss_amount` per boulder / masonry piece so mossy boulders always get
+	// lush velvet moss cushions while bare boulders and bridge piers stay clean stone.
+	v_moss_affinity = moss_amount;
 
 	vec3 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec3 local_dome = normalize(VERTEX + vec3(0.0, 0.35, 0.0));
 	float disp = (value_noise(wp.xz * 1.9 + wp.y * 1.4) - 0.5) * 0.065;
 	// Physical 3D pillowing of thick moss caps on upper boulder surfaces
-	float top_pillow = smoothstep(0.20, 0.75, local_dome.y) * v_moss_affinity * smoothstep(0.48, 0.68, wp.y);
-	float pillow_disp = top_pillow * (0.028 + 0.024 * value_noise(wp.xz * 4.8));
+	float top_pillow = smoothstep(0.18, 0.72, local_dome.y) * smoothstep(0.35, 0.85, moss_amount) * smoothstep(0.48, 0.68, wp.y);
+	float pillow_disp = top_pillow * (0.032 + 0.026 * value_noise(wp.xz * 4.8));
 	VERTEX += local_dome * (disp + pillow_disp);
 
 	v_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -131,8 +131,8 @@ void vertex() {
 
 void fragment() {
 	vec3 base_n = normalize(mix(v_wnormal, v_dome_dir, 0.24));
-	float inst_moss = (v_custom.a > 0.01 ? v_custom.a : moss_amount) * v_moss_affinity;
-	float moss_mask = eval_moss_blanket(v_world, base_n, v_dome_dir, inst_moss * 1.35);
+	float inst_moss = v_custom.a > 0.01 ? v_custom.a : moss_amount;
+	float moss_mask = eval_moss_blanket(v_world, base_n, v_dome_dir, inst_moss * 1.18);
 
 	// 1. 3D Analytical Rock Fracture & Velvet Fur-Moss Micro-Normals
 	float eps = 0.016;
@@ -176,24 +176,24 @@ void fragment() {
 		float cushion_lobe = fbm(v_world.xz * 7.2 + vec2(2.4, -1.9));
 
 		vec3 ground_moss = meadow_ground_palette(v_world.xz);
-		vec3 deep_velvet = vec3(0.08, 0.15, 0.05);
-		vec3 mid_emerald = mix(vec3(0.15, 0.27, 0.09), ground_moss * 0.88, 0.55);
-		vec3 sunlit_tips = vec3(0.24, 0.36, 0.12);
-		vec3 golden_spore = vec3(0.31, 0.39, 0.14);
+		vec3 deep_velvet = vec3(0.09, 0.17, 0.05);
+		vec3 mid_emerald = mix(vec3(0.18, 0.32, 0.10), ground_moss * 0.94, 0.60);
+		vec3 sunlit_tips = vec3(0.29, 0.43, 0.14);
+		vec3 golden_spore = vec3(0.36, 0.46, 0.16);
 
 		vec3 fur_col = mix(deep_velvet, mid_emerald, smoothstep(0.18, 0.72, cushion_lobe));
-		fur_col = mix(fur_col, sunlit_tips, smoothstep(0.42, 0.85, fiber_fine) * 0.72);
-		fur_col = mix(fur_col, golden_spore, smoothstep(0.74, 0.95, fiber_micro * fiber_fine * 1.35) * 0.45);
+		fur_col = mix(fur_col, sunlit_tips, smoothstep(0.38, 0.82, fiber_fine) * 0.78);
+		fur_col = mix(fur_col, golden_spore, smoothstep(0.70, 0.94, fiber_micro * fiber_fine * 1.35) * 0.50);
 
 		// Subtle grazing-angle velvet fur rim sheen (without neon clipping)
 		float ndotv = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
-		float velvet_rim = pow(1.0 - ndotv, 2.8) * smoothstep(0.0, 0.7, up);
-		fur_col += vec3(0.07, 0.11, 0.03) * velvet_rim * 0.65;
+		float velvet_rim = pow(1.0 - ndotv, 2.6) * smoothstep(0.0, 0.7, up);
+		fur_col += vec3(0.09, 0.15, 0.04) * velvet_rim * 0.75;
 
 		// Dark organic shadow border where thick moss cushion meets bare granite
-		float moss_border = smoothstep(0.08, 0.26, full_moss) * (1.0 - smoothstep(0.26, 0.54, full_moss));
-		c = mix(c, vec3(0.09, 0.13, 0.05), moss_border * 0.58);
-		c = mix(c, fur_col, smoothstep(0.08, 0.64, full_moss));
+		float moss_border = smoothstep(0.06, 0.22, full_moss) * (1.0 - smoothstep(0.22, 0.48, full_moss));
+		c = mix(c, vec3(0.09, 0.14, 0.05), moss_border * 0.56);
+		c = mix(c, fur_col, smoothstep(0.06, 0.52, full_moss));
 	}
 
 	// 4. Physical Nivarel River Interaction (`WATER_SURFACE_Y = 0.42`)
