@@ -219,12 +219,15 @@ static func _sculpted_stone_point(theta: float, phi: float, variant: int) -> Vec
 	var p1 := float(variant) * 1.37 + 0.4
 	var p2 := float(variant) * 2.51 - 0.8
 	var p3 := float(variant) * 0.93 + 1.2
-	var w1 := sin(dir.x * 2.1 + p1) * cos(dir.z * 1.9 + p2) * 0.13
-	var w2 := cos(dir.y * 2.3 - dir.x * 1.6 + p3) * 0.09
-	var w3 := sin((dir.x + dir.z) * 2.7 + p2) * 0.05
+	# Organic sculpted river boulder lobes: softly rounded shoulders & asymmetric natural crown
+	var w1 := sin(dir.x * 2.3 + p1) * cos(dir.z * 2.1 + p2) * 0.18
+	var w2 := cos(dir.y * 2.6 - dir.x * 1.9 + p3) * 0.14
+	var w3 := sin((dir.x - dir.z) * 3.2 + p2) * cos(dir.y * 2.4 + p1) * 0.09
 	var r := 1.0 + w1 + w2 + w3
-	var y_scale := 0.78 if dir.y >= 0.0 else 0.42
-	return Vector3(dir.x * 1.16 * r, dir.y * y_scale * r + 0.46, dir.z * 1.12 * r)
+	var crown_shift_x := 0.14 * sin(p1) * maxf(dir.y, 0.0)
+	var crown_shift_z := 0.14 * cos(p2) * maxf(dir.y, 0.0)
+	var y_val := (pow(dir.y, 0.82) * 1.08 if dir.y >= 0.0 else dir.y * 0.45) * r + 0.54
+	return Vector3((dir.x * 1.18 + crown_shift_x) * r, y_val, (dir.z * 1.14 + crown_shift_z) * r)
 
 
 static func _sculpted_stone_normal(theta: float, phi: float, variant: int) -> Vector3:
@@ -266,7 +269,7 @@ static func build_sculpted_stone_mesh(
 			var i1 := i0 + 1
 			var i2 := (r + 1) * stride + s
 			var i3 := i2 + 1
-			indices.append_array([i0, i1, i2, i1, i3, i2])
+			indices.append_array([i0, i2, i1, i1, i2, i3])
 	var arr := []
 	arr.resize(Mesh.ARRAY_MAX)
 	arr[Mesh.ARRAY_VERTEX] = verts
@@ -795,50 +798,29 @@ static func _create_styled_surface_material(
 
 	if ml.contains("green") or ml.contains("pink") or is_tent:
 		if is_tent:
-			var tent_pri := (
+			var t_col := (
 				Color(0.78, 0.74, 0.58) if ml.contains("light") else Color(0.54, 0.62, 0.44)
 			)
 			return _make_arch_shader_material(
-				"pbr_woven_fabric",
-				tent_pri,
-				tent_pri.darkened(0.22),
-				0.75,
-				0.40,
-				0.65,
-				0.86,
-				0.0,
-				0.35,
-				0.16
+				"pbr_woven_fabric", t_col, t_col.darkened(0.22), 0.75, 0.4, 0.65, 0.86
 			)
-		var leaf_pri := (
+		var l_col := (
 			Color(0.84, 0.48, 0.58)
 			if ml.contains("pink")
 			else (Color(0.24, 0.46, 0.20) if ml.contains("dark") else Color(0.36, 0.58, 0.26))
 		)
 		return _make_arch_shader_material(
-			"pbr_foliage_canopy",
-			leaf_pri,
-			leaf_pri.darkened(0.25),
-			0.65,
-			0.55,
-			0.75,
-			0.74,
-			0.0,
-			0.20,
-			0.18
+			"pbr_foliage_canopy", l_col, l_col.darkened(0.25), 0.65, 0.55, 0.75, 0.74
 		)
 
 	if ml.contains("wood") or ml.contains("brown") or ml.contains("bag"):
 		var w_pri := Color(0.56, 0.40, 0.26)
-		var w_sec := Color(0.40, 0.27, 0.17)
 		if ml.contains("side") or ml.contains("light"):
 			w_pri = Color(0.72, 0.55, 0.37)
-			w_sec = Color(0.54, 0.39, 0.25)
 		elif ml.contains("dark"):
 			w_pri = Color(0.38, 0.26, 0.17)
-			w_sec = Color(0.25, 0.17, 0.11)
 		return _make_arch_shader_material(
-			"pbr_aged_timber", w_pri, w_sec, 0.48, 0.48, 0.75, 0.78, 0.0, 0.42, 0.25
+			"pbr_aged_timber", w_pri, w_pri.darkened(0.25), 0.48, 0.48, 0.75, 0.78
 		)
 
 	var fallback_col := (

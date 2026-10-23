@@ -108,14 +108,14 @@ static func create_boulder_3d(scale_vec: Vector3 = Vector3.ONE, mossy: bool = tr
 			"triplanar": 1.0,
 		}
 	}
-	var mesh := SevaraAssetLibrary3D.build_sculpted_stone_mesh(variant, style, 18, 28)
+	var mesh := SevaraAssetLibrary3D.build_sculpted_stone_mesh(variant, style, 20, 32)
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
-	var body_scale := scale_vec * Vector3(0.68, 0.64, 0.68)
+	var body_scale := scale_vec * Vector3(0.76, 0.78, 0.76)
 	var body_rot := Vector3(0.06 * sin(hash_v * 1.7), hash_v * 0.9, -0.06 * cos(hash_v * 2.3))
 	mi.scale = body_scale
 	mi.rotation = body_rot
-	mi.position = Vector3(0.0, -0.08 * scale_vec.y, 0.0)
+	mi.position = Vector3(0.0, -0.05 * scale_vec.y, 0.0)
 	root.add_child(mi)
 
 	if mossy and scale_vec.x > 0.92:
@@ -361,12 +361,25 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 	var x_max := SevaraTerrainGen3D.BRIDGE_X_MAX
 	var deck_w := 2.92
 
-	# 1. Rounded Oval Cutwater Stone Piers & Sculpted River Foundation Stones (no boxy cubes!)
-	var pier_cyl := CylinderMesh.new()
-	pier_cyl.top_radius = 0.56
-	pier_cyl.bottom_radius = 0.66
-	pier_cyl.height = 2.45
-	pier_cyl.radial_segments = 24
+	# 1. Sculpted River-Stone Masonry Bridge Piers & Abutments (stacked smooth river boulders)
+	var pier_stone_mesh := (
+		SevaraAssetLibrary3D
+		. build_sculpted_stone_mesh(
+			2,
+			{
+				"rock":
+				{
+					"moss_amount": 0.14,
+					"snow_amount": 0.0,
+					"wetness": 0.42,
+					"triplanar": 1.0,
+					"tint": Color(0.94, 0.91, 0.86),
+				}
+			},
+			14,
+			22
+		)
+	)
 	var pier_xs: Array[float] = [6.35, 9.85, 14.15, 17.65]
 	for pier_x: float in pier_xs:
 		var pz := SevaraTerrainGen3D._main_road_z(pier_x)
@@ -379,14 +392,22 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 			/ 0.4
 		)
 		var yaw := -atan2(dz, 1.0)
-		var is_bank: bool = pier_x < 7.5 or pier_x > 16.5
-		var pier := MeshInstance3D.new()
-		pier.mesh = pier_cyl
-		pier.scale = Vector3(1.05 if is_bank else 0.88, 1.0, (deck_w + 0.18) / 1.12)
-		pier.position = Vector3(pier_x, py - 1.34, pz)
-		pier.rotation.y = yaw
-		pier.material_override = stone_mat
-		root.add_child(pier)
+		var pier_grp := Node3D.new()
+		pier_grp.position = Vector3(pier_x, py, pz)
+		pier_grp.rotation.y = yaw
+		root.add_child(pier_grp)
+		for tier in range(3):
+			var ty := -0.36 - float(tier) * 0.42
+			var w_mult := 1.0 + float(tier) * 0.12
+			for k in range(3):
+				var z_off := (float(k) - 1.0) * 0.88
+				var st_mi := MeshInstance3D.new()
+				st_mi.mesh = pier_stone_mesh
+				st_mi.scale = Vector3(0.54 * w_mult, 0.44, 0.58 * w_mult)
+				st_mi.position = Vector3(sin(float(k + tier) * 1.7) * 0.05, ty, z_off)
+				st_mi.rotation.y = float(k * 2 + tier) * 1.1
+				st_mi.material_override = stone_mat
+				pier_grp.add_child(st_mi)
 
 	# 2. Smooth Rounded Timber Plank Deck, Under-Deck Carrier Logs & Rounded Log Curbs
 	var span_start := x_min
@@ -805,10 +826,10 @@ static func _scatter_road_cobbles_and_clover(
 		var gn := SevaraTerrainGen3D.get_ground_normal(wx, wz)
 		if pw >= 0.16 and cob_xf.size() < target_cob:
 			var is_rut_stone := i % 3 == 0
-			var sc := rng.randf_range(0.11, 0.19) if is_rut_stone else rng.randf_range(0.06, 0.12)
-			var sy := sc * (0.42 if is_rut_stone else 0.48)
+			var sc := rng.randf_range(0.14, 0.24) if is_rut_stone else rng.randf_range(0.08, 0.15)
+			var sy := sc * (0.36 if is_rut_stone else 0.42)
 			var b := _align_up_with_yaw(gn, rng.randf() * TAU, 1.0).scaled(Vector3(sc, sy, sc))
-			var sink := -0.024 if is_rut_stone else -0.014
+			var sink := -0.045 if is_rut_stone else -0.028
 			cob_xf.append(Transform3D(b, Vector3(wx, wy + sink, wz)))
 			var sh := rng.randf_range(0.88, 1.08)
 			cob_cu.append(Color(sh, sh * 0.96, sh * 0.90, rng.randf_range(0.0, 0.10)))

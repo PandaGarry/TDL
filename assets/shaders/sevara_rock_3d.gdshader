@@ -109,23 +109,29 @@ void fragment() {
 		vec3 nrm = normalize(v_wnormal);
 		NORMAL = normalize((VIEW_MATRIX * vec4(nrm, 0.0)).xyz);
 
-		vec2 grain_uv = vec2(v_world.z * 0.85 + v_world.x * 0.35, v_world.x * 3.6 + v_world.y * 4.2);
+		vec2 grain_uv = vec2(v_world.z * 0.95 + v_world.x * 0.25, v_world.x * 3.8 + v_world.y * 4.2);
 		float grain_wave = soft_fbm(grain_uv);
-		float ring_soft = grad_noise(grain_uv * vec2(0.55, 2.4) + vec2(1.3, 0.7));
+		float ring_soft = grad_noise(grain_uv * vec2(0.45, 2.8) + vec2(1.3, 0.7));
+		float plank_id = grad_noise(vec2(floor(v_world.x * 2.8) * 1.7, 0.4));
 
-		vec3 warm_oak_light = tint * vec3(1.05, 1.01, 0.95);
-		vec3 warm_oak_mid = tint * vec3(0.92, 0.88, 0.82);
-		vec3 warm_oak_deep = tint * vec3(0.78, 0.73, 0.66);
+		vec3 warm_oak_light = tint * vec3(0.96, 0.88, 0.76);
+		vec3 warm_oak_mid = tint * vec3(0.80, 0.71, 0.59);
+		vec3 warm_oak_deep = tint * vec3(0.64, 0.55, 0.44);
 
-		vec3 wood_col = mix(warm_oak_deep, warm_oak_mid, smoothstep(0.20, 0.75, grain_wave));
-		wood_col = mix(wood_col, warm_oak_light, smoothstep(0.40, 0.85, ring_soft) * 0.55);
+		vec3 wood_col = mix(warm_oak_deep, warm_oak_mid, smoothstep(0.18, 0.76, grain_wave));
+		wood_col = mix(wood_col, warm_oak_light, smoothstep(0.35, 0.85, ring_soft) * 0.62);
+		wood_col *= mix(0.92, 1.07, plank_id);
+
+		// Subtle wheel-track wear & edge warmth along the bridge deck
+		float edge_fade = smoothstep(0.95, 1.42, abs(v_local.z));
+		wood_col *= mix(1.0, 0.84, edge_fade * 0.65);
 
 		// Soft hemispheric sunlight & ground bounce
 		float up = nrm.y;
-		wood_col *= 0.82 + 0.24 * smoothstep(-0.4, 0.85, up);
+		wood_col *= 0.80 + 0.25 * smoothstep(-0.4, 0.85, up);
 
 		ALBEDO = wood_col;
-		ROUGHNESS = 0.76;
+		ROUGHNESS = 0.78;
 		SPECULAR = 0.14;
 		BACKLIGHT = vec3(0.06, 0.04, 0.02);
 	} else {
