@@ -113,22 +113,24 @@ void vertex() {
 		VERTEX.z += total_xz.y;
 	}
 
-	// Lock normal to smooth terrain-up vector so front and back of blades shade identically
-	vec3 terrain_up_local = vec3(0.0, 1.0, 0.0);
+	// Tilt normal slightly with wind bend so rolling wind waves catch golden sunlight across the meadow
+	vec3 terrain_up_local = normalize(vec3(total_xz.x * 0.42, 1.0, total_xz.y * 0.42));
 	NORMAL = terrain_up_local;
 	vec3 world_up = normalize((MODEL_MATRIX * vec4(terrain_up_local, 0.0)).xyz);
 	v_up_normal_view = normalize((VIEW_MATRIX * vec4(world_up, 0.0)).xyz);
 
 	// Exact root match with the underlying terrain (including earthy verge tint near road edges)
 	vec3 ground_col = meadow_ground_palette(world_v.xz);
-	vec3 verge_root = vec3(0.21, 0.25, 0.13);
+	vec3 verge_root = vec3(0.20, 0.24, 0.12);
 	v_root_col = mix(ground_col, verge_root, verge_tint * 0.65);
 
-	float warm_patch = fbm(world_v.xz * 0.08 + vec2(3.1, 1.7));
-	vec3 base_tip = mix(tip_color, tip_color_warm, smoothstep(0.28, 0.76, warm_patch));
-	base_tip = mix(base_tip, vec3(0.42, 0.48, 0.20), smoothstep(0.58, 0.85, clump) * 0.42);
+	float warm_patch = fbm(world_v.xz * 0.085 + vec2(3.1, 1.7));
+	float cool_patch = fbm(world_v.xz * 0.16 + vec2(-2.4, 4.3));
+	vec3 base_tip = mix(tip_color, tip_color_warm, smoothstep(0.24, 0.76, warm_patch));
+	base_tip = mix(base_tip, vec3(0.19, 0.35, 0.14), smoothstep(0.54, 0.84, cool_patch) * 0.36);
+	base_tip = mix(base_tip, vec3(0.44, 0.50, 0.20), smoothstep(0.54, 0.84, clump) * 0.46);
 	base_tip = mix(base_tip, vec3(0.32, 0.39, 0.17), verge_tint * 0.45);
-	v_tip_col = base_tip * (0.92 + (rnd.r - 0.5) * 0.16);
+	v_tip_col = base_tip * (0.88 + (rnd.r - 0.5) * 0.24);
 	v_t = t;
 	v_gust = gust;
 
@@ -144,12 +146,12 @@ void fragment() {
 	NORMAL = normalize(v_up_normal_view);
 
 	float t = v_t;
-	vec3 col = mix(v_root_col, v_tip_col, smoothstep(0.08, 0.95, t));
-	// Gentle root ambient occlusion connecting blades to the dark humus soil
-	float root_ao = mix(0.86, 1.0, smoothstep(0.0, 0.38, t));
+	vec3 col = mix(v_root_col, v_tip_col, smoothstep(0.06, 0.94, t));
+	// Deep root contact ambient occlusion connecting grass tufts to the dark humus soil
+	float root_ao = mix(0.64, 1.0, smoothstep(0.0, 0.46, t));
 	col *= root_ao;
-	// Warm golden subsurface translucency on sunlit upper blades
-	col += vec3(0.042, 0.054, 0.014) * (v_gust * 0.75 + 0.25) * (t * t);
+	// Warm golden subsurface translucency on sunlit wind-wave crests
+	col += vec3(0.055, 0.068, 0.018) * (v_gust * 0.82 + 0.18) * (t * t);
 
 	// Delicate wildflower & clover specks at the top 22% of blossom stems
 	if (v_blossom_id >= 0.0 && t > 0.78) {

@@ -240,20 +240,27 @@ func _configure_panel() -> void:
 	name = "GreyboxDebugOverlay"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.04, 0.06, 0.08, 0.84)
-	style.border_color = Color(0.38, 0.52, 0.44, 0.85)
+	style.bg_color = Color(0.06, 0.09, 0.08, 0.86)
+	style.border_color = Color(0.62, 0.54, 0.36, 0.80)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(4)
-	style.content_margin_left = 10.0
-	style.content_margin_top = 8.0
-	style.content_margin_right = 10.0
-	style.content_margin_bottom = 8.0
+	style.border_width_bottom = 2
+	style.set_corner_radius_all(8)
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.40)
+	style.shadow_size = 7
+	style.shadow_offset = Vector2(0.0, 3.0)
+	style.content_margin_left = 12.0
+	style.content_margin_top = 9.0
+	style.content_margin_right = 12.0
+	style.content_margin_bottom = 9.0
 	add_theme_stylebox_override("panel", style)
 
 	_report_label = Label.new()
 	_report_label.name = "ReportLabel"
 	_report_label.add_theme_font_size_override("font_size", 13)
-	_report_label.add_theme_color_override("font_color", Color(0.88, 0.94, 0.89, 1.0))
+	_report_label.add_theme_color_override("font_color", Color(0.90, 0.95, 0.88, 1.0))
+	_report_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.70))
+	_report_label.add_theme_constant_override("shadow_offset_x", 1)
+	_report_label.add_theme_constant_override("shadow_offset_y", 1)
 	add_child(_report_label)
 
 

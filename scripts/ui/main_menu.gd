@@ -38,12 +38,53 @@ func _install_backdrop_texture() -> void:
 	add_child(bg_world)
 	bg_world.ensure_built()
 	bg_world.set_camera_lookpoint("valley_panorama")
-	_title_label.add_theme_color_override("font_shadow_color", Color(0.04, 0.05, 0.03, 0.82))
+	_title_label.add_theme_color_override("font_shadow_color", Color(0.04, 0.05, 0.03, 0.85))
 	_title_label.add_theme_constant_override("shadow_offset_x", 2)
 	_title_label.add_theme_constant_override("shadow_offset_y", 3)
-	_subtitle_label.add_theme_color_override("font_shadow_color", Color(0.04, 0.05, 0.03, 0.85))
+	_subtitle_label.add_theme_color_override("font_shadow_color", Color(0.04, 0.05, 0.03, 0.88))
 	_subtitle_label.add_theme_constant_override("shadow_offset_x", 1)
 	_subtitle_label.add_theme_constant_override("shadow_offset_y", 2)
+	var menu_btns: Array[Button] = [
+		_new_game_button, _continue_button, _settings_button, _quit_button
+	]
+	for idx in range(menu_btns.size()):
+		_style_menu_button(menu_btns[idx], idx == 0)
+
+
+static func _style_menu_button(btn: Button, is_primary: bool) -> void:
+	if btn == null:
+		return
+	var n_box := StyleBoxFlat.new()
+	n_box.bg_color = (
+		Color(0.11, 0.16, 0.12, 0.88) if is_primary else Color(0.08, 0.11, 0.09, 0.82)
+	)
+	n_box.border_color = (
+		Color(0.82, 0.69, 0.42, 0.92) if is_primary else Color(0.58, 0.50, 0.34, 0.74)
+	)
+	n_box.set_border_width_all(1)
+	n_box.border_width_bottom = 2
+	n_box.set_corner_radius_all(8)
+	n_box.shadow_color = Color(0.0, 0.0, 0.0, 0.42)
+	n_box.shadow_size = 7
+	n_box.shadow_offset = Vector2(0.0, 3.0)
+	n_box.content_margin_left = 18.0
+	n_box.content_margin_right = 18.0
+	n_box.content_margin_top = 9.0
+	n_box.content_margin_bottom = 9.0
+	var h_box := n_box.duplicate() as StyleBoxFlat
+	h_box.bg_color = Color(0.17, 0.24, 0.17, 0.94)
+	h_box.border_color = Color(0.95, 0.82, 0.50, 0.98)
+	var d_box := n_box.duplicate() as StyleBoxFlat
+	d_box.bg_color = Color(0.07, 0.09, 0.08, 0.52)
+	d_box.border_color = Color(0.42, 0.38, 0.30, 0.42)
+	btn.add_theme_stylebox_override("normal", n_box)
+	btn.add_theme_stylebox_override("hover", h_box)
+	btn.add_theme_stylebox_override("focus", h_box)
+	btn.add_theme_stylebox_override("pressed", h_box)
+	btn.add_theme_stylebox_override("disabled", d_box)
+	btn.add_theme_color_override("font_color", Color(0.96, 0.92, 0.82, 1.0))
+	btn.add_theme_color_override("font_hover_color", Color(1.0, 0.98, 0.90, 1.0))
+	btn.add_theme_color_override("font_disabled_color", Color(0.68, 0.70, 0.66, 0.58))
 
 
 func _exit_tree() -> void:

@@ -320,50 +320,61 @@ func _build_hud_controls() -> void:
 	var top_panel := PanelContainer.new()
 	top_panel.name = "TopBarPanel"
 	var bar_style := StyleBoxFlat.new()
-	bar_style.bg_color = Color(0.05, 0.08, 0.10, 0.80)
-	bar_style.border_color = Color(0.56, 0.49, 0.34, 0.65)
-	bar_style.border_width_bottom = 1
-	bar_style.corner_radius_top_left = 6
-	bar_style.corner_radius_top_right = 6
-	bar_style.corner_radius_bottom_left = 6
-	bar_style.corner_radius_bottom_right = 6
-	bar_style.content_margin_left = 12.0
-	bar_style.content_margin_right = 12.0
-	bar_style.content_margin_top = 6.0
-	bar_style.content_margin_bottom = 6.0
+	bar_style.bg_color = Color(0.07, 0.10, 0.09, 0.86)
+	bar_style.border_color = Color(0.68, 0.57, 0.37, 0.78)
+	bar_style.set_border_width_all(1)
+	bar_style.border_width_bottom = 2
+	bar_style.set_corner_radius_all(9)
+	bar_style.shadow_color = Color(0.0, 0.0, 0.0, 0.42)
+	bar_style.shadow_size = 8
+	bar_style.shadow_offset = Vector2(0.0, 3.0)
+	bar_style.content_margin_left = 14.0
+	bar_style.content_margin_right = 14.0
+	bar_style.content_margin_top = 7.0
+	bar_style.content_margin_bottom = 7.0
 	top_panel.add_theme_stylebox_override("panel", bar_style)
 	vbox.add_child(top_panel)
 
 	var top_bar := HBoxContainer.new()
 	top_bar.name = "TopBar"
-	top_bar.add_theme_constant_override("separation", 12)
+	top_bar.add_theme_constant_override("separation", 10)
 	top_panel.add_child(top_bar)
 
 	_header_title_label = Label.new()
 	_header_title_label.add_theme_font_size_override("font_size", 16)
-	_header_title_label.add_theme_color_override("font_color", Color(0.93, 0.8, 0.42, 1.0))
+	_header_title_label.add_theme_color_override("font_color", Color(0.96, 0.84, 0.48, 1.0))
+	_header_title_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.75))
+	_header_title_label.add_theme_constant_override("shadow_offset_x", 1)
+	_header_title_label.add_theme_constant_override("shadow_offset_y", 2)
 	top_bar.add_child(_header_title_label)
 
 	_controls_hint_label = Label.new()
 	_controls_hint_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_controls_hint_label.add_theme_font_size_override("font_size", 13)
-	_controls_hint_label.add_theme_color_override("font_color", Color(0.84, 0.89, 0.86, 1.0))
+	_controls_hint_label.add_theme_color_override("font_color", Color(0.88, 0.92, 0.86, 1.0))
+	_controls_hint_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.65))
+	_controls_hint_label.add_theme_constant_override("shadow_offset_x", 1)
+	_controls_hint_label.add_theme_constant_override("shadow_offset_y", 1)
 	top_bar.add_child(_controls_hint_label)
 
 	_step_time_button = Button.new()
+	_style_hud_button(_step_time_button, true)
 	_step_time_button.pressed.connect(_on_step_time_pressed)
 	top_bar.add_child(_step_time_button)
 
 	_touch_toggle_button = Button.new()
 	_touch_toggle_button.text = "Сенсор"
+	_style_hud_button(_touch_toggle_button, false)
 	_touch_toggle_button.pressed.connect(_on_touch_toggle_pressed)
 	top_bar.add_child(_touch_toggle_button)
 
 	_save_button = Button.new()
+	_style_hud_button(_save_button, false)
 	_save_button.pressed.connect(_on_save_pressed)
 	top_bar.add_child(_save_button)
 
 	_menu_button = Button.new()
+	_style_hud_button(_menu_button, false)
 	_menu_button.pressed.connect(_on_menu_pressed)
 	top_bar.add_child(_menu_button)
 
@@ -390,6 +401,35 @@ func _apply_localized_labels() -> void:
 		_step_time_button.text = tr("ui.greybox.step_time_button")
 	if _menu_button != null:
 		_menu_button.text = tr("ui.greybox.menu_button")
+
+
+static func _style_hud_button(btn: Button, accent: bool) -> void:
+	var n_box := StyleBoxFlat.new()
+	n_box.bg_color = (Color(0.16, 0.21, 0.15, 0.92) if accent else Color(0.11, 0.14, 0.12, 0.90))
+	n_box.border_color = (
+		Color(0.78, 0.65, 0.38, 0.88) if accent else Color(0.56, 0.49, 0.35, 0.78)
+	)
+	n_box.set_border_width_all(1)
+	n_box.border_width_bottom = 2
+	n_box.set_corner_radius_all(6)
+	n_box.shadow_color = Color(0.0, 0.0, 0.0, 0.32)
+	n_box.shadow_size = 3
+	n_box.shadow_offset = Vector2(0.0, 1.0)
+	n_box.content_margin_left = 11.0
+	n_box.content_margin_right = 11.0
+	n_box.content_margin_top = 4.0
+	n_box.content_margin_bottom = 4.0
+	var h_box := n_box.duplicate() as StyleBoxFlat
+	h_box.bg_color = Color(0.22, 0.28, 0.20, 0.96)
+	h_box.border_color = Color(0.92, 0.78, 0.46, 0.96)
+	var p_box := n_box.duplicate() as StyleBoxFlat
+	p_box.bg_color = Color(0.08, 0.11, 0.09, 0.96)
+	btn.add_theme_stylebox_override("normal", n_box)
+	btn.add_theme_stylebox_override("hover", h_box)
+	btn.add_theme_stylebox_override("pressed", p_box)
+	btn.add_theme_font_size_override("font_size", 13)
+	btn.add_theme_color_override("font_color", Color(0.95, 0.91, 0.80, 1.0))
+	btn.add_theme_color_override("font_hover_color", Color(1.0, 0.97, 0.88, 1.0))
 
 
 func _ensure_owned_session() -> GameSession:

@@ -296,28 +296,41 @@ func _build_environment_and_lights() -> void:
 	_environment.sky = sky
 
 	_environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	_environment.ambient_light_color = Color(0.58, 0.67, 0.76)
-	_environment.ambient_light_sky_contribution = 0.48
-	_environment.ambient_light_energy = 0.64
+	_environment.ambient_light_color = Color(0.56, 0.66, 0.76)
+	_environment.ambient_light_sky_contribution = 0.52
+	_environment.ambient_light_energy = 0.62
 	_environment.tonemap_mode = Environment.TONE_MAPPER_ACES
-	_environment.tonemap_exposure = 0.95
+	_environment.tonemap_exposure = 0.96
+	_environment.ssao_enabled = true
+	_environment.ssao_radius = 1.15
+	_environment.ssao_intensity = 1.35
+	_environment.ssil_enabled = true
+	_environment.ssil_radius = 2.8
+	_environment.ssil_intensity = 0.65
 	_environment.fog_enabled = true
-	_environment.fog_light_color = Color(0.72, 0.80, 0.86)
-	_environment.fog_light_energy = 0.42
-	_environment.fog_density = 0.00075
-	_environment.fog_sky_affect = 0.14
-	_environment.glow_enabled = false
+	_environment.fog_light_color = Color(0.74, 0.82, 0.90)
+	_environment.fog_light_energy = 0.56
+	_environment.fog_density = 0.0016
+	_environment.fog_aerial_perspective = 0.45
+	_environment.fog_sky_affect = 0.22
+	_environment.glow_enabled = true
+	_environment.glow_intensity = 0.26
+	_environment.glow_strength = 0.80
+	_environment.glow_bloom = 0.05
+	_environment.glow_hdr_threshold = 1.15
+	_environment.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
 	_env_node.environment = _environment
 	add_child(_env_node)
 
 	_sun_light = DirectionalLight3D.new()
 	_sun_light.name = "SunDirectionalLight3D"
-	_sun_light.rotation_degrees = Vector3(-42.0, -34.0, 0.0)
+	_sun_light.rotation_degrees = Vector3(-40.0, -34.0, 0.0)
 	_sun_light.light_color = Color(1.0, 0.94, 0.82)
-	_sun_light.light_energy = 1.04
+	_sun_light.light_energy = 1.08
 	_sun_light.shadow_enabled = true
-	_sun_light.shadow_opacity = 0.76
-	_sun_light.shadow_blur = 1.35
+	_sun_light.shadow_opacity = 0.84
+	_sun_light.shadow_blur = 1.12
+	_sun_light.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
 	_sun_light.directional_shadow_max_distance = 145.0
 	add_child(_sun_light)
 
