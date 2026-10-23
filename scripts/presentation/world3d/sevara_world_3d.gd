@@ -828,8 +828,8 @@ func _apply_camera_transform(immediate: bool = false) -> void:
 			look_target = Vector3(5.8, 0.85, -3.8)
 			fov = 36.0
 		"nivarel_rapids":
-			cam_pos = Vector3(21.5, 6.4, 13.5)
-			look_target = Vector3(5.2, 0.8, -4.2)
+			cam_pos = Vector3(19.6, 6.1, 11.6)
+			look_target = Vector3(5.8, 0.78, -3.5)
 			fov = 36.0
 		"settlement_hearth":
 			cam_pos = Vector3(4.2, 5.2, 8.6)

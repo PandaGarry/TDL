@@ -163,14 +163,9 @@ void fragment() {
 	//    - Underwater optical Beer-Lambert absorption below y = 0.42
 	float water_y = 0.42;
 	float above_w = v_world.y - water_y;
-	float wet_belt = 1.0 - smoothstep(-0.04, 0.15, above_w);
-	float wet = clamp(wetness * 0.26 + wet_belt * 0.80, 0.0, 0.88);
-	c *= mix(1.0, 0.64, wet);
-
-	// Broken foam collar right where the water surface meets the boulder
-	float wl_band = exp(-pow((above_w - 0.008) / 0.022, 2.0));
-	float wl_foam = wl_band * smoothstep(0.42, 0.72, detail * 0.7 + crag * 0.5) * 0.48;
-	c = mix(c, vec3(0.74, 0.80, 0.75), wl_foam);
+	float wet_belt = 1.0 - smoothstep(-0.04, 0.16, above_w);
+	float wet = clamp(wetness * 0.26 + wet_belt * 0.82, 0.0, 0.90);
+	c *= mix(1.0, 0.62, wet);
 
 	// Underwater absorption so submerged boulder bases blend smoothly into the creek depth
 	float submerge_depth = clamp(-above_w * 3.2, 0.0, 1.0);
