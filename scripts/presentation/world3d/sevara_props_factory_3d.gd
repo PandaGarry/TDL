@@ -98,45 +98,47 @@ static func create_boulder_3d(scale_vec: Vector3 = Vector3.ONE, mossy: bool = tr
 	var root := Node3D.new()
 	root.name = "Boulder3D"
 	var hash_v := scale_vec.x * 17.3 + scale_vec.y * 11.1 + scale_vec.z * 23.7
-	var variant := posmod(int(round(hash_v * 10.0)), 8)
+	var idx := posmod(int(round(hash_v * 10.0)), ROCK_MODELS.size())
+	var model_name: String = ROCK_MODELS[idx]
 	var style := {
 		"rock":
 		{
 			"moss_amount": 0.88 if mossy else 0.06,
 			"snow_amount": 0.0,
-			"wetness": 0.18 if mossy else 0.58,
+			"wetness": 0.20 if mossy else 0.62,
 			"triplanar": 1.0,
 		}
 	}
-	var mesh := SevaraAssetLibrary3D.build_sculpted_stone_mesh(variant, style, 20, 32)
+	var mesh := SevaraAssetLibrary3D.build_bevel_smoothed_rock_mesh(model_name, style)
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
-	var body_scale := scale_vec * Vector3(0.76, 0.78, 0.76)
-	var body_rot := Vector3(0.06 * sin(hash_v * 1.7), hash_v * 0.9, -0.06 * cos(hash_v * 2.3))
+	var body_scale := scale_vec * 0.44
+	var body_rot := Vector3(0.07 * sin(hash_v * 1.7), 0.0, -0.07 * cos(hash_v * 2.3))
 	mi.scale = body_scale
 	mi.rotation = body_rot
-	mi.position = Vector3(0.0, -0.05 * scale_vec.y, 0.0)
 	root.add_child(mi)
 
 	if mossy and scale_vec.x > 0.92:
-		# Exact surface-conforming 3D moss fur growing directly out of the sculpted boulder crown
+		# Exact triangle-conforming 3D moss fur growing out of the bevel-smoothed rock crown
 		var fur_mi := MeshInstance3D.new()
-		fur_mi.mesh = SevaraAssetLibrary3D.build_boulder_moss_fur_mesh(variant)
+		fur_mi.mesh = SevaraAssetLibrary3D.build_rock_crown_moss_fur_mesh(
+			model_name, 701 + idx * 37
+		)
 		fur_mi.scale = body_scale
 		fur_mi.rotation = body_rot
-		fur_mi.position = mi.position
 		fur_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		root.add_child(fur_mi)
 
-		# Smooth companion river stone nestled beside the main boulder
-		var sub_var := (variant + 3) % 8
+		var sub_idx := (idx + 1) % ROCK_MODELS.size()
 		var sub_mi := MeshInstance3D.new()
-		sub_mi.mesh = SevaraAssetLibrary3D.build_sculpted_stone_mesh(sub_var, style, 12, 20)
+		sub_mi.mesh = SevaraAssetLibrary3D.build_bevel_smoothed_rock_mesh(
+			ROCK_MODELS[sub_idx], style
+		)
 		var ang := hash_v * 2.4
-		var rad := 0.58 * scale_vec.x
-		sub_mi.scale = scale_vec * Vector3(0.32, 0.26, 0.32)
-		sub_mi.position = Vector3(cos(ang) * rad, -0.06, sin(ang) * rad)
-		sub_mi.rotation = Vector3(-0.08 * cos(ang), ang + 1.2, 0.08 * sin(ang))
+		var rad := 0.52 * scale_vec.x
+		sub_mi.scale = scale_vec * Vector3(0.22, 0.17, 0.22)
+		sub_mi.position = Vector3(cos(ang) * rad, -0.04, sin(ang) * rad)
+		sub_mi.rotation = Vector3(-0.10 * cos(ang), ang + 1.2, 0.08 * sin(ang))
 		root.add_child(sub_mi)
 
 		# Lush 3D clover cluster nestled against the boulder's mossy shoulder
@@ -361,23 +363,21 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 	var x_max := SevaraTerrainGen3D.BRIDGE_X_MAX
 	var deck_w := 2.92
 
-	# 1. Sculpted River-Stone Masonry Bridge Piers & Abutments (stacked smooth river boulders)
+	# 1. Bevel-Smoothed River-Stone Masonry Bridge Piers strictly UNDER the timber deck
 	var pier_stone_mesh := (
 		SevaraAssetLibrary3D
-		. build_sculpted_stone_mesh(
-			2,
+		. build_bevel_smoothed_rock_mesh(
+			"Rock_Medium_2",
 			{
 				"rock":
 				{
-					"moss_amount": 0.14,
+					"moss_amount": 0.12,
 					"snow_amount": 0.0,
-					"wetness": 0.42,
+					"wetness": 0.45,
 					"triplanar": 1.0,
-					"tint": Color(0.94, 0.91, 0.86),
+					"tint": Color(0.92, 0.89, 0.84),
 				}
-			},
-			14,
-			22
+			}
 		)
 	)
 	var pier_xs: Array[float] = [6.35, 9.85, 14.15, 17.65]
@@ -397,13 +397,13 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 		pier_grp.rotation.y = yaw
 		root.add_child(pier_grp)
 		for tier in range(3):
-			var ty := -0.36 - float(tier) * 0.42
-			var w_mult := 1.0 + float(tier) * 0.12
+			var ty := -0.78 - float(tier) * 0.36
+			var w_mult := 1.0 + float(tier) * 0.14
 			for k in range(3):
-				var z_off := (float(k) - 1.0) * 0.88
+				var z_off := (float(k) - 1.0) * 0.86
 				var st_mi := MeshInstance3D.new()
 				st_mi.mesh = pier_stone_mesh
-				st_mi.scale = Vector3(0.54 * w_mult, 0.44, 0.58 * w_mult)
+				st_mi.scale = Vector3(0.32 * w_mult, 0.22, 0.34 * w_mult)
 				st_mi.position = Vector3(sin(float(k + tier) * 1.7) * 0.05, ty, z_off)
 				st_mi.rotation.y = float(k * 2 + tier) * 1.1
 				st_mi.material_override = stone_mat
@@ -767,11 +767,9 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 	root.add_child(verge_mmi)
 
 	# 3. Step 2 3D Riverbank Pebbles, Road Cobblestones & Roadside Clover
-	var pebble_mesh := SevaraAssetLibrary3D.build_sculpted_stone_mesh(
-		5,
-		{"rock": {"moss_amount": 0.24, "snow_amount": 0.0, "wetness": 0.32, "triplanar": 1.0}},
-		10,
-		16
+	var pebble_mesh := SevaraAssetLibrary3D.build_bevel_smoothed_rock_mesh(
+		"Pebble_Round_1",
+		{"rock": {"moss_amount": 0.24, "snow_amount": 0.0, "wetness": 0.32, "triplanar": 1.0}}
 	)
 	_scatter_river_pebbles_multimesh(root, "RiverPebblesMM", pebble_mesh, int(420.0 * dens), 407305)
 	_scatter_road_cobbles_and_clover(root, pebble_mesh, dens)
@@ -787,13 +785,12 @@ static func _scatter_road_cobbles_and_clover(
 	var cob_cu: Array[Color] = []
 	var clv_xf: Array[Transform3D] = []
 	var clv_cu: Array[Color] = []
-	var target_cob := int(640.0 * dens)
+	var target_cob := int(680.0 * dens)
 	var target_clv := int(240.0 * dens)
-	# Smooth sculpted river cobble mesh (no sharp low-poly facets!) blended with warm road loam
 	var road_stone_mesh := (
 		SevaraAssetLibrary3D
-		. build_sculpted_stone_mesh(
-			11,
+		. build_bevel_smoothed_rock_mesh(
+			"Pebble_Round_1",
 			{
 				"rock":
 				{
@@ -801,11 +798,9 @@ static func _scatter_road_cobbles_and_clover(
 					"snow_amount": 0.0,
 					"wetness": 0.08,
 					"triplanar": 1.0,
-					"tint": Color(0.84, 0.77, 0.66),
+					"tint": Color(0.92, 0.85, 0.75),
 				}
-			},
-			10,
-			16
+			}
 		)
 	)
 	for i in range(target_cob * 4):
@@ -826,10 +821,10 @@ static func _scatter_road_cobbles_and_clover(
 		var gn := SevaraTerrainGen3D.get_ground_normal(wx, wz)
 		if pw >= 0.16 and cob_xf.size() < target_cob:
 			var is_rut_stone := i % 3 == 0
-			var sc := rng.randf_range(0.14, 0.24) if is_rut_stone else rng.randf_range(0.08, 0.15)
-			var sy := sc * (0.36 if is_rut_stone else 0.42)
+			var sc := rng.randf_range(0.55, 0.96) if is_rut_stone else rng.randf_range(0.32, 0.58)
+			var sy := sc * (0.42 if is_rut_stone else 0.48)
 			var b := _align_up_with_yaw(gn, rng.randf() * TAU, 1.0).scaled(Vector3(sc, sy, sc))
-			var sink := -0.045 if is_rut_stone else -0.028
+			var sink := -0.012 if is_rut_stone else -0.008
 			cob_xf.append(Transform3D(b, Vector3(wx, wy + sink, wz)))
 			var sh := rng.randf_range(0.88, 1.08)
 			cob_cu.append(Color(sh, sh * 0.96, sh * 0.90, rng.randf_range(0.0, 0.10)))
@@ -865,7 +860,7 @@ static func _scatter_river_pebbles_multimesh(
 		if SevaraTerrainGen3D.is_on_bridge(wx, wz):
 			continue
 		var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
-		var sc := rng.randf_range(0.08, 0.18)
+		var sc := rng.randf_range(0.34, 0.75)
 		var basis := (
 			Basis
 			. from_euler(
@@ -873,9 +868,9 @@ static func _scatter_river_pebbles_multimesh(
 					rng.randf_range(-0.10, 0.10), rng.randf() * TAU, rng.randf_range(-0.10, 0.10)
 				)
 			)
-			. scaled(Vector3(sc, sc * rng.randf_range(0.32, 0.52), sc))
+			. scaled(Vector3(sc, sc * rng.randf_range(0.26, 0.44), sc))
 		)
-		xforms.append(Transform3D(basis, Vector3(wx, wy - 0.024, wz)))
+		xforms.append(Transform3D(basis, Vector3(wx, wy - 0.032, wz)))
 		var shade := rng.randf_range(0.78, 1.12)
 		customs.append(Color(shade, shade, shade, rng.randf_range(0.15, 0.68)))
 	parent.add_child(_create_multimesh_node(node_name, mesh, xforms, customs))

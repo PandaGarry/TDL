@@ -212,107 +212,156 @@ static func build_grass_patch_mesh(
 	return mesh
 
 
-static func _sculpted_stone_point(theta: float, phi: float, variant: int) -> Vector3:
-	var st := sin(theta)
-	var ct := cos(theta)
-	var dir := Vector3(st * cos(phi), ct, st * sin(phi))
-	var p1 := float(variant) * 1.37 + 0.4
-	var p2 := float(variant) * 2.51 - 0.8
-	var p3 := float(variant) * 0.93 + 1.2
-	# Organic sculpted river boulder lobes: softly rounded shoulders & asymmetric natural crown
-	var w1 := sin(dir.x * 2.3 + p1) * cos(dir.z * 2.1 + p2) * 0.18
-	var w2 := cos(dir.y * 2.6 - dir.x * 1.9 + p3) * 0.14
-	var w3 := sin((dir.x - dir.z) * 3.2 + p2) * cos(dir.y * 2.4 + p1) * 0.09
-	var r := 1.0 + w1 + w2 + w3
-	var crown_shift_x := 0.14 * sin(p1) * maxf(dir.y, 0.0)
-	var crown_shift_z := 0.14 * cos(p2) * maxf(dir.y, 0.0)
-	var y_val := (pow(dir.y, 0.82) * 1.08 if dir.y >= 0.0 else dir.y * 0.45) * r + 0.54
-	return Vector3((dir.x * 1.18 + crown_shift_x) * r, y_val, (dir.z * 1.14 + crown_shift_z) * r)
-
-
-static func _sculpted_stone_normal(theta: float, phi: float, variant: int) -> Vector3:
-	var t_clamped := clampf(theta, 0.04, PI - 0.04)
-	var eps := 0.025
-	var p_t1 := _sculpted_stone_point(t_clamped + eps, phi, variant)
-	var p_t0 := _sculpted_stone_point(t_clamped - eps, phi, variant)
-	var p_p1 := _sculpted_stone_point(t_clamped, phi + eps, variant)
-	var p_p0 := _sculpted_stone_point(t_clamped, phi - eps, variant)
-	var dp_dt := p_t1 - p_t0
-	var dp_dp := p_p1 - p_p0
-	var n := dp_dp.cross(dp_dt).normalized()
-	return n if n.length_squared() > 0.1 else Vector3.UP
-
-
-static func build_sculpted_stone_mesh(
-	variant: int, style: Dictionary = {}, rings: int = 18, segs: int = 28
-) -> ArrayMesh:
-	var key := "SculptStone_%d_%d_%d_%s" % [variant, rings, segs, str(style)]
-	if _styled_meshes.has(key):
-		return _styled_meshes[key] as ArrayMesh
-	var verts := PackedVector3Array()
-	var normals := PackedVector3Array()
-	var uvs := PackedVector2Array()
-	var indices := PackedInt32Array()
-	for r in range(rings + 1):
-		var v := float(r) / float(rings)
-		var theta := v * PI
-		for s in range(segs + 1):
-			var u := float(s) / float(segs)
-			var phi := u * TAU
-			verts.append(_sculpted_stone_point(theta, phi, variant))
-			normals.append(_sculpted_stone_normal(theta, phi, variant))
-			uvs.append(Vector2(u, v))
-	var stride := segs + 1
-	for r in range(rings):
-		for s in range(segs):
-			var i0 := r * stride + s
-			var i1 := i0 + 1
-			var i2 := (r + 1) * stride + s
-			var i3 := i2 + 1
-			indices.append_array([i0, i2, i1, i1, i2, i3])
+static func _bevel_subdivide_rock(src: ArrayMesh) -> ArrayMesh:
+	if src == null or src.get_surface_count() == 0:
+		return ArrayMesh.new()
+	var arrays := src.surface_get_arrays(0)
+	var in_v: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var in_idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+	if in_idx.is_empty():
+		in_idx.resize(in_v.size())
+		for i in range(in_v.size()):
+			in_idx[i] = i
+	var n_sum: Dictionary = {}
+	var c_sum: Dictionary = {}
+	var c_cnt: Dictionary = {}
+	var tri_cnt := int(in_idx.size() / 3.0)
+	for t in range(tri_cnt):
+		var a := in_v[in_idx[t * 3]]
+		var b := in_v[in_idx[t * 3 + 1]]
+		var c := in_v[in_idx[t * 3 + 2]]
+		var fn := (c - a).cross(b - a).normalized()
+		var fc := (a + b + c) / 3.0
+		if fn.dot(fc - Vector3(0.0, 0.25, 0.0)) < 0.0:
+			fn = -fn
+		for p: Vector3 in [a, b, c]:
+			var k := Vector3i((p * 200.0).round())
+			n_sum[k] = (n_sum.get(k, Vector3.ZERO) as Vector3) + fn
+			c_sum[k] = (c_sum.get(k, Vector3.ZERO) as Vector3) + fc
+			c_cnt[k] = int(c_cnt.get(k, 0)) + 1
+	var out_v := PackedVector3Array()
+	var out_n := PackedVector3Array()
+	var out_uv := PackedVector2Array()
+	for t in range(tri_cnt):
+		var raw_pts: Array[Vector3] = [
+			in_v[in_idx[t * 3]], in_v[in_idx[t * 3 + 1]], in_v[in_idx[t * 3 + 2]]
+		]
+		var fn := (raw_pts[2] - raw_pts[0]).cross(raw_pts[1] - raw_pts[0]).normalized()
+		var fc := (raw_pts[0] + raw_pts[1] + raw_pts[2]) / 3.0
+		if fn.dot(fc - Vector3(0.0, 0.25, 0.0)) < 0.0:
+			fn = -fn
+		var sm_p: Array[Vector3] = []
+		var sm_n: Array[Vector3] = []
+		for p: Vector3 in raw_pts:
+			var k := Vector3i((p * 200.0).round())
+			var sn := (n_sum.get(k, fn) as Vector3).normalized()
+			var avg_c := (c_sum.get(k, p) as Vector3) / float(max(int(c_cnt.get(k, 1)), 1))
+			sm_p.append(p.lerp(avg_c, 0.34))
+			sm_n.append(sn)
+		var m01 := (sm_p[0] + sm_p[1]) * 0.5 + (sm_n[0] + sm_n[1]).normalized() * 0.035
+		var m12 := (sm_p[1] + sm_p[2]) * 0.5 + (sm_n[1] + sm_n[2]).normalized() * 0.035
+		var m20 := (sm_p[2] + sm_p[0]) * 0.5 + (sm_n[2] + sm_n[0]).normalized() * 0.035
+		var nm01 := (sm_n[0] + sm_n[1]).normalized()
+		var nm12 := (sm_n[1] + sm_n[2]).normalized()
+		var nm20 := (sm_n[2] + sm_n[0]).normalized()
+		var sub_p: Array[Vector3] = [
+			sm_p[0], m01, m20, m01, sm_p[1], m12, m20, m12, sm_p[2], m01, m12, m20
+		]
+		var sub_n: Array[Vector3] = [
+			sm_n[0], nm01, nm20, nm01, sm_n[1], nm12, nm20, nm12, sm_n[2], nm01, nm12, nm20
+		]
+		for j in range(12):
+			out_v.append(sub_p[j])
+			out_n.append((fn * 0.34 + sub_n[j] * 0.66).normalized())
+			out_uv.append(Vector2(sub_p[j].x, sub_p[j].z) * 0.5)
 	var arr := []
 	arr.resize(Mesh.ARRAY_MAX)
-	arr[Mesh.ARRAY_VERTEX] = verts
-	arr[Mesh.ARRAY_NORMAL] = normals
-	arr[Mesh.ARRAY_TEX_UV] = uvs
-	arr[Mesh.ARRAY_INDEX] = indices
+	arr[Mesh.ARRAY_VERTEX] = out_v
+	arr[Mesh.ARRAY_NORMAL] = out_n
+	arr[Mesh.ARRAY_TEX_UV] = out_uv
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	return mesh
+
+
+static func build_bevel_smoothed_rock_mesh(model_name: String, style: Dictionary = {}) -> ArrayMesh:
+	var key := "BevelRock_%s_%s" % [model_name, str(style)]
+	if _styled_meshes.has(key):
+		return _styled_meshes[key] as ArrayMesh
+	var base_key := "BevelRockGeo_" + model_name
+	var geo: ArrayMesh = null
+	if _raw_meshes.has(base_key):
+		geo = _raw_meshes[base_key] as ArrayMesh
+	else:
+		geo = _bevel_subdivide_rock(raw_nature_mesh(model_name))
+		_raw_meshes[base_key] = geo
+	var mesh := geo.duplicate(false) as ArrayMesh
 	var rock_st: Dictionary = style.get("rock", {})
 	var mat := ShaderMaterial.new()
 	mat.shader = load_shader("sevara_rock_3d.gdshader")
 	mat.set_shader_parameter("surface_mode", 0)
+	mat.set_shader_parameter("albedo_tex", load_texture(NATURE_DIR + "Rocks_Diffuse.png"))
 	for k: String in rock_st.keys():
 		if k != "texture":
 			mat.set_shader_parameter(k, rock_st[k])
-	mesh.surface_set_material(0, mat)
+	if mesh.get_surface_count() > 0:
+		mesh.surface_set_material(0, mat)
 	_styled_meshes[key] = mesh
 	return mesh
 
 
-static func build_boulder_moss_fur_mesh(variant: int) -> ArrayMesh:
-	var key := "BoulderMossFur_%d" % variant
+static func build_rock_crown_moss_fur_mesh(model_name: String, seed_val: int) -> ArrayMesh:
+	var key := "RockCrownFur_%s_%d" % [model_name, seed_val]
 	if _styled_meshes.has(key):
 		return _styled_meshes[key] as ArrayMesh
+	var geo := build_bevel_smoothed_rock_mesh(model_name, {})
+	if geo.get_surface_count() == 0:
+		return ArrayMesh.new()
+	var arrays := geo.surface_get_arrays(0)
+	var in_v: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var in_n: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+	var box := geo.get_aabb()
+	var min_y := box.position.y + box.size.y * 0.46
+	var top_tris: Array[int] = []
+	var tri_cnt := int(in_v.size() / 3.0)
+	for t in range(tri_cnt):
+		var c_y := (in_v[t * 3].y + in_v[t * 3 + 1].y + in_v[t * 3 + 2].y) / 3.0
+		var n_y := (in_n[t * 3].y + in_n[t * 3 + 1].y + in_n[t * 3 + 2].y) / 3.0
+		if c_y >= min_y and n_y >= 0.42:
+			top_tris.append(t)
+	if top_tris.is_empty():
+		return ArrayMesh.new()
 	var rng := RandomNumberGenerator.new()
-	rng.seed = 9103 + variant * 131
+	rng.seed = seed_val
 	var verts := PackedVector3Array()
 	var normals := PackedVector3Array()
 	var uvs := PackedVector2Array()
 	var colors := PackedColorArray()
 	var indices := PackedInt32Array()
-	for _b in range(115):
-		var theta := sqrt(rng.randf()) * 0.92
-		var phi := rng.randf() * TAU
-		var base_p := _sculpted_stone_point(theta, phi, variant) - Vector3(0.0, 0.018, 0.0)
-		var surf_n := _sculpted_stone_normal(theta, phi, variant)
-		var grow_dir := (surf_n * 0.55 + Vector3.UP * 0.65).normalized()
+	for _b in range(150):
+		var t_idx := top_tris[rng.randi() % top_tris.size()]
+		var r1 := sqrt(rng.randf())
+		var r2 := rng.randf()
+		var w0 := 1.0 - r1
+		var w1 := r1 * (1.0 - r2)
+		var w2 := r1 * r2
+		var base_p := (
+			in_v[t_idx * 3] * w0
+			+ in_v[t_idx * 3 + 1] * w1
+			+ in_v[t_idx * 3 + 2] * w2
+			- Vector3(0.0, 0.02, 0.0)
+		)
+		var surf_n := (
+			(in_n[t_idx * 3] * w0 + in_n[t_idx * 3 + 1] * w1 + in_n[t_idx * 3 + 2] * w2)
+			. normalized()
+		)
+		var grow_dir := (surf_n * 0.45 + Vector3.UP * 0.75).normalized()
 		var ang := rng.randf() * TAU
 		var perp := Vector3(cos(ang), 0.0, sin(ang))
 		var facing := grow_dir.cross(perp).normalized()
-		var h := rng.randf_range(0.15, 0.27) * (1.0 - theta * 0.32)
-		var w := rng.randf_range(0.024, 0.038)
-		var lean := rng.randf_range(0.04, 0.11)
+		var h := rng.randf_range(0.24, 0.42)
+		var w := rng.randf_range(0.045, 0.072)
+		var lean := rng.randf_range(0.06, 0.16)
 		var rnd_col := Color(rng.randf(), rng.randf(), rng.randf(), rng.randf())
 		var b_idx := verts.size()
 		for s in range(2):
@@ -341,10 +390,10 @@ static func build_boulder_moss_fur_mesh(variant: int) -> ArrayMesh:
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
 	var mat := ShaderMaterial.new()
 	mat.shader = load_shader("sevara_grass_3d.gdshader")
-	mat.set_shader_parameter("root_color", Color(0.12, 0.24, 0.09))
-	mat.set_shader_parameter("tip_color", Color(0.28, 0.45, 0.17))
-	mat.set_shader_parameter("tip_color_warm", Color(0.42, 0.50, 0.20))
-	mat.set_shader_parameter("blade_height", 0.22)
+	mat.set_shader_parameter("root_color", Color(0.11, 0.23, 0.08))
+	mat.set_shader_parameter("tip_color", Color(0.26, 0.43, 0.16))
+	mat.set_shader_parameter("tip_color_warm", Color(0.38, 0.48, 0.19))
+	mat.set_shader_parameter("blade_height", 0.28)
 	mat.set_shader_parameter("wind_strength", 0.35)
 	mesh.surface_set_material(0, mat)
 	_styled_meshes[key] = mesh
@@ -707,55 +756,28 @@ static func _create_styled_surface_material(
 		emat.roughness = 0.22 if (ml.contains("eye") or ml.contains("face")) else 0.55
 		return emat
 	if ml.contains("hoov") or ml.contains("horn"):
-		return _make_creature_shader_material(
-			raw_col.lerp(Color(0.32, 0.26, 0.20), 0.35),
-			Color(0.16, 0.13, 0.10),
-			Color(0.85, 0.78, 0.66),
-			0.52,
-			0.18,
-			0.05,
-			2.0
-		)
+		var hmat := StandardMaterial3D.new()
+		hmat.albedo_color = raw_col.lerp(Color(0.32, 0.26, 0.20), 0.35)
+		hmat.roughness = 0.52
+		return hmat
 
-	# 4. Characters (Viking_Male / Viking_Female): natural northern skin, hair & woven garments
-	if is_character:
-		if ml.contains("skin"):
-			var skin_col := raw_col if has_override else Color(0.46, 0.31, 0.22)
-			return _make_creature_shader_material(
-				skin_col, skin_col.darkened(0.22), Color(0.78, 0.58, 0.42), 0.68, 0.12, 0.02, 2.3
+	# 4. Characters & Wildlife
+	if is_character or is_animal:
+		var c_col := raw_col
+		if is_character and ml.contains("skin"):
+			c_col = raw_col if has_override else Color(0.46, 0.31, 0.22)
+		elif is_character and ml.contains("hair"):
+			c_col = raw_col if has_override else Color(0.18, 0.11, 0.07)
+		elif not has_override:
+			c_col = Color(
+				clampf(pow(maxf(raw_col.r, 0.02), 0.67), 0.12, 0.90),
+				clampf(pow(maxf(raw_col.g, 0.02), 0.67), 0.12, 0.90),
+				clampf(pow(maxf(raw_col.b, 0.02), 0.67), 0.12, 0.90)
 			)
-		if ml.contains("hair"):
-			var hair_col := raw_col if has_override else Color(0.18, 0.11, 0.07)
-			return _make_creature_shader_material(
-				hair_col, hair_col.darkened(0.28), Color(0.68, 0.52, 0.34), 0.74, 0.14, 0.08, 2.4
-			)
-		var garment_col := (
-			raw_col
-			if has_override
-			else Color(
-				clampf(pow(maxf(raw_col.r, 0.02), 0.68), 0.12, 0.88),
-				clampf(pow(maxf(raw_col.g, 0.02), 0.68), 0.12, 0.88),
-				clampf(pow(maxf(raw_col.b, 0.02), 0.68), 0.12, 0.88)
-			)
-		)
-		return _make_creature_shader_material(
-			garment_col, garment_col.darkened(0.26), Color(0.92, 0.84, 0.68), 0.78, 0.28, 0.08, 2.2
-		)
-
-	# 5. Wildlife (Stag, Deer, Wolf, Fox): anatomical fur shading + velvet rim light
-	if is_animal:
-		var fur_col := (
-			raw_col
-			if has_override
-			else Color(
-				clampf(pow(maxf(raw_col.r, 0.02), 0.66) * 1.05, 0.10, 0.92),
-				clampf(pow(maxf(raw_col.g, 0.02), 0.66) * 1.05, 0.10, 0.92),
-				clampf(pow(maxf(raw_col.b, 0.02), 0.66) * 1.05, 0.10, 0.92)
-			)
-		)
-		return _make_creature_shader_material(
-			fur_col, fur_col.darkened(0.28), Color(0.95, 0.82, 0.62), 0.76, 0.34, 0.09, 1.9
-		)
+		var cmat := StandardMaterial3D.new()
+		cmat.albedo_color = c_col
+		cmat.roughness = 0.74
+		return cmat
 
 	if not apply_structural_textures:
 		var pmat := StandardMaterial3D.new()
@@ -763,37 +785,22 @@ static func _create_styled_surface_material(
 		pmat.roughness = 0.78
 		return pmat
 
-	# 6. Medieval Village Architecture & Props (Tiny Glade / Manor Lords shader)
+	# 5. Medieval Village Architecture & Props
 	if ml.contains("roof") or (ml == "red" and not is_tent):
-		var is_terracotta := ml.contains("red")
-		var roof_pri := Color(0.68, 0.34, 0.24) if is_terracotta else Color(0.28, 0.35, 0.40)
-		var roof_sec := Color(0.48, 0.22, 0.16) if is_terracotta else Color(0.18, 0.23, 0.28)
-		return _make_arch_shader_material(
-			"pbr_roof_slate", roof_pri, roof_sec, 0.48, 0.46, 0.85, 0.70, 0.0, 0.32, 0.28
-		)
-
+		var r_pri := Color(0.68, 0.34, 0.24) if ml.contains("red") else Color(0.28, 0.35, 0.40)
+		return _make_arch_shader_material("pbr_roof_slate", r_pri, r_pri, 0.48, 0.46, 0.85, 0.70)
 	if ml.contains("plaster") or ml.contains("beige") or ml == "white":
-		var wall_pri := Color(0.68, 0.61, 0.50)
-		var wall_sec := Color(0.52, 0.45, 0.36)
-		return _make_arch_shader_material(
-			"pbr_lime_plaster", wall_pri, wall_sec, 0.42, 0.45, 0.65, 0.86, 0.0, 0.48, 0.18
-		)
-
+		var w_col := Color(0.68, 0.61, 0.50)
+		return _make_arch_shader_material("pbr_lime_plaster", w_col, w_col, 0.42, 0.45, 0.65, 0.86)
 	if ml.contains("stone") or ml.contains("grey") or ml.contains("gray"):
-		# Use clean granite cliff detail (no fake grid mortar lines crossing 3D stone blocks!)
-		var is_light := ml.contains("light")
-		var st_pri := Color(0.68, 0.67, 0.64) if is_light else Color(0.50, 0.51, 0.50)
-		var st_sec := Color(0.52, 0.50, 0.47) if is_light else Color(0.36, 0.37, 0.38)
+		var s_pri := Color(0.68, 0.67, 0.64) if ml.contains("light") else Color(0.50, 0.51, 0.50)
 		return _make_arch_shader_material(
-			"pbr_cliff_rock", st_pri, st_sec, 0.46, 0.42, 0.78, 0.80, 0.0, 0.55, 0.30
+			"pbr_cliff_rock", s_pri, s_pri, 0.46, 0.42, 0.78, 0.80, 0.0, 0.55
 		)
-
 	if ml.contains("metal") or ml.contains("steel") or ml.contains("gold"):
-		var is_gold := ml.contains("gold")
-		var met_pri := Color(0.88, 0.70, 0.34) if is_gold else Color(0.42, 0.45, 0.49)
-		var met_sec := Color(0.64, 0.48, 0.20) if is_gold else Color(0.26, 0.28, 0.32)
+		var m_pri := Color(0.88, 0.70, 0.34) if ml.contains("gold") else Color(0.42, 0.45, 0.49)
 		return _make_arch_shader_material(
-			"pbr_cliff_rock", met_pri, met_sec, 0.85, 0.25, 0.40, 0.34, 0.82, 0.0, 0.34
+			"pbr_cliff_rock", m_pri, m_pri, 0.85, 0.25, 0.40, 0.34, 0.82, 0.0
 		)
 
 	if ml.contains("green") or ml.contains("pink") or is_tent:
