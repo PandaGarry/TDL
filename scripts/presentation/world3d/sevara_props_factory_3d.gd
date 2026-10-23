@@ -352,7 +352,8 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 	var deck_w := 2.92
 
 	# 1. Bank Stone Abutment Foundations & Deep-Channel Masonry Piers in the Nivarel River
-	for pier_x in [6.35, 9.85, 14.15, 17.65]:
+	var pier_xs: Array[float] = [6.35, 9.85, 14.15, 17.65]
+	for pier_x: float in pier_xs:
 		var pz := SevaraTerrainGen3D._main_road_z(pier_x)
 		var py := SevaraTerrainGen3D.get_bridge_deck_y_at_x(pier_x)
 		var dz := (
@@ -363,7 +364,7 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 			/ 0.4
 		)
 		var yaw := -atan2(dz, 1.0)
-		var is_bank := pier_x < 7.5 or pier_x > 16.5
+		var is_bank: bool = pier_x < 7.5 or pier_x > 16.5
 		var pier := MeshInstance3D.new()
 		var pbox := BoxMesh.new()
 		pbox.size = Vector3(1.25 if is_bank else 0.96, 2.50, deck_w + 0.24)
