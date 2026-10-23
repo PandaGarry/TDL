@@ -35,9 +35,15 @@ func _ready() -> void:
 func _install_backdrop_texture() -> void:
 	var bg_world := SevaraWorld3D.new()
 	bg_world.name = "MainMenuWorld3D"
+	add_child(bg_world)
 	bg_world.ensure_built()
 	bg_world.set_camera_lookpoint("valley_panorama")
-	add_child(bg_world)
+	_title_label.add_theme_color_override("font_shadow_color", Color(0.04, 0.05, 0.03, 0.82))
+	_title_label.add_theme_constant_override("shadow_offset_x", 2)
+	_title_label.add_theme_constant_override("shadow_offset_y", 3)
+	_subtitle_label.add_theme_color_override("font_shadow_color", Color(0.04, 0.05, 0.03, 0.85))
+	_subtitle_label.add_theme_constant_override("shadow_offset_x", 1)
+	_subtitle_label.add_theme_constant_override("shadow_offset_y", 2)
 
 
 func _exit_tree() -> void:

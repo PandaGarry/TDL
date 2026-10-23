@@ -39,6 +39,7 @@ var _terrain_mesh_inst: MeshInstance3D
 var _water_mesh_inst: MeshInstance3D
 var _terrain_shader_mat: ShaderMaterial
 var _water_shader_mat: ShaderMaterial
+var _sky_shader_mat: ShaderMaterial
 var _terrain_greybox_mat: StandardMaterial3D
 var _water_greybox_mat: StandardMaterial3D
 
@@ -230,6 +231,8 @@ func sync_from_session(session: GameSession) -> Dictionary:
 	var scav_q := int(round(float(meadow_node.get("karune_predators", 0.25)) * 10.0))
 	var gfx: Dictionary = SettingsManager.graphics_profile()
 	var fol_dens := float(gfx.get("foliage_density", 1.0))
+	var anim_shaders := bool(gfx.get("wind_and_water_shaders", true))
+	_apply_shader_animation_toggle(anim_shaders)
 	var meadow_sig := "%.2f" % fol_dens
 	if meadow_sig != _last_meadow_signature:
 		_last_meadow_signature = meadow_sig
@@ -238,6 +241,7 @@ func sync_from_session(session: GameSession) -> Dictionary:
 		_meadow_multimesh_root.add_child(
 			SevaraPropsFactory3D.build_dense_meadow_multimeshes(fol_dens)
 		)
+		_apply_shader_animation_toggle(anim_shaders)
 
 	var eco_sig := (
 		"%s|%d|%s|%d|%d|%d"
@@ -281,9 +285,9 @@ func _build_environment_and_lights() -> void:
 	var sky := Sky.new()
 	var sky_shader := SevaraAssetLibrary3D.load_shader("sevara_sky_3d.gdshader")
 	if sky_shader != null:
-		var sky_smat := ShaderMaterial.new()
-		sky_smat.shader = sky_shader
-		sky.sky_material = sky_smat
+		_sky_shader_mat = ShaderMaterial.new()
+		_sky_shader_mat.shader = sky_shader
+		sky.sky_material = _sky_shader_mat
 	else:
 		var sky_mat := ProceduralSkyMaterial.new()
 		sky_mat.sky_top_color = Color(0.24, 0.46, 0.70)
@@ -406,9 +410,9 @@ func _populate_static_settlement() -> void:
 		SevaraPropsFactory3D.populate_static_settlement(_settlement_root)
 
 
-func _populate_step2_boulders() -> void:
-	var step2_rocks: Array[Dictionary] = [
-		# Stone ford & central rapids boulders (around z = -6..+1, r_cx ~ 8..10)
+static func get_step2_boulder_specs() -> Array[Dictionary]:
+	return [
+		# Stone ford & central rapids boulders (clear of cart ruts: road_core < 0.05)
 		{"pos": Vector2(5.9, -4.5), "sc": Vector3(1.15, 0.72, 1.05), "moss": true},
 		{"pos": Vector2(6.3, -1.2), "sc": Vector3(0.95, 0.62, 0.90), "moss": true},
 		{"pos": Vector2(12.2, -4.3), "sc": Vector3(1.25, 0.78, 1.15), "moss": true},
@@ -416,31 +420,40 @@ func _populate_step2_boulders() -> void:
 		{"pos": Vector2(8.3, -4.6), "sc": Vector3(0.78, 0.45, 0.72), "moss": false},
 		{"pos": Vector2(10.2, -4.5), "sc": Vector3(0.72, 0.42, 0.68), "moss": false},
 		{"pos": Vector2(8.6, -1.0), "sc": Vector3(0.68, 0.38, 0.64), "moss": false},
-		{"pos": Vector2(10.6, 2.7), "sc": Vector3(0.76, 0.34, 0.70), "moss": false},
-		{"pos": Vector2(12.1, 2.6), "sc": Vector3(0.82, 0.36, 0.74), "moss": false},
-		{"pos": Vector2(13.6, 2.5), "sc": Vector3(0.74, 0.32, 0.68), "moss": false},
-		{"pos": Vector2(9.2, 0.8), "sc": Vector3(1.15, 0.78, 1.08), "moss": true},
-		{"pos": Vector2(15.2, 0.9), "sc": Vector3(1.22, 0.82, 1.12), "moss": true},
+		# Upstream stepping stones bordering the Stone Ford causeway
+		{"pos": Vector2(10.2, 1.15), "sc": Vector3(0.74, 0.32, 0.68), "moss": false},
+		{"pos": Vector2(11.5, 1.18), "sc": Vector3(0.80, 0.34, 0.72), "moss": false},
+		{"pos": Vector2(12.8, 1.12), "sc": Vector3(0.76, 0.32, 0.70), "moss": false},
+		{"pos": Vector2(14.0, 1.08), "sc": Vector3(0.70, 0.30, 0.64), "moss": false},
+		# Shore abutment boulders flanking the Stone Ford approach ramps
+		{"pos": Vector2(8.6, 0.8), "sc": Vector3(1.12, 0.74, 1.04), "moss": true},
+		{"pos": Vector2(15.4, 0.9), "sc": Vector3(1.18, 0.78, 1.08), "moss": true},
+		{"pos": Vector2(9.0, 4.4), "sc": Vector3(1.08, 0.72, 1.02), "moss": true},
+		{"pos": Vector2(15.0, 4.3), "sc": Vector3(1.14, 0.76, 1.06), "moss": true},
 		# Upper creek rapids & mossy bank boulders (z = -28..-8)
-		{"pos": Vector2(2.6, -9.8), "sc": Vector3(1.45, 1.05, 1.35), "moss": true},
-		{"pos": Vector2(9.2, -9.2), "sc": Vector3(1.30, 0.92, 1.20), "moss": true},
-		{"pos": Vector2(0.4, -15.6), "sc": Vector3(1.65, 1.22, 1.50), "moss": true},
-		{"pos": Vector2(3.4, -15.0), "sc": Vector3(0.88, 0.55, 0.82), "moss": false},
-		{"pos": Vector2(6.8, -16.2), "sc": Vector3(1.50, 1.10, 1.40), "moss": true},
-		{"pos": Vector2(-1.4, -24.5), "sc": Vector3(1.85, 1.35, 1.65), "moss": true},
-		{"pos": Vector2(4.8, -23.2), "sc": Vector3(1.55, 1.15, 1.45), "moss": true},
-		# Lower creek pool & meadow bank boulders (z = +3..+14)
-		{"pos": Vector2(7.8, 3.8), "sc": Vector3(1.35, 0.95, 1.25), "moss": true},
-		{"pos": Vector2(14.6, 4.6), "sc": Vector3(1.55, 1.12, 1.42), "moss": true},
-		{"pos": Vector2(11.4, 6.2), "sc": Vector3(0.85, 0.50, 0.78), "moss": false},
-		{"pos": Vector2(9.2, 10.4), "sc": Vector3(1.60, 1.18, 1.48), "moss": true},
-		{"pos": Vector2(16.8, 11.0), "sc": Vector3(1.75, 1.28, 1.60), "moss": true},
+		{"pos": Vector2(2.6, -9.8), "sc": Vector3(1.38, 0.98, 1.28), "moss": true},
+		{"pos": Vector2(9.2, -9.2), "sc": Vector3(1.26, 0.88, 1.18), "moss": true},
+		{"pos": Vector2(0.4, -15.6), "sc": Vector3(1.52, 1.12, 1.40), "moss": true},
+		{"pos": Vector2(3.4, -15.0), "sc": Vector3(0.85, 0.52, 0.80), "moss": false},
+		{"pos": Vector2(6.8, -16.2), "sc": Vector3(1.42, 1.04, 1.32), "moss": true},
+		{"pos": Vector2(-1.4, -24.5), "sc": Vector3(1.68, 1.20, 1.52), "moss": true},
+		{"pos": Vector2(4.8, -23.2), "sc": Vector3(1.45, 1.08, 1.36), "moss": true},
+		# Lower creek pool & meadow bank boulders (z = +5..+14)
+		{"pos": Vector2(7.8, 5.2), "sc": Vector3(1.30, 0.90, 1.20), "moss": true},
+		{"pos": Vector2(14.6, 5.4), "sc": Vector3(1.48, 1.05, 1.36), "moss": true},
+		{"pos": Vector2(11.4, 6.2), "sc": Vector3(0.82, 0.48, 0.76), "moss": false},
+		{"pos": Vector2(9.2, 10.4), "sc": Vector3(1.52, 1.10, 1.40), "moss": true},
+		{"pos": Vector2(16.8, 11.0), "sc": Vector3(1.62, 1.18, 1.50), "moss": true},
 		# Hillside terrace & crossroads accent boulders
-		{"pos": Vector2(-9.6, -12.8), "sc": Vector3(1.65, 1.18, 1.50), "moss": true},
-		{"pos": Vector2(-8.2, -12.1), "sc": Vector3(0.92, 0.65, 0.86), "moss": true},
-		{"pos": Vector2(-6.8, -5.8), "sc": Vector3(1.10, 0.75, 1.02), "moss": true},
-		{"pos": Vector2(-15.5, -19.5), "sc": Vector3(1.95, 1.42, 1.75), "moss": true},
+		{"pos": Vector2(-9.6, -12.8), "sc": Vector3(1.55, 1.10, 1.42), "moss": true},
+		{"pos": Vector2(-8.2, -12.1), "sc": Vector3(0.90, 0.62, 0.84), "moss": true},
+		{"pos": Vector2(-6.8, -5.8), "sc": Vector3(1.06, 0.72, 0.98), "moss": true},
+		{"pos": Vector2(-15.5, -19.5), "sc": Vector3(1.75, 1.26, 1.60), "moss": true},
 	]
+
+
+func _populate_step2_boulders() -> void:
+	var step2_rocks := get_step2_boulder_specs()
 	for r_idx in range(step2_rocks.size()):
 		var rs: Dictionary = step2_rocks[r_idx]
 		var rp: Vector2 = rs["pos"]
@@ -807,8 +820,24 @@ func _sync_entities_from_world(
 func _map_tile_to_valley_3d(tile: Vector2i) -> Vector3:
 	var wx := -18.5 + float(tile.x) * 1.45
 	var wz := -11.5 + float(tile.y) * 1.45
-	var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
+	var wy := SevaraTerrainGen3D.get_walkable_height_at(wx, wz)
 	return Vector3(wx, wy, wz)
+
+
+func _apply_shader_animation_toggle(enabled: bool) -> void:
+	if _water_shader_mat != null:
+		_water_shader_mat.set_shader_parameter("flow_speed", 0.54 if enabled else 0.0)
+		_water_shader_mat.set_shader_parameter("wave_height", 0.016 if enabled else 0.0)
+	if _sky_shader_mat != null:
+		_sky_shader_mat.set_shader_parameter("cloud_speed", 0.012 if enabled else 0.0)
+	if _meadow_multimesh_root != null and _meadow_multimesh_root.get_child_count() > 0:
+		var bundle := _meadow_multimesh_root.get_child(0)
+		if bundle != null:
+			var carpet := bundle.get_node_or_null("GrassBladeCarpetMM") as MultiMeshInstance3D
+			if carpet != null and carpet.multimesh != null and carpet.multimesh.mesh != null:
+				var mat := carpet.multimesh.mesh.surface_get_material(0) as ShaderMaterial
+				if mat != null:
+					mat.set_shader_parameter("wind_strength", 1.0 if enabled else 0.0)
 
 
 func _update_grass_player_position(pos: Vector3) -> void:
@@ -895,67 +924,83 @@ func _apply_day_phase_lighting(day_phase: String, is_greybox: bool) -> void:
 		_sun_light.light_color = Color(0.90, 0.92, 0.95)
 		_sun_light.light_energy = 1.05
 		return
-	match day_phase:
+	var presets: Dictionary = {
 		"noon":
-			_sun_light.light_color = Color(1.0, 0.97, 0.90)
-			_sun_light.light_energy = 1.18
-			_sun_light.rotation_degrees = Vector3(-56.0, -26.0, 0.0)
+		[
+			Color(1.0, 0.97, 0.90),
+			1.16,
+			Vector3(-56.0, -26.0, 0.0),
+			Color(0.60, 0.69, 0.78),
+			Color(0.74, 0.82, 0.88),
+			Color(0.18, 0.46, 0.78),
+			Color(0.82, 0.88, 0.92),
+			Color(1.0, 0.99, 0.96),
+		],
 		"dusk":
-			_sun_light.light_color = Color(1.0, 0.76, 0.54)
-			_sun_light.light_energy = 1.02
-			_sun_light.rotation_degrees = Vector3(-30.0, -46.0, 0.0)
+		[
+			Color(1.0, 0.72, 0.46),
+			1.04,
+			Vector3(-26.0, -48.0, 0.0),
+			Color(0.68, 0.58, 0.50),
+			Color(0.88, 0.72, 0.56),
+			Color(0.24, 0.36, 0.62),
+			Color(0.92, 0.72, 0.54),
+			Color(1.0, 0.85, 0.66),
+		],
 		"night":
-			_sun_light.light_color = Color(0.45, 0.58, 0.82)
-			_sun_light.light_energy = 0.52
-			_sun_light.rotation_degrees = Vector3(-38.0, 25.0, 0.0)
-		_:
-			_sun_light.light_color = Color(1.0, 0.95, 0.86)
-			_sun_light.light_energy = 1.12
-			_sun_light.rotation_degrees = Vector3(-44.0, -34.0, 0.0)
+		[
+			Color(0.45, 0.58, 0.82),
+			0.52,
+			Vector3(-38.0, 25.0, 0.0),
+			Color(0.28, 0.36, 0.48),
+			Color(0.22, 0.28, 0.38),
+			Color(0.06, 0.11, 0.22),
+			Color(0.18, 0.25, 0.38),
+			Color(0.42, 0.50, 0.65),
+		],
+	}
+	var p: Array = (
+		presets
+		. get(
+			day_phase,
+			[
+				Color(1.0, 0.95, 0.86),
+				1.08,
+				Vector3(-42.0, -34.0, 0.0),
+				Color(0.58, 0.67, 0.76),
+				Color(0.72, 0.80, 0.86),
+				Color(0.20, 0.48, 0.80),
+				Color(0.84, 0.88, 0.90),
+				Color(1.0, 0.98, 0.94),
+			]
+		)
+	)
+	_sun_light.light_color = p[0] as Color
+	_sun_light.light_energy = float(p[1])
+	_sun_light.rotation_degrees = p[2] as Vector3
+	_environment.ambient_light_color = p[3] as Color
+	_environment.fog_light_color = p[4] as Color
+	if _sky_shader_mat != null:
+		_sky_shader_mat.set_shader_parameter("sky_top_color", p[5] as Color)
+		_sky_shader_mat.set_shader_parameter("sky_horizon_color", p[6] as Color)
+		_sky_shader_mat.set_shader_parameter("cloud_bright_color", p[7] as Color)
 
 
 func _npc_palette_for_id(npc_id: String, idx: int) -> Dictionary:
-	match npc_id:
-		"npc_sarela":
-			return {
-				"cloak": Color(0.24, 0.44, 0.30),
-				"tunic": Color(0.48, 0.42, 0.32),
-				"pack": false,
-				"satchel": true,
-				"staff": false,
-			}
-		"npc_tovan":
-			return {
-				"cloak": Color(0.46, 0.34, 0.22),
-				"tunic": Color(0.36, 0.38, 0.40),
-				"pack": true,
-				"satchel": false,
-				"staff": true,
-			}
-		"npc_selima":
-			return {
-				"cloak": Color(0.54, 0.28, 0.24),
-				"tunic": Color(0.56, 0.50, 0.40),
-				"pack": false,
-				"satchel": true,
-				"staff": false,
-			}
-		"npc_evaren":
-			return {
-				"cloak": Color(0.28, 0.38, 0.26),
-				"tunic": Color(0.42, 0.34, 0.26),
-				"pack": true,
-				"satchel": true,
-				"staff": true,
-			}
-		_:
-			var c_base := Color(0.30, 0.36, 0.44).lerp(
-				Color(0.48, 0.38, 0.28), float(idx % 4) / 3.0
-			)
-			return {
-				"cloak": c_base,
-				"tunic": Color(0.46, 0.42, 0.36),
-				"pack": idx % 2 == 0,
-				"satchel": idx % 2 == 1,
-				"staff": idx % 3 == 0,
-			}
+	var table: Dictionary = {
+		"npc_sarela": [Color(0.24, 0.44, 0.30), Color(0.48, 0.42, 0.32), false, true, false],
+		"npc_tovan": [Color(0.46, 0.34, 0.22), Color(0.36, 0.38, 0.40), true, false, true],
+		"npc_selima": [Color(0.54, 0.28, 0.24), Color(0.56, 0.50, 0.40), false, true, false],
+		"npc_evaren": [Color(0.28, 0.38, 0.26), Color(0.42, 0.34, 0.26), true, true, true],
+	}
+	var c_base := Color(0.30, 0.36, 0.44).lerp(Color(0.48, 0.38, 0.28), float(idx % 4) / 3.0)
+	var row: Array = table.get(
+		npc_id, [c_base, Color(0.46, 0.42, 0.36), idx % 2 == 0, idx % 2 == 1, idx % 3 == 0]
+	)
+	return {
+		"cloak": row[0],
+		"tunic": row[1],
+		"pack": row[2],
+		"satchel": row[3],
+		"staff": row[4],
+	}

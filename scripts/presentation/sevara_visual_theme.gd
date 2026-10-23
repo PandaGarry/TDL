@@ -7,7 +7,7 @@ extends RefCounted
 ## from `WorldClock`, and renders the orthographic 55-60 degree Sevara valley
 ## layers and 6.5-7 head character silhouettes without mutating `WorldState`.
 
-const TEXTURE_DIR := "res://assets/textures/sevara_p1"
+const TEXTURE_DIR := "res://assets/nature"
 const CAMERA_ZOOM_PRESETS := [0.65, 1.0, 1.45]
 const PBR_MATERIAL_STEMS := [
 	"tex_meadow_moss_and_snow",

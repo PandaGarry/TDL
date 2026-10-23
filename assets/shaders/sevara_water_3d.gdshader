@@ -1,14 +1,14 @@
 shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_back, diffuse_burley, specular_schlick_ggx;
 
-// Step 2 Nivarel Mountain Creek & Ford Water Shader (v3 — Crystal Olive-Emerald Stream):
-// - Suppresses Godot's automatic blue sky-cubemap mirror by using controlled roughness (0.36..0.52)
-//   and explicit warm sunlit wave glints, so the stream reads as crystal olive-emerald & amber-teal
-//   mountain water over visible 3D riverbed pebbles instead of neon sky-blue.
+// Step 2 Nivarel Mountain Creek & Stone Ford Water Shader (v4 — Physical Boulder Wakes & Optics):
+// - Crystal olive-emerald & river-teal mountain water over visible 3D cobblestone ford & pebble bed.
+// - Physical boulder wake rings & downstream V-shaped current foam around in-stream stepping stones.
+// - Reactive to `silt_load` (SevaraEcoChain) and `flow_speed` (SettingsManager.wind_and_water_shaders).
 
-uniform vec4 shallow_color : source_color = vec4(0.20, 0.29, 0.18, 0.24);
-uniform vec4 mid_color : source_color = vec4(0.10, 0.25, 0.19, 0.54);
-uniform vec4 deep_color : source_color = vec4(0.06, 0.18, 0.15, 0.74);
+uniform vec4 shallow_color : source_color = vec4(0.20, 0.29, 0.18, 0.22);
+uniform vec4 mid_color : source_color = vec4(0.10, 0.25, 0.19, 0.52);
+uniform vec4 deep_color : source_color = vec4(0.06, 0.18, 0.15, 0.72);
 uniform vec4 sky_reflection_tint : source_color = vec4(0.34, 0.42, 0.36, 1.0);
 uniform vec4 foam_color : source_color = vec4(0.78, 0.82, 0.76, 1.0);
 uniform float flow_speed = 0.54;
@@ -81,6 +81,34 @@ float river_center_x(float wz) {
 	return 7.8 + wz * 0.22 + sin(wz * 0.088 + 0.35) * 3.6 + cos(wz * 0.044 - 0.2) * 1.8;
 }
 
+// Evaluates bow-wave collar & downstream wake behind a single submerged/emergent rock at `bpos`
+float single_rock_wake(vec2 xz, vec2 bpos, float radius) {
+	vec2 d = xz - bpos;
+	float r = length(d);
+	// Bow-wave ring around the boulder perimeter
+	float collar = exp(-pow((r - radius) / 0.18, 2.0));
+	// Downstream V-wake trailing toward +Z (creek flows from -Z to +Z)
+	float downstream = smoothstep(-0.10, 1.35, d.y) * (1.0 - smoothstep(0.45, 1.85, d.y));
+	float spread_w = radius * 0.75 + max(d.y, 0.0) * 0.32;
+	float v_wake = exp(-pow((abs(d.x) - spread_w * 0.62) / 0.22, 2.0)) * downstream;
+	return clamp(collar * 0.85 + v_wake * 0.65, 0.0, 1.0);
+}
+
+float stream_boulder_wakes(vec2 xz) {
+	float w = 0.0;
+	// Stepping stones along the upstream edge of the Stone Ford (z ~ 1.08..1.18)
+	w = max(w, single_rock_wake(xz, vec2(10.2, 1.15), 0.36));
+	w = max(w, single_rock_wake(xz, vec2(11.5, 1.18), 0.40));
+	w = max(w, single_rock_wake(xz, vec2(12.8, 1.12), 0.38));
+	w = max(w, single_rock_wake(xz, vec2(14.0, 1.08), 0.34));
+	// Rapids rocks upstream & downstream of the ford
+	w = max(w, single_rock_wake(xz, vec2(8.6, -1.0), 0.42));
+	w = max(w, single_rock_wake(xz, vec2(10.2, -4.5), 0.44));
+	w = max(w, single_rock_wake(xz, vec2(8.3, -4.6), 0.44));
+	w = max(w, single_rock_wake(xz, vec2(11.4, 6.2), 0.46));
+	return w;
+}
+
 void vertex() {
 	v_world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	v_bathymetry = COLOR.rgb; // R = shore_prox, G = water_depth, B = rapids_fac
@@ -121,45 +149,48 @@ void fragment() {
 	// Beer-Lambert optical absorption: warm golden-olive shallows -> emerald-teal deep channel
 	vec3 water_tint = mix(shallow_color.rgb, mid_color.rgb, smoothstep(0.14, 0.56, water_depth));
 	water_tint = mix(water_tint, deep_color.rgb, smoothstep(0.48, 0.92, water_depth));
-	vec3 silt_tint = vec3(0.26, 0.22, 0.14);
-	water_tint = mix(water_tint, silt_tint, clamp(silt_load - 0.18, 0.0, 0.55));
+	float silt_fac = clamp((silt_load - 0.20) * 1.35, 0.0, 0.65);
+	vec3 silt_tint = vec3(0.27, 0.23, 0.14);
+	water_tint = mix(water_tint, silt_tint, silt_fac);
 
-	float bed_visibility = exp(-water_depth * 2.1) * 0.78;
+	float bed_visibility = exp(-water_depth * (2.0 + silt_fac * 1.4)) * 0.78;
 	vec3 water_col = mix(water_tint, bed_pebbles, bed_visibility);
 
 	// Soft canopy/sky tint on grazing angles (warm green-teal instead of neon blue)
 	float fresnel = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 4.0);
-	water_col = mix(water_col, sky_reflection_tint.rgb, fresnel * 0.20);
+	water_col = mix(water_col, sky_reflection_tint.rgb, fresnel * 0.18);
 
 	// 1) Delicate broken shoreline ripples
 	float fn1 = fbm(v_world_pos.xz * 2.8 + vec2(-t * 0.45, -t * 1.65));
 	float fn2 = fbm(v_world_pos.xz * 4.6 + vec2(t * 0.35, -t * 2.35));
 	float shore_zone = (1.0 - smoothstep(0.03, 0.13, water_depth)) * smoothstep(0.01, 0.04, water_depth);
-	float shore_lace = smoothstep(0.60, 0.80, fn1 * fn2 * 2.05) * shore_zone * 0.38;
+	float shore_lace = smoothstep(0.60, 0.80, fn1 * fn2 * 2.05) * shore_zone * 0.36;
 
 	// 2) Fine current wisps across the stone ford (z ~ +2.68) and boulder rapids
 	float r_cx = river_center_x(v_world_pos.z);
-	float d_ford = length(vec2((v_world_pos.x - r_cx) * 0.65, v_world_pos.z - 2.68));
+	float d_ford = length(vec2((v_world_pos.x - r_cx) * 0.55, v_world_pos.z - 2.45));
 	float d_rapid1 = abs(v_world_pos.z - (-15.0));
 	float d_rapid2 = abs(v_world_pos.z - 6.2);
 	float rapid_zone = max(
-		exp(-pow(d_ford / 1.30, 2.0)) * 0.70,
+		exp(-pow(d_ford / 1.45, 2.0)) * 0.68,
 		max(exp(-pow(d_rapid1 / 1.15, 2.0)) * 0.55, exp(-pow(d_rapid2 / 1.05, 2.0)) * 0.50)
-	) * smoothstep(0.05, 0.24, water_depth);
+	) * smoothstep(0.04, 0.22, water_depth);
 	float streak_n = fbm(vec2(v_world_pos.x * 2.8 + sin(v_world_pos.z * 0.5) * 0.9, v_world_pos.z * 0.85 - t * 2.65));
-	float rapid_wisps = smoothstep(0.64, 0.85, streak_n * (0.65 + 0.55 * fn2)) * (rapid_zone * 0.58 + rapids_weight * 0.22);
+	float rapid_wisps = smoothstep(0.62, 0.84, streak_n * (0.65 + 0.55 * fn2)) * (rapid_zone * 0.56 + rapids_weight * 0.20);
 
-	// 3) Warm sunlit wave crest glints
-	float sun_glint = smoothstep(0.78, 0.91, h1) * 0.26;
+	// 3) Physical bow-wave collars & V-wakes around in-stream stepping stones & boulders
+	float boulder_wake = stream_boulder_wakes(v_world_pos.xz) * smoothstep(0.32, 0.72, fn1 * 0.6 + streak_n * 0.6);
 
-	float total_foam = clamp(shore_lace + rapid_wisps + sun_glint, 0.0, 0.58);
+	// 4) Warm sunlit wave crest glints
+	float sun_glint = smoothstep(0.78, 0.91, h1) * 0.24;
+
+	float total_foam = clamp(shore_lace + rapid_wisps + boulder_wake * 0.62 + sun_glint, 0.0, 0.64);
 	ALBEDO = mix(water_col, foam_color.rgb, total_foam);
-	// Moderate roughness prevents Godot's Sky cubemap from painting the creek electric-blue!
 	ROUGHNESS = mix(0.38, 0.56, total_foam);
 	METALLIC = 0.0;
 	SPECULAR = 0.24;
 
 	float shore_feather = smoothstep(0.0, 0.10, water_depth);
 	float base_alpha = mix(shallow_color.a, deep_color.a, smoothstep(0.08, 0.78, water_depth));
-	ALPHA = clamp(base_alpha + total_foam * 0.16, 0.0, 0.76) * shore_feather;
+	ALPHA = clamp(base_alpha + silt_fac * 0.12 + total_foam * 0.18, 0.0, 0.78) * shore_feather;
 }

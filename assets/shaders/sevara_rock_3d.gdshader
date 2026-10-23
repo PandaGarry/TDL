@@ -1,25 +1,28 @@
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
 
-// Step 2 3D Triplanar Granite, Limestone & Mossy Boulder Shader (v3 — Crisp Angular Facets):
-// - Combines screen-space geometric facet normals (`dFdx`/`dFdy`) with 3D triplanar fracture
-//   micro-normals so low-poly boulders read as sharp, chiseled mountain rock instead of smooth blobs.
-// - Subtle world-space vertex displacement gives every boulder instance a unique silhouette.
-// - Patchy moss cushions sit in upper crevices while leaving sunlit granite facets exposed.
+// Step 2 3D Triplanar Mountain Granite, Crevice Moss & Stream Waterline Shader (v4):
+// - Seam-free continuous vertex shaping (`v_local` radial direction — zero UV/hard-edge seam tearing!).
+// - 3-axis triplanar projection of `Rocks_Diffuse.png` (`albedo_tex`) with analytical 3D normal
+//   extraction directly from the rock fracture crevices and quartz veins.
+// - Organic crevice & dome moss cushions (no flat green polygon caps on low-poly top faces!).
+// - Physical stream interaction at `WATER_SURFACE_Y = 0.42`: capillary wet dark band, broken
+//   waterline foam collar, and underwater Beer-Lambert optical absorption.
 
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform sampler2D moss_tex : source_color, filter_linear_mipmap, repeat_enable;
-uniform vec3 tint : source_color = vec3(0.92, 0.91, 0.88);
-uniform vec3 moss_color : source_color = vec3(0.23, 0.37, 0.15);
-uniform float moss_amount : hint_range(0.0, 1.0) = 0.56;
+uniform vec3 tint : source_color = vec3(0.94, 0.92, 0.88);
+uniform vec3 moss_color : source_color = vec3(0.22, 0.36, 0.14);
+uniform float moss_amount : hint_range(0.0, 1.0) = 0.54;
 uniform float snow_amount : hint_range(0.0, 1.0) = 0.04;
 uniform float wetness : hint_range(0.0, 1.0) = 0.22;
 uniform float triplanar : hint_range(0.0, 1.0) = 1.0;
-uniform float triplanar_scale : hint_range(0.02, 2.0) = 0.34;
+uniform float triplanar_scale : hint_range(0.02, 2.0) = 0.58;
 
 varying vec3 v_world;
 varying vec3 v_wnormal;
+varying vec3 v_dome_dir;
 varying vec4 v_custom;
 
 float hash12(vec2 p) {
@@ -60,19 +63,20 @@ float triplanar_fbm(vec3 p, vec3 n, float scale) {
 	return nx * w.x + ny * w.y + nz * w.z;
 }
 
-float triplanar_grain(vec3 p, vec3 n, float scale) {
-	vec3 w = abs(n);
+vec3 triplanar_rock_tex(vec3 p, vec3 n, float scale) {
+	vec3 w = pow(abs(n), vec3(4.0));
 	w /= max(w.x + w.y + w.z, 0.0001);
-	return value_noise(p.yz * scale) * w.x
-		+ value_noise(p.xz * scale) * w.y
-		+ value_noise(p.xy * scale) * w.z;
+	vec3 tx = texture(albedo_tex, p.yz * scale + vec2(0.19, 0.43)).rgb;
+	vec3 ty = texture(albedo_tex, p.xz * scale + vec2(0.07, 0.13)).rgb;
+	vec3 tz = texture(albedo_tex, p.xy * scale + vec2(0.61, 0.29)).rgb;
+	return tx * w.x + ty * w.y + tz * w.z;
 }
 
 float rock_micro_height(vec3 p, vec3 n) {
-	float crag = triplanar_fbm(p, n, 3.2);
-	float detail = triplanar_fbm(p + vec3(3.1, 1.4, -2.2), n, 8.4);
-	float strata = sin(p.y * 8.5 + crag * 4.6) * 0.5 + 0.5;
-	return crag * 0.036 + detail * 0.018 + strata * 0.020;
+	vec3 tex_c = triplanar_rock_tex(p, n, triplanar_scale);
+	float tex_luma = dot(tex_c, vec3(0.333));
+	float crag = triplanar_fbm(p, n, 2.5);
+	return tex_luma * 0.044 + crag * 0.024;
 }
 
 vec3 meadow_ground_palette(vec2 xz) {
@@ -88,76 +92,94 @@ vec3 meadow_ground_palette(vec2 xz) {
 
 void vertex() {
 	vec3 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	vec3 wn = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
-	// Subtle world-space crag displacement so each rock instance has angular variety
-	float disp = (value_noise(wp.xz * 2.4 + wp.y * 1.7) - 0.5) * 0.12;
-	VERTEX += NORMAL * disp;
+	// Continuous position-based shaping (identical at shared seam vertices -> zero mesh tearing!)
+	vec3 local_dome = normalize(VERTEX + vec3(0.0, 0.35, 0.0));
+	float disp = (value_noise(wp.xz * 1.9 + wp.y * 1.4) - 0.5) * 0.06;
+	VERTEX += local_dome * disp;
 	v_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	v_wnormal = wn;
+	v_wnormal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	v_dome_dir = normalize((MODEL_MATRIX * vec4(local_dome, 0.0)).xyz);
 	v_custom = INSTANCE_CUSTOM;
 }
 
 void fragment() {
-	// Combine geometric triangle facet normal with vertex normal for crisp chiseled rock planes
-	vec3 dpx = dFdx(v_world);
-	vec3 dpy = dFdy(v_world);
-	vec3 facet_n = normalize(cross(dpy, dpx));
-	if (dot(facet_n, v_wnormal) < 0.0) {
-		facet_n = -facet_n;
-	}
-	vec3 base_n = normalize(mix(v_wnormal, facet_n, 0.66));
+	vec3 base_n = normalize(mix(v_wnormal, v_dome_dir, 0.24));
 
-	// 1. Full 3D Analytical Rock Fracture & Cleavage Micro-Normals
-	float eps = 0.022;
+	// 1. 3D Analytical Rock Fracture & Texture Crevice Micro-Normals
+	float eps = 0.020;
 	float h0 = rock_micro_height(v_world, base_n);
 	float hx = rock_micro_height(v_world + vec3(eps, 0.0, 0.0), base_n);
 	float hy = rock_micro_height(v_world + vec3(0.0, eps, 0.0), base_n);
 	float hz = rock_micro_height(v_world + vec3(0.0, 0.0, eps), base_n);
 	vec3 grad = vec3(h0 - hx, h0 - hy, h0 - hz) / eps;
 	grad -= base_n * dot(grad, base_n);
-	vec3 world_nrm = normalize(base_n + grad * 0.92);
+	vec3 world_nrm = normalize(base_n + grad * 0.95);
 	NORMAL = normalize((VIEW_MATRIX * vec4(world_nrm, 0.0)).xyz);
 
-	// 2. Natural Weathered Granite, Warm Limestone & Lichen Palette
-	float crag = triplanar_fbm(v_world, base_n, 2.8);
-	float detail = triplanar_fbm(v_world + vec3(5.2, -1.8, 3.4), base_n, 7.2);
-	float grain = triplanar_grain(v_world, base_n, 20.0);
-	float strata = sin(v_world.y * 8.5 + crag * 4.6) * 0.5 + 0.5;
-	// Dark crevice veins where `crag` and `detail` dip
-	float fissure = smoothstep(0.36, 0.18, crag * 0.65 + detail * 0.35);
+	// 2. Triplanar `Rocks_Diffuse.png` blended with Weathered Mountain Granite & Warm Limestone
+	vec3 tex_col = triplanar_rock_tex(v_world, base_n, triplanar_scale);
+	float tex_luma = dot(tex_col, vec3(0.333));
+	float crag = triplanar_fbm(v_world, base_n, 2.2);
+	float detail = triplanar_fbm(v_world + vec3(4.7, -1.9, 3.1), base_n, 6.4);
+	float crevice = clamp(1.0 - smoothstep(0.16, 0.54, tex_luma), 0.0, 1.0);
 
-	vec3 slate_dark = vec3(0.24, 0.25, 0.24);
-	vec3 granite_warm = vec3(0.41, 0.39, 0.35);
-	vec3 limestone_sun = vec3(0.52, 0.48, 0.41);
-
-	vec3 c = mix(slate_dark, granite_warm, smoothstep(0.20, 0.68, crag * 0.60 + strata * 0.40));
-	c = mix(c, limestone_sun, smoothstep(0.52, 0.84, detail) * 0.64);
-	c = mix(c, vec3(0.14, 0.14, 0.13), fissure * 0.55);
-	// Pale gold-green crustose lichen flecks on sunlit facets
-	c = mix(c, vec3(0.46, 0.48, 0.32), smoothstep(0.68, 0.88, detail * crag * 1.65) * 0.38);
-	c *= (0.86 + 0.26 * grain) * tint;
+	vec3 slate_base = vec3(0.26, 0.27, 0.26);
+	vec3 granite_warm = vec3(0.44, 0.41, 0.36);
+	vec3 proc_col = mix(slate_base, granite_warm, smoothstep(0.22, 0.76, crag * 0.65 + detail * 0.35));
+	// Blend real rock photography (`Rocks_Diffuse.png`) with procedural macro-variation
+	vec3 c = mix(proc_col, tex_col * vec3(0.82, 0.80, 0.76), 0.68);
+	// Deepen fracture crevices for strong chiseled relief
+	c *= mix(1.0, 0.52, crevice * 0.72);
+	// Subtle warm lichen flecks on sunlit faces
+	c = mix(c, vec3(0.45, 0.47, 0.31), smoothstep(0.68, 0.88, detail * crag * 1.65) * 0.32);
+	c *= tint;
 	if (length(v_custom.rgb) > 0.02) {
 		c *= v_custom.rgb;
 	}
 
+	// Ground contact ambient occlusion at the base of the boulder
 	float up = world_nrm.y;
-	c *= 0.80 + 0.28 * smoothstep(-0.25, 0.85, up);
+	c *= 0.76 + 0.30 * smoothstep(-0.35, 0.82, up);
 
-	// 3. Patchy Moss Cushions in Upper Hollows (leaves rocky ridges & edges exposed!)
+	// 3. Organic Crevice & Dome Moss Cushions (uses smooth `v_dome_dir.y` + crevice depth so
+	//    it NEVER paints a flat green polygon cap on low-poly top triangles!)
 	float inst_moss = v_custom.a > 0.01 ? v_custom.a : moss_amount;
-	float moss_edge_noise = (detail - 0.5) * 0.58 + (crag - 0.5) * 0.32;
-	float moss_mask = smoothstep(0.56, 0.82, base_n.y + moss_edge_noise) * inst_moss;
-	moss_mask *= smoothstep(0.48, 0.68, v_world.y);
-	vec3 ground_moss = meadow_ground_palette(v_world.xz);
-	vec3 rich_moss = mix(moss_color, ground_moss, 0.78) * (0.85 + 0.25 * detail);
-	c = mix(c, rich_moss, clamp(moss_mask, 0.0, 0.74));
+	float dome_up = mix(v_dome_dir.y, world_nrm.y, 0.38);
+	float moss_noise = (detail - 0.48) * 0.62 + (crag - 0.50) * 0.38 + crevice * 0.28;
+	float moss_mask = smoothstep(0.48, 0.78, dome_up + moss_noise) * inst_moss;
+	// Keep moss above the stream waterline (`WATER_SURFACE_Y = 0.42`)
+	moss_mask *= smoothstep(0.46, 0.62, v_world.y);
 
-	// 4. Wet River Sheen near Nivarel Creek Waterline (WATER_SURFACE_Y = 0.42)
-	float water_prox = 1.0 - smoothstep(0.38, 0.64, v_world.y);
-	float wet = clamp(wetness * 0.30 + water_prox * 0.76, 0.0, 0.86);
-	c *= mix(1.0, 0.68, wet);
+	vec3 ground_moss = meadow_ground_palette(v_world.xz);
+	vec3 rich_moss = mix(moss_color, ground_moss, 0.78) * (0.82 + 0.28 * detail);
+	// Dark olive moss rim where moss meets bare stone
+	float moss_rim = smoothstep(0.12, 0.38, moss_mask) * (1.0 - smoothstep(0.38, 0.70, moss_mask));
+	c = mix(c, vec3(0.12, 0.19, 0.08), moss_rim * 0.42);
+	c = mix(c, rich_moss, clamp(moss_mask, 0.0, 0.72));
+
+	// 4. Physical Nivarel Creek Interaction (`WATER_SURFACE_Y = 0.42`):
+	//    - Capillary wet belt just above water (y = 0.42..0.56)
+	//    - Delicate waterline foam ring at y ~ 0.425
+	//    - Underwater optical Beer-Lambert absorption below y = 0.42
+	float water_y = 0.42;
+	float above_w = v_world.y - water_y;
+	float wet_belt = 1.0 - smoothstep(-0.04, 0.15, above_w);
+	float wet = clamp(wetness * 0.26 + wet_belt * 0.80, 0.0, 0.88);
+	c *= mix(1.0, 0.64, wet);
+
+	// Broken foam collar right where the water surface meets the boulder
+	float wl_band = exp(-pow((above_w - 0.008) / 0.022, 2.0));
+	float wl_foam = wl_band * smoothstep(0.42, 0.72, detail * 0.7 + crag * 0.5) * 0.48;
+	c = mix(c, vec3(0.74, 0.80, 0.75), wl_foam);
+
+	// Underwater absorption so submerged boulder bases blend smoothly into the creek depth
+	float submerge_depth = clamp(-above_w * 3.2, 0.0, 1.0);
+	if (submerge_depth > 0.005) {
+		vec3 creek_deep_tint = vec3(0.07, 0.20, 0.16);
+		c = mix(c, creek_deep_tint, submerge_depth * 0.68);
+	}
 
 	ALBEDO = c;
-	ROUGHNESS = mix(mix(0.84, 0.92, moss_mask), 0.28, wet);
-	SPECULAR = mix(0.18, 0.48, wet);
+	ROUGHNESS = mix(mix(0.84, 0.92, moss_mask), 0.22, wet);
+	SPECULAR = mix(0.18, 0.54, wet);
 }

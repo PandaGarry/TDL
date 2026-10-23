@@ -4,7 +4,6 @@ extends RefCounted
 ## Medieval Village, Animated Animals, Animated Characters) and custom Sevara shaders.
 
 const NATURE_DIR := "res://assets/nature/"
-const PBR_TEX_DIR := "res://assets/textures/sevara_p1/"
 const VILLAGE_DIR := "res://assets/models/village/"
 const ANIMALS_DIR := "res://assets/models/animals/"
 const CHARACTERS_DIR := "res://assets/models/characters/"
@@ -314,21 +313,9 @@ static func _build_nature_material(
 		var rock_st: Dictionary = style.get("rock", {})
 		var mat := ShaderMaterial.new()
 		mat.shader = load_shader("sevara_rock_3d.gdshader")
-		var is_path_rock := mat_name == "PathRocks"
-		var default_alb := (
-			PBR_TEX_DIR + ("pbr_flagstone_path.png" if is_path_rock else "pbr_cliff_rock.png")
-		)
-		var default_nrm := (
-			PBR_TEX_DIR
-			+ ("pbr_flagstone_path_normal.png" if is_path_rock else "pbr_cliff_rock_normal.png")
-		)
 		var custom_tex := String(rock_st.get("texture", ""))
-		var alb_path := default_alb if custom_tex.is_empty() else (NATURE_DIR + custom_tex)
-		mat.set_shader_parameter("albedo_tex", load_texture(alb_path))
-		mat.set_shader_parameter("normal_tex", load_texture(default_nrm))
-		mat.set_shader_parameter(
-			"moss_tex", load_texture(PBR_TEX_DIR + "tex_meadow_moss_and_snow.png")
-		)
+		var alb_file := "Rocks_Diffuse.png" if custom_tex.is_empty() else custom_tex
+		mat.set_shader_parameter("albedo_tex", load_texture(NATURE_DIR + alb_file))
 		for k: String in rock_st.keys():
 			if k != "texture":
 				mat.set_shader_parameter(k, rock_st[k])

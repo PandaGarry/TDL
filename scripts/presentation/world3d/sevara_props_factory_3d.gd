@@ -58,34 +58,48 @@ static func create_tree_3d(variant: int = 0, is_stump: bool = false) -> Node3D:
 static func create_boulder_3d(scale_vec: Vector3 = Vector3.ONE, mossy: bool = true) -> Node3D:
 	var root := Node3D.new()
 	root.name = "Boulder3D"
-	var idx := posmod(int(round((scale_vec.x + scale_vec.z) * 10.0)), ROCK_MODELS.size())
+	var hash_v := scale_vec.x * 17.3 + scale_vec.y * 11.1 + scale_vec.z * 23.7
+	var idx := posmod(int(round(hash_v * 10.0)), ROCK_MODELS.size())
 	var model_name: String = ROCK_MODELS[idx]
 	var style := {
 		"rock":
 		{
-			"moss_amount": 0.62 if mossy else 0.14,
-			"snow_amount": 0.08 if scale_vec.y > 1.35 else 0.0,
-			"wetness": 0.22 if mossy else 0.58,
+			"moss_amount": 0.56 if mossy else 0.08,
+			"snow_amount": 0.06 if scale_vec.y > 1.35 else 0.0,
+			"wetness": 0.20 if mossy else 0.65,
 			"triplanar": 1.0,
 		}
 	}
 	var mesh := SevaraAssetLibrary3D.nature_mesh(model_name, style)
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
-	# Raw `Rock_Medium` glTF is ~3.2x2.2x3.0m; 0.30x gives realistic 0.6..1.4m valley boulders
-	mi.scale = scale_vec * 0.30
-	mi.rotation = Vector3(0.11 * sin(scale_vec.x * 7.0), 0.0, -0.09 * cos(scale_vec.z * 5.0))
+	# Raw `Rock_Medium` glTF is ~3.2x2.2x3.0m; 0.28x gives natural 0.5..1.25m valley boulders
+	mi.scale = scale_vec * 0.28
+	mi.rotation = Vector3(0.10 * sin(hash_v * 1.7), 0.0, -0.09 * cos(hash_v * 2.3))
 	root.add_child(mi)
 
-	if mossy and scale_vec.x > 0.95:
+	if mossy and scale_vec.x > 0.92:
 		var sub_idx := (idx + 1) % ROCK_MODELS.size()
 		var sub_mesh := SevaraAssetLibrary3D.nature_mesh(ROCK_MODELS[sub_idx], style)
 		var sub_mi := MeshInstance3D.new()
 		sub_mi.mesh = sub_mesh
-		sub_mi.scale = scale_vec * Vector3(0.14, 0.11, 0.14)
-		sub_mi.position = Vector3(scale_vec.x * 0.34, -0.03, scale_vec.z * 0.22)
-		sub_mi.rotation = Vector3(-0.12, 1.85, 0.08)
+		var ang := hash_v * 2.4
+		var rad := 0.34 * scale_vec.x
+		sub_mi.scale = scale_vec * Vector3(0.13, 0.10, 0.13)
+		sub_mi.position = Vector3(cos(ang) * rad, -0.04, sin(ang) * rad)
+		sub_mi.rotation = Vector3(-0.14 * cos(ang), ang + 1.2, 0.10 * sin(ang))
 		root.add_child(sub_mi)
+
+		# Ground-hugging grass tuft collar so the boulder sits nestled in meadow turf
+		var collar_mesh := SevaraAssetLibrary3D.build_grass_patch_mesh(
+			32, 0.68, 0.030, 503, {"segments": 2}
+		)
+		var collar_mi := MeshInstance3D.new()
+		collar_mi.mesh = collar_mesh
+		collar_mi.scale = Vector3(scale_vec.x * 1.05, 0.52, scale_vec.z * 1.05)
+		collar_mi.position = Vector3(0.0, 0.04, 0.0)
+		collar_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(collar_mi)
 	return root
 
 
@@ -642,16 +656,24 @@ static func _scatter_river_pebbles_multimesh(
 	rng.seed = seed_val
 	var xforms: Array[Transform3D] = []
 	var customs: Array[Color] = []
-	for _i in range(target_count * 2):
+	for i in range(target_count * 2):
 		if xforms.size() >= target_count:
 			break
 		var wz := rng.randf_range(-38.0, 26.0)
 		var r_cx := SevaraTerrainGen3D.river_center_x(wz)
 		var r_hw := SevaraTerrainGen3D.river_half_width(wz)
-		var side := -1.0 if rng.randf() < 0.5 else 1.0
-		var wx := r_cx + side * rng.randf_range(r_hw * 0.72, r_hw * 1.12)
+		var wx := 0.0
+		# Place 25% of pebbles along the shallow Stone Ford causeway (z ~ 1.4..3.8)
+		if i % 4 == 0:
+			wz = rng.randf_range(1.4, 3.8)
+			r_cx = SevaraTerrainGen3D.river_center_x(wz)
+			r_hw = SevaraTerrainGen3D.river_half_width(wz)
+			wx = r_cx + rng.randf_range(-r_hw * 0.95, r_hw * 0.95)
+		else:
+			var side := -1.0 if rng.randf() < 0.5 else 1.0
+			wx = r_cx + side * rng.randf_range(r_hw * 0.68, r_hw * 1.12)
 		var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
-		var sc := rng.randf_range(0.32, 0.92)
+		var sc := rng.randf_range(0.34, 0.95)
 		var basis := (
 			Basis
 			. from_euler(
@@ -659,11 +681,11 @@ static func _scatter_river_pebbles_multimesh(
 					rng.randf_range(-0.18, 0.18), rng.randf() * TAU, rng.randf_range(-0.18, 0.18)
 				)
 			)
-			. scaled(Vector3(sc, sc * rng.randf_range(0.55, 0.95), sc))
+			. scaled(Vector3(sc, sc * rng.randf_range(0.45, 0.85), sc))
 		)
 		xforms.append(Transform3D(basis, Vector3(wx, wy - 0.03, wz)))
 		var shade := rng.randf_range(0.78, 1.12)
-		customs.append(Color(shade, shade, shade, rng.randf_range(0.2, 0.75)))
+		customs.append(Color(shade, shade, shade, rng.randf_range(0.15, 0.68)))
 	parent.add_child(_create_multimesh_node(node_name, mesh, xforms, customs))
 
 

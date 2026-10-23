@@ -44,8 +44,9 @@ static func river_center_x(wz: float) -> float:
 static func river_half_width(wz: float) -> float:
 	var base_w := 2.35 + smoothstep(-32.0, 28.0, wz) * 0.75
 	var pool_w := exp(-pow((wz - 11.0) / 7.5, 2.0)) * 1.15
+	var ford_w := exp(-pow((wz - 2.68) / 3.8, 2.0)) * 0.52
 	var bank_wave := sin(wz * 0.34 + 0.5) * 0.26 + cos(wz * 0.68 - 0.8) * 0.15
-	return base_w + pool_w + bank_wave
+	return base_w + pool_w + ford_w + bank_wave
 
 
 static func wetland_pool_factor(wx: float, wz: float) -> float:
@@ -59,6 +60,10 @@ static func wetland_pool_factor(wx: float, wz: float) -> float:
 
 static func is_water_at(wx: float, wz: float) -> bool:
 	return get_height_at(wx, wz) < WATER_SURFACE_Y - 0.03
+
+
+static func get_walkable_height_at(wx: float, wz: float) -> float:
+	return maxf(get_height_at(wx, wz), WATER_SURFACE_Y - 0.16)
 
 
 static func get_ground_normal(wx: float, wz: float) -> Vector3:
@@ -85,8 +90,8 @@ static func _north_branch_signed_dist(wx: float, wz: float) -> float:
 
 
 static func _south_branch_signed_dist(wx: float, wz: float) -> float:
-	var sx := -0.5 + (wz + 2.6) * 0.22 + sin((wz + 2.6) * 0.16) * 1.4
-	var dx_dz := 0.22 + cos((wz + 2.6) * 0.16) * 0.224
+	var sx := -3.8 - (wz + 2.2) * 0.36 + sin((wz + 2.2) * 0.15) * 1.2
+	var dx_dz := -0.36 + cos((wz + 2.2) * 0.15) * 0.18
 	return (wx - sx) / sqrt(1.0 + dx_dz * dx_dz)
 
 
@@ -175,15 +180,19 @@ static func get_height_at(wx: float, wz: float) -> float:
 		var r_hw := river_half_width(wz)
 		var dist_river := absf(wx - r_cx)
 		var stream_fade := smoothstep(-52.0, -40.0, wz) * (1.0 - smoothstep(38.0, 48.0, wz))
-		var bank_y := WATER_SURFACE_Y + 0.26 + sin(wz * 0.18 + wx * 0.14) * 0.035
+		var ford_zone := road_c * exp(-pow((wz - 2.68) / 3.8, 2.0))
+		# Gently ramp the banks down to water level at the road ford so wagons can cross smoothly
+		var base_bank_y := WATER_SURFACE_Y + 0.25 + sin(wz * 0.18 + wx * 0.14) * 0.032
+		var bank_y := lerpf(
+			base_bank_y, WATER_SURFACE_Y + 0.06, clampf(ford_zone * 0.88, 0.0, 0.88)
+		)
 		var trough_w := r_hw * lerpf(4.8, 2.45, smoothstep(-30.0, -6.0, wz))
 		var trough_blend := exp(-pow(dist_river / trough_w, 2.0)) * stream_fade
 		var h_bank := lerpf(meadow_h, bank_y, trough_blend)
 
 		var norm_r := dist_river / maxf(r_hw, 0.5)
 		var in_channel := clampf(1.0 - pow(norm_r, 1.9), 0.0, 1.0) * stream_fade
-		var ford_zone := road_c * exp(-pow((wz - 2.68) / 3.4, 2.0))
-		var carve_depth := lerpf(0.94, 0.36, clampf(ford_zone * 0.90, 0.0, 0.90))
+		var carve_depth := lerpf(0.92, 0.24, clampf(ford_zone * 0.92, 0.0, 0.92))
 		return h_bank - in_channel * carve_depth
 
 	# 1. Toramek NW mountain slope & rocky ridges

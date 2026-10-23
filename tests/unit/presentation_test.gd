@@ -29,6 +29,7 @@ func _ready() -> void:
 func _run_tests() -> void:
 	_test_localization_and_ambience_settings()
 	_test_grid_metrics_and_physics_layers()
+	_test_step2_creek_ford_and_boulders()
 	_test_stage_hydration_and_disposable_views()
 	_test_input_actions_and_debug_overlay()
 	await _test_networked_two_stage_presentation()
@@ -115,6 +116,36 @@ func _test_localization_and_ambience_settings() -> void:
 	SettingsManager.set_foliage_density(1.0)
 	SettingsManager.set_wind_and_water_shaders(true)
 	SettingsManager.set_ui_scale(1.0)
+
+
+func _test_step2_creek_ford_and_boulders() -> void:
+	var r_cx0 := SevaraTerrainGen3D.river_center_x(0.0)
+	_check(
+		SevaraTerrainGen3D.is_water_at(r_cx0, 0.0),
+		"Nivarel creek channel center at z=0 is submerged below WATER_SURFACE_Y"
+	)
+	var ford_x := SevaraTerrainGen3D.river_center_x(2.68)
+	var ford_road := SevaraTerrainGen3D.get_road_core_at(ford_x, 2.68)
+	_check(ford_road > 0.85, "Main two-track road crosses Nivarel creek at the Stone Ford (z=2.68)")
+	var deep_bed_y := SevaraTerrainGen3D.get_height_at(
+		SevaraTerrainGen3D.river_center_x(-10.0), -10.0
+	)
+	var ford_bed_y := SevaraTerrainGen3D.get_height_at(ford_x, 2.68)
+	_check(
+		ford_bed_y > deep_bed_y + 0.35,
+		"Stone Ford riverbed is significantly shallower than deep creek thalweg"
+	)
+	var walk_y := SevaraTerrainGen3D.get_walkable_height_at(r_cx0, 0.0)
+	_check(
+		walk_y >= SevaraTerrainGen3D.WATER_SURFACE_Y - 0.17,
+		"Walkable height clamps actor immersion in creek channel"
+	)
+	var blocked_roads := 0
+	for spec: Dictionary in SevaraWorld3D.get_step2_boulder_specs():
+		var p: Vector2 = spec["pos"]
+		if SevaraTerrainGen3D.get_road_core_at(p.x, p.y) >= 0.08:
+			blocked_roads += 1
+	_check_equal(blocked_roads, 0, "No Step 2 boulder obstructs the active two-track roadbed")
 
 
 func _test_grid_metrics_and_physics_layers() -> void:

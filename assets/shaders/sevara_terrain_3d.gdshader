@@ -121,8 +121,9 @@ float river_center_x(float wz) {
 float river_half_width(float wz) {
 	float base_w = 2.35 + smoothstep(-32.0, 28.0, wz) * 0.75;
 	float pool_w = exp(-pow((wz - 11.0) / 7.5, 2.0)) * 1.15;
+	float ford_w = exp(-pow((wz - 2.68) / 3.8, 2.0)) * 0.52;
 	float bank_wave = sin(wz * 0.34 + 0.5) * 0.26 + cos(wz * 0.68 - 0.8) * 0.15;
-	return base_w + pool_w + bank_wave;
+	return base_w + pool_w + ford_w + bank_wave;
 }
 
 // Per-pixel river channel & pebble bank mask: returns vec2(river_bed_mask, wet_shore_mask)
@@ -162,11 +163,11 @@ vec4 eval_road_network(vec2 xz) {
 	float d_north = abs(wx - bx) / sqrt(1.0 + dx_dz_n * dx_dz_n);
 	float fade_north = smoothstep(rz + 0.35, rz - 0.85, wz) * (1.0 - smoothstep(-44.0, -54.0, wz));
 
-	// 3. SE Meadow basin trail (runs along the west bank of Nivarel creek)
-	float sx = -0.5 + (wz + 2.6) * 0.22 + sin((wz + 2.6) * 0.16) * 1.4;
-	float dx_dz_s = 0.22 + cos((wz + 2.6) * 0.16) * 0.224;
+	// 3. SW Meadow & west-bank trail (curves away from the creek along the dry terrace)
+	float sx = -3.8 - (wz + 2.2) * 0.36 + sin((wz + 2.2) * 0.15) * 1.2;
+	float dx_dz_s = -0.36 + cos((wz + 2.2) * 0.15) * 0.18;
 	float d_south = abs(wx - sx) / sqrt(1.0 + dx_dz_s * dx_dz_s);
-	float fade_south = smoothstep(rz - 0.35, rz + 0.85, wz) * (1.0 - smoothstep(20.0, 28.0, wz));
+	float fade_south = smoothstep(rz - 0.35, rz + 0.85, wz) * (1.0 - smoothstep(22.0, 30.0, wz));
 
 	float u_main = (d_main + warp_a) / 1.32;
 	float u_north = (d_north + warp_a * 0.85) / 0.96;
@@ -349,30 +350,35 @@ void fragment() {
 		rough = mix(rough, road_rough, smooth_edge);
 	}
 
-	// --- 5. Step 2 Nivarel Creek Pebble Bed & Wet Mossy Shore Bank ---
+	// --- 5. Step 2 Nivarel Creek Pebble Bed, Stone Ford Causeway & Wet Mossy Shore Bank ---
 	if (river_bed > 0.01) {
 		float grain = 0.84 + 0.20 * crumb_n + 0.12 * (grit_n - 0.35);
 		float submerge = clamp((0.48 - v_world_pos.y) * 3.2, 0.0, 1.0);
+		float ford_causeway = road_core * smoothstep(0.05, 0.65, river_bed);
+
 		vec3 river_sand = mix(vec3(0.32, 0.28, 0.19), vec3(0.22, 0.25, 0.17), clod_n) * grain;
 		vec3 bank_moss = mix(vec3(0.17, 0.29, 0.13), vec3(0.23, 0.35, 0.15), moss_n) * grain;
-		vec3 bed_col = mix(bank_moss, river_sand, clamp(submerge * 0.90 + road_core * 0.55, 0.0, 1.0));
+		vec3 ford_gravel = mix(vec3(0.36, 0.31, 0.22), vec3(0.28, 0.25, 0.18), clod_n) * grain;
+		vec3 bed_col = mix(bank_moss, river_sand, clamp(submerge * 0.90 + ford_causeway * 0.72, 0.0, 1.0));
+		bed_col = mix(bed_col, ford_gravel, ford_causeway * 0.68);
 
-		float m_p1 = smoothstep(0.12, 0.56, st1.x) * clamp(submerge * 1.15 + 0.18, 0.0, 1.0);
-		float m_p2 = smoothstep(0.16, 0.60, st2.x) * (1.0 - m_p1) * clamp(submerge * 1.15 + 0.18, 0.0, 1.0);
-		vec3 peb_warm = vec3(0.44, 0.38, 0.26) * grain;
-		vec3 peb_slate = vec3(0.26, 0.30, 0.24) * grain;
-		vec3 peb_jade = vec3(0.24, 0.34, 0.22) * grain;
+		float stone_vis = clamp(submerge * 1.15 + ford_causeway * 0.95 + 0.20, 0.0, 1.0);
+		float m_p1 = smoothstep(0.10, 0.52, st1.x) * stone_vis;
+		float m_p2 = smoothstep(0.14, 0.56, st2.x) * (1.0 - m_p1) * stone_vis;
+		vec3 peb_warm = vec3(0.46, 0.40, 0.29) * grain;
+		vec3 peb_slate = vec3(0.28, 0.32, 0.27) * grain;
+		vec3 peb_jade = vec3(0.25, 0.35, 0.24) * grain;
 		vec3 pcol1 = mix(peb_slate, peb_warm, fract(st1.w * 11.3));
 		pcol1 = mix(pcol1, peb_jade, smoothstep(0.65, 0.92, fract(st1.w * 5.7)));
 		vec3 pcol2 = mix(peb_slate, peb_warm, fract(st2.w * 8.9));
 
-		bed_col = mix(bed_col, pcol1, m_p1 * 0.82);
-		bed_col = mix(bed_col, pcol2, m_p2 * 0.66);
-		float wet_dark = clamp(wet_shore * 0.55 + submerge * 0.42, 0.0, 0.82);
-		bed_col *= mix(1.0, 0.74, wet_dark);
+		bed_col = mix(bed_col, pcol1, m_p1 * (0.82 + 0.14 * ford_causeway));
+		bed_col = mix(bed_col, pcol2, m_p2 * (0.68 + 0.18 * ford_causeway));
+		float wet_dark = clamp(wet_shore * 0.52 + submerge * 0.40, 0.0, 0.80);
+		bed_col *= mix(1.0, 0.75, wet_dark);
 
 		col = mix(col, bed_col, smoothstep(0.06, 0.58, river_bed));
-		rough = mix(rough, mix(0.82, 0.30, wet_dark), smoothstep(0.06, 0.58, river_bed));
+		rough = mix(rough, mix(0.80, 0.28, wet_dark), smoothstep(0.06, 0.58, river_bed));
 	}
 
 	// --- 6. Distant Valley Rim Atmospheric Perspective ---
