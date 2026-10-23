@@ -290,11 +290,16 @@ Linux) и мобильных устройствах (iPhone/iPad через Xogo
      2-сегментные травинки вместо 4-сегментных (минус 50% треугольников при
      сохранении густоты ковра), а `GreyboxStage` предоставляет сенсорную
      панель управления `TouchControlsMargin`.
-5. **Батчинг путевого декора и гидротехнических объектов Шага 2 (`RoadCobblesMM`, `RoadsideCloverMM`, `RiverPebblesMM`, `NivarelBridge3D`):**
-   - Все 3D-булыжники дорожного полотна (`RoadCobblesMM`), придорожный клевер
+5. **Батчинг путевого декора, сглаживание фасок камня и 3D-мох Шага 2 (`RoadCobblesMM`, `RoadsideCloverMM`, `RiverPebblesMM`, `NivarelBridge3D`):**
+   - Все 3D-голыши дорожного полотна (`RoadCobblesMM`), придорожный клевер
      (`RoadsideCloverMM`) и донная речная галька (`RiverPebblesMM`) рендерятся
      едиными аппаратно-инстансированными узлами `MultiMeshInstance3D` с
      настроенным `visibility_range_end` (`52–72` м) и `VISIBILITY_RANGE_FADE_SELF`.
+   - Меши камней и гальки кэшируются в `SevaraAssetLibrary3D._bevel_rock_cache`
+     после однократного подразделения 1->4 со сглаживанием фасок
+     (`build_bevel_smoothed_rock_mesh`), а 3D-шапки мха на валунах кэшируются в
+     `_moss_fur_cache` (`build_rock_crown_moss_fur_mesh`, `surface_fur_mode = 1.0`
+     в `sevara_grass_3d.gdshader` с `visibility_range_end = 56.0` м).
    - Каменно-деревянный мост `NivarelBridge3D` и его аналитический профиль
      высоты `SevaraTerrainGen3D.get_bridge_deck_y_at_x(wx)` используются как
      для размещения 3D-конструкций моста, так и для вертикальной привязки
