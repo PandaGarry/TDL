@@ -88,8 +88,8 @@ static func get_step2_boulder_specs() -> Array[Dictionary]:
 		{"pos": Vector2(16.2, 7.4), "sc": Vector3(1.28, 0.86, 1.18), "moss": true},
 		{"pos": Vector2(10.8, 12.8), "sc": Vector3(1.16, 0.76, 1.08), "moss": false},
 		# Crossroads & hillside boulders (outside all roadbeds)
-		{"pos": Vector2(-10.4, -12.8), "sc": Vector3(1.55, 1.12, 1.42), "moss": true},
-		{"pos": Vector2(-7.5, -5.8), "sc": Vector3(1.18, 0.84, 1.10), "moss": true},
+		{"pos": Vector2(-12.8, -12.8), "sc": Vector3(1.55, 1.12, 1.42), "moss": true},
+		{"pos": Vector2(-7.8, -5.8), "sc": Vector3(1.18, 0.84, 1.10), "moss": true},
 		{"pos": Vector2(-15.5, -19.5), "sc": Vector3(1.75, 1.26, 1.60), "moss": true},
 	]
 
