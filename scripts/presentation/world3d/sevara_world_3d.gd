@@ -6,8 +6,9 @@ extends Node3D
 
 ## Step-by-step Look-Dev progression:
 ## LOOKDEV_STEP = 1 -> Step 1: Terrain relief, calm velvety 3D grass, path & lighting.
-## LOOKDEV_STEP = 2 -> Step 2: Crystal Nivarel creek, shoreline foam, stone ford & mossy boulders.
-const LOOKDEV_STEP := 2
+## LOOKDEV_STEP = 2 -> Step 2: Deep Nivarel river, oak bridge, road cobbles & mossy boulders.
+## LOOKDEV_STEP = 3 -> Step 3: Fluffy Trees (Torava pines, Talina willows, alders) & bushes.
+const LOOKDEV_STEP := 3
 
 const CAMERA_LOOKPOINTS: Array[String] = [
 	"follow",
@@ -417,7 +418,9 @@ func _populate_static_settlement() -> void:
 	var fol_dens := float(SettingsManager.graphics_profile().get("foliage_density", 1.0))
 	_last_meadow_signature = "%.2f" % fol_dens
 	_meadow_multimesh_root.add_child(SevaraPropsFactory3D.build_dense_meadow_multimeshes(fol_dens))
-	if LOOKDEV_STEP >= 2:
+	if LOOKDEV_STEP >= 3:
+		_rebuild_ecology_and_npcs(null, false, {}, false, fol_dens)
+	elif LOOKDEV_STEP >= 2:
 		_populate_step2_boulders()
 	if LOOKDEV_STEP >= 4:
 		SevaraPropsFactory3D.populate_static_settlement(_settlement_root)
@@ -432,6 +435,10 @@ func _populate_step2_boulders() -> void:
 	for r_idx in range(step2_rocks.size()):
 		var rs: Dictionary = step2_rocks[r_idx]
 		var rp: Vector2 = rs["pos"]
+		if absf(SevaraTerrainGen3D._main_road_signed_dist(rp.x, rp.y)) < 2.65:
+			continue
+		if SevaraTerrainGen3D.get_path_weight_at(rp.x, rp.y) > 0.08:
+			continue
 		var sc_v: Vector3 = rs["sc"]
 		var boulder := SevaraPropsFactory3D.create_boulder_3d(sc_v, bool(rs["moss"]))
 		boulder.position = Vector3(
@@ -464,13 +471,23 @@ func _rebuild_ecology_and_npcs(
 	var scav_press := float(meadow_node.get("karune_predators", 0.22)) if p1_active else 0.22
 
 	var tree_coords: Array[Vector2] = [
+		# Scenic foreground/midground framing trees visible from valley, meadow & bridge cameras
+		Vector2(-13.8, -4.6),
+		Vector2(-17.6, 3.8),
+		Vector2(-8.8, -11.6),
+		Vector2(-3.2, -14.2),
+		Vector2(15.6, -12.8),
+		Vector2(21.8, -6.4),
+		Vector2(24.6, 0.6),
+		Vector2(22.4, 8.8),
+		# Toramek & northern/eastern hillside groves
 		Vector2(-34.0, -28.0),
 		Vector2(-28.0, -32.0),
 		Vector2(-21.0, -29.0),
 		Vector2(-14.0, -31.0),
 		Vector2(-38.0, -19.0),
 		Vector2(-31.0, -21.0),
-		Vector2(-25.0, -22.0),
+		Vector2(-24.5, -22.0),
 		Vector2(-17.5, -23.5),
 		Vector2(-10.5, -24.0),
 		Vector2(-4.5, -26.0),
@@ -478,136 +495,115 @@ func _rebuild_ecology_and_npcs(
 		Vector2(11.0, -26.5),
 		Vector2(-35.0, -11.0),
 		Vector2(-28.5, -14.5),
-		Vector2(-22.5, -17.5),
-		Vector2(-15.0, -19.0),
-		Vector2(-7.8, -18.5),
+		Vector2(-22.0, -17.0),
+		Vector2(-15.0, -18.8),
 		Vector2(8.5, -21.0),
 		Vector2(16.5, -22.5),
 		Vector2(24.5, -24.0),
 		Vector2(-36.0, -2.0),
-		Vector2(-31.0, 5.5),
-		Vector2(-27.0, 13.5),
-		Vector2(-22.0, 21.0),
-		Vector2(-15.5, 26.5),
-		Vector2(-8.5, 31.0),
-		Vector2(22.0, -14.5),
-		Vector2(29.5, -17.0),
-		Vector2(36.0, -11.5),
-		Vector2(32.5, -3.5),
-		Vector2(38.5, 4.5),
-		Vector2(34.0, 14.0),
-		Vector2(28.5, 22.5),
-		Vector2(21.5, 28.0),
-		Vector2(-46.0, -26.0),
-		Vector2(-48.0, -12.0),
-		Vector2(-44.0, 8.0),
-		Vector2(-38.0, 24.0),
-		Vector2(44.0, -22.0),
-		Vector2(48.0, -6.0),
-		Vector2(45.0, 12.0),
-		Vector2(39.0, 26.0),
-		Vector2(-18.0, -38.0),
-		Vector2(-6.0, -39.0),
-		Vector2(8.0, -37.0),
-		Vector2(22.0, -35.0),
+		Vector2(-30.0, 5.5),
+		Vector2(-26.0, 13.5),
+		Vector2(-21.0, 20.5),
+		Vector2(29.5, -16.5),
+		Vector2(35.0, -10.5),
+		Vector2(32.5, -2.5),
+		Vector2(36.5, 5.5),
+		Vector2(32.0, 14.5),
+		Vector2(26.5, 21.5),
 	]
 	for i in range(tree_coords.size()):
 		var tc: Vector2 = tree_coords[i]
-		var is_toramek := tc.x < -4.0 and tc.y < -12.0
-		var felled := is_toramek and (float(i % 8) / 8.0) > canopy
+		if SevaraTerrainGen3D.get_path_weight_at(tc.x, tc.y) > 0.05:
+			continue
+		if SevaraTerrainGen3D.is_on_bridge(tc.x, tc.y):
+			continue
+		var r_cx := SevaraTerrainGen3D.river_center_x(tc.y)
+		var r_hw := SevaraTerrainGen3D.river_half_width(tc.y)
+		if absf(tc.x - r_cx) < r_hw + 1.8:
+			continue
+		var is_toramek := tc.x < -6.0 and tc.y < -15.0
+		var felled := is_toramek and (float(i % 9) / 9.0) > canopy
 		var tree := SevaraPropsFactory3D.create_tree_3d(i, felled)
 		tree.position = Vector3(tc.x, SevaraTerrainGen3D.get_height_at(tc.x, tc.y) - 0.06, tc.y)
 		_ecology_root.add_child(tree)
 
-	var rock_specs: Array[Dictionary] = [
-		{"pos": Vector2(-26.5, -24.5), "sc": Vector3(1.8, 1.5, 1.7), "moss": true},
-		{"pos": Vector2(-18.5, -26.0), "sc": Vector3(2.2, 1.8, 1.9), "moss": true},
-		{"pos": Vector2(-9.5, -21.5), "sc": Vector3(1.6, 1.3, 1.5), "moss": true},
-		{"pos": Vector2(-2.2, -16.5), "sc": Vector3(1.3, 0.9, 1.2), "moss": false},
-		{"pos": Vector2(2.8, -11.5), "sc": Vector3(1.2, 0.85, 1.1), "moss": false},
-		{"pos": Vector2(-1.8, -1.2), "sc": Vector3(1.1, 0.75, 1.0), "moss": false},
-		{"pos": Vector2(4.2, 3.4), "sc": Vector3(1.35, 0.95, 1.25), "moss": true},
-		{"pos": Vector2(7.8, 11.2), "sc": Vector3(1.5, 1.05, 1.4), "moss": true},
-		{"pos": Vector2(19.5, -8.5), "sc": Vector3(1.4, 1.1, 1.3), "moss": true},
-		{"pos": Vector2(27.5, 6.5), "sc": Vector3(1.9, 1.4, 1.7), "moss": true},
-		{"pos": Vector2(-29.5, 2.5), "sc": Vector3(1.7, 1.3, 1.6), "moss": true},
-		{"pos": Vector2(-12.5, 18.5), "sc": Vector3(1.5, 1.1, 1.4), "moss": true},
+	# Riverbank Talina willows aligned along the actual Nivarel channel (clear of bridge)
+	var willow_z_side: Array[Vector2] = [
+		Vector2(-6.8, -1.0),
+		Vector2(-12.5, 1.0),
+		Vector2(-18.5, -1.0),
+		Vector2(7.8, -1.0),
+		Vector2(11.6, 1.0),
+		Vector2(16.8, -1.0),
 	]
-	for r_idx in range(rock_specs.size()):
-		var rs: Dictionary = rock_specs[r_idx]
-		var rp: Vector2 = rs["pos"]
-		var boulder := SevaraPropsFactory3D.create_boulder_3d(rs["sc"] as Vector3, bool(rs["moss"]))
-		boulder.position = Vector3(rp.x, SevaraTerrainGen3D.get_height_at(rp.x, rp.y) - 0.08, rp.y)
-		boulder.rotation.y = float(r_idx) * 1.15
-		_ecology_root.add_child(boulder)
-
-	var reed_coords: Array[Vector2] = [
-		Vector2(-3.2, 6.5),
-		Vector2(-5.8, 9.8),
-		Vector2(-8.4, 12.5),
-		Vector2(-6.2, 16.2),
-		Vector2(-2.4, 14.8),
-		Vector2(1.8, 9.2),
-		Vector2(5.2, 13.8),
-		Vector2(8.4, 17.5),
-		Vector2(3.4, 20.5),
-		Vector2(-4.5, 21.2),
-		Vector2(10.2, 23.5),
-		Vector2(6.5, 26.0),
-	]
-	for ri in range(reed_coords.size()):
-		var rc: Vector2 = reed_coords[ri]
-		var reed := SevaraPropsFactory3D.create_reed_clump_3d(ri)
-		reed.position = Vector3(rc.x, SevaraTerrainGen3D.get_height_at(rc.x, rc.y) - 0.05, rc.y)
-		_ecology_root.add_child(reed)
-
-	var willow_coords: Array[Vector2] = [
-		Vector2(-11.8, 12.2),
-		Vector2(14.2, 9.6),
-		Vector2(-9.6, 17.8),
-		Vector2(9.8, 15.8),
-		Vector2(-5.4, 24.5),
-		Vector2(12.8, 22.0),
-	]
-	for wi in range(willow_coords.size()):
-		var wc: Vector2 = willow_coords[wi]
+	for wi in range(willow_z_side.size()):
+		var wz := willow_z_side[wi].x
+		var side := willow_z_side[wi].y
+		var wx := (
+			SevaraTerrainGen3D.river_center_x(wz)
+			+ side * (SevaraTerrainGen3D.river_half_width(wz) + 2.35)
+		)
+		if SevaraTerrainGen3D.get_path_weight_at(wx, wz) > 0.08:
+			continue
 		var willow := SevaraPropsFactory3D.create_talina_willow_3d(wi)
-		willow.position = Vector3(wc.x, SevaraTerrainGen3D.get_height_at(wc.x, wc.y) - 0.06, wc.y)
+		willow.position = Vector3(wx, SevaraTerrainGen3D.get_height_at(wx, wz) - 0.06, wz)
 		_ecology_root.add_child(willow)
 
-	var lily_coords: Array[Vector2] = [
-		Vector2(-5.2, 11.2),
-		Vector2(-3.8, 13.6),
-		Vector2(2.4, 11.4),
-		Vector2(4.2, 15.2),
-		Vector2(1.2, 18.8),
-	]
-	for li in range(lily_coords.size()):
-		var lc: Vector2 = lily_coords[li]
+	# Shoreline Selave reed clumps & floating water lilies along quiet river shelves
+	var reed_z_list: Array[float] = [-16.5, -12.2, -8.4, -4.8, -3.2, 6.2, 8.6, 11.4, 14.2, 17.5]
+	for ri in range(reed_z_list.size()):
+		var rz := reed_z_list[ri]
+		var r_side := -1.0 if (ri % 2 == 0) else 1.0
+		var rx := (
+			SevaraTerrainGen3D.river_center_x(rz)
+			+ r_side * (SevaraTerrainGen3D.river_half_width(rz) * 0.88)
+		)
+		var reed := SevaraPropsFactory3D.create_reed_clump_3d(ri)
+		reed.position = Vector3(rx, SevaraTerrainGen3D.WATER_SURFACE_Y - 0.06, rz)
+		_ecology_root.add_child(reed)
+
+	var lily_z_list: Array[float] = [-11.0, -5.6, 6.8, 10.4, 14.8]
+	for li in range(lily_z_list.size()):
+		var lz := lily_z_list[li]
+		var l_side := 1.0 if (li % 2 == 0) else -1.0
+		var lx := (
+			SevaraTerrainGen3D.river_center_x(lz)
+			+ l_side * (SevaraTerrainGen3D.river_half_width(lz) * 0.62)
+		)
 		var lily := SevaraAssetLibrary3D.instantiate_model(
 			SevaraAssetLibrary3D.NATURE_DIR + "Lilypad.glb", 0.22, {}, false
 		)
-		lily.position = Vector3(lc.x, SevaraTerrainGen3D.WATER_SURFACE_Y + 0.01, lc.y)
+		lily.position = Vector3(lx, SevaraTerrainGen3D.WATER_SURFACE_Y + 0.01, lz)
 		lily.rotation.y = float(li) * 1.37
 		_ecology_root.add_child(lily)
 
+	# Botanical bushes, flowering shrubs & Kevar/Kevalu clusters across meadows, roadsides & riverbanks
 	var kevar_coords: Array[Vector2] = [
-		Vector2(-6.8, 7.8),
-		Vector2(-4.2, 11.4),
-		Vector2(-1.2, 13.2),
-		Vector2(2.6, 11.8),
-		Vector2(6.4, 10.2),
-		Vector2(9.2, 14.5),
-		Vector2(12.4, 8.6),
-		Vector2(-9.2, 14.2),
+		Vector2(-5.4, -2.2),
+		Vector2(-9.2, 2.8),
+		Vector2(-3.8, 5.6),
+		Vector2(2.6, -4.8),
+		Vector2(4.8, 6.4),
+		Vector2(16.8, -4.6),
+		Vector2(18.6, 5.8),
+		Vector2(12.2, -15.5),
+		Vector2(-11.4, -14.2),
+		Vector2(-16.2, -8.5),
+		Vector2(6.8, 11.2),
+		Vector2(20.4, 10.6),
 	]
 	for ki in range(kevar_coords.size()):
 		var kc: Vector2 = kevar_coords[ki]
-		var is_kv := any_kevalu_wild and (ki % 2 == 1)
+		if SevaraTerrainGen3D.get_path_weight_at(kc.x, kc.y) > 0.12:
+			continue
+		var is_kv := any_kevalu_wild and (ki % 3 == 1)
 		var kb := SevaraPropsFactory3D.create_kevar_bush_3d(is_kv)
-		kb.position = Vector3(kc.x, SevaraTerrainGen3D.get_height_at(kc.x, kc.y) - 0.02, kc.y)
+		kb.position = Vector3(kc.x, SevaraTerrainGen3D.get_height_at(kc.x, kc.y) - 0.03, kc.y)
 		kb.rotation.y = float(ki) * 0.95
 		_ecology_root.add_child(kb)
+
+	if LOOKDEV_STEP < 5:
+		return
 
 	var deer_spots: Array[Dictionary] = [
 		{"pos": Vector2(11.5, -2.4), "rot": -0.65, "graze": true},

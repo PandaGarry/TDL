@@ -29,67 +29,101 @@ static func create_tree_3d(variant: int = 0, is_stump: bool = false) -> Node3D:
 		root.add_child(stump)
 		return root
 
-	var is_pine := (variant % 3) != 1
+	var is_pine := (variant % 3) == 0
 	var model_name := (
 		PINE_MODELS[posmod(variant, PINE_MODELS.size())]
 		if is_pine
 		else BROADLEAF_MODELS[posmod(variant, BROADLEAF_MODELS.size())]
 	)
+	var is_twisted := model_name.begins_with("TwistedTree")
 	var style := {
-		"stiffness": 3.8 if is_pine else 3.2,
+		"stiffness": 3.8 if is_pine else 3.1,
 		"leaves":
 		{
-			"color_dark": Color(0.11, 0.27, 0.12) if is_pine else Color(0.15, 0.34, 0.12),
-			"color_light": Color(0.28, 0.50, 0.22) if is_pine else Color(0.42, 0.64, 0.22),
-			"texture_color_mix": 0.82,
-			"snow_cover": 0.14 if is_pine else 0.04,
+			"color_dark": Color(0.09, 0.21, 0.09) if is_pine else Color(0.11, 0.25, 0.09),
+			"color_light": Color(0.25, 0.40, 0.16) if is_pine else Color(0.34, 0.47, 0.17),
+			"texture_color_mix": 0.36,
 		},
 	}
 	var mesh := SevaraAssetLibrary3D.nature_mesh(model_name, style)
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
-	var scale_f := 0.88 + float(posmod(variant * 7, 5)) * 0.08
+	var base_sc := 0.44 if is_twisted else (0.82 if is_pine else 0.86)
+	var scale_f := base_sc * (0.90 + float(posmod(variant * 7, 5)) * 0.06)
 	mi.scale = Vector3(scale_f, scale_f, scale_f)
 	mi.rotation.y = float(variant) * 0.93
+	mi.visibility_range_end = 135.0
+	mi.visibility_range_end_margin = 10.0
+	mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	root.add_child(mi)
+
+	# Root-hugging 3D grass collar + forest fern/clover underbrush at the trunk base
+	var collar_mi := MeshInstance3D.new()
+	collar_mi.mesh = SevaraAssetLibrary3D.build_grass_patch_mesh(
+		34, 0.95, 0.034, 601 + (variant % 5), {"segments": 2}
+	)
+	collar_mi.scale = Vector3(1.25, 0.65, 1.25)
+	collar_mi.position = Vector3(0.0, 0.03, 0.0)
+	collar_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(collar_mi)
+
+	if variant % 2 == 0:
+		var fern_mesh := (
+			SevaraAssetLibrary3D
+			. nature_mesh(
+				"Fern_1",
+				{
+					"plant":
+					{
+						"color_dark": Color(0.11, 0.24, 0.09),
+						"color_light": Color(0.29, 0.44, 0.16),
+						"texture_color_mix": 0.35,
+					}
+				}
+			)
+		)
+		if fern_mesh != null:
+			var fern_mi := MeshInstance3D.new()
+			fern_mi.mesh = fern_mesh
+			var f_ang := float(variant) * 1.7
+			fern_mi.scale = Vector3.ONE * 0.13
+			fern_mi.position = Vector3(cos(f_ang) * 0.58, 0.02, sin(f_ang) * 0.58)
+			fern_mi.rotation.y = f_ang
+			fern_mi.visibility_range_end = 68.0
+			root.add_child(fern_mi)
 	return root
 
 
 static func get_step2_boulder_specs() -> Array[Dictionary]:
 	return [
-		# Bridge west & east abutment guardian boulders (alternating mossy & chiseled granite)
-		{"pos": Vector2(6.2, 0.1), "sc": Vector3(1.34, 0.96, 1.24), "moss": true},
-		{"pos": Vector2(6.4, 4.5), "sc": Vector3(1.26, 0.92, 1.18), "moss": false},
-		{"pos": Vector2(17.5, 0.0), "sc": Vector3(1.36, 0.98, 1.26), "moss": false},
-		{"pos": Vector2(17.4, 4.4), "sc": Vector3(1.32, 0.94, 1.22), "moss": true},
-		# West riverbank boulder clusters (north & south of bridge)
-		{"pos": Vector2(5.2, -3.5), "sc": Vector3(1.48, 1.08, 1.36), "moss": true},
-		{"pos": Vector2(4.5, -7.8), "sc": Vector3(1.22, 0.86, 1.14), "moss": false},
+		# West riverbank boulder clusters (kept well clear of bridge deck, railings & road ramps)
+		{"pos": Vector2(4.2, -3.8), "sc": Vector3(1.42, 1.02, 1.32), "moss": true},
+		{"pos": Vector2(3.8, -8.2), "sc": Vector3(1.22, 0.86, 1.14), "moss": false},
 		{"pos": Vector2(2.4, -13.5), "sc": Vector3(1.58, 1.16, 1.46), "moss": true},
 		{"pos": Vector2(-0.5, -19.5), "sc": Vector3(1.48, 1.08, 1.36), "moss": false},
 		{"pos": Vector2(-2.8, -25.0), "sc": Vector3(1.68, 1.22, 1.54), "moss": true},
-		{"pos": Vector2(7.2, 7.2), "sc": Vector3(1.44, 1.04, 1.32), "moss": true},
+		{"pos": Vector2(7.4, 7.6), "sc": Vector3(1.40, 1.00, 1.28), "moss": true},
 		{"pos": Vector2(8.4, 11.8), "sc": Vector3(1.52, 1.12, 1.42), "moss": false},
 		{"pos": Vector2(9.6, 16.5), "sc": Vector3(1.38, 0.98, 1.26), "moss": true},
-		# East riverbank boulder clusters (north & south of bridge)
-		{"pos": Vector2(16.2, -3.2), "sc": Vector3(1.48, 1.08, 1.36), "moss": true},
+		# East riverbank boulder clusters (kept well clear of bridge deck, railings & road ramps)
+		{"pos": Vector2(16.4, -3.8), "sc": Vector3(1.44, 1.04, 1.34), "moss": true},
 		{"pos": Vector2(14.8, -8.2), "sc": Vector3(1.28, 0.90, 1.18), "moss": false},
 		{"pos": Vector2(12.6, -14.2), "sc": Vector3(1.56, 1.14, 1.44), "moss": true},
 		{"pos": Vector2(9.8, -20.5), "sc": Vector3(1.44, 1.04, 1.32), "moss": false},
-		{"pos": Vector2(18.5, 6.8), "sc": Vector3(1.50, 1.08, 1.38), "moss": false},
+		{"pos": Vector2(18.8, 7.2), "sc": Vector3(1.46, 1.04, 1.34), "moss": false},
 		{"pos": Vector2(19.8, 11.5), "sc": Vector3(1.64, 1.18, 1.52), "moss": true},
 		{"pos": Vector2(20.6, 16.2), "sc": Vector3(1.40, 1.00, 1.30), "moss": false},
-		# In-river wet rocks & mossy island boulders along the shallow shelves
-		{"pos": Vector2(8.4, -2.2), "sc": Vector3(1.12, 0.72, 1.04), "moss": false},
-		{"pos": Vector2(14.4, -2.8), "sc": Vector3(1.18, 0.78, 1.08), "moss": true},
+		# In-river wet rocks & mossy island boulders along the shallow shelves (clear of bridge span)
+		{"pos": Vector2(8.4, -3.2), "sc": Vector3(1.12, 0.72, 1.04), "moss": false},
+		{"pos": Vector2(14.4, -3.5), "sc": Vector3(1.18, 0.78, 1.08), "moss": true},
 		{"pos": Vector2(7.4, -8.8), "sc": Vector3(1.08, 0.68, 1.00), "moss": false},
 		{"pos": Vector2(12.2, -11.5), "sc": Vector3(1.24, 0.84, 1.14), "moss": true},
-		{"pos": Vector2(9.2, 6.5), "sc": Vector3(1.14, 0.74, 1.06), "moss": false},
-		{"pos": Vector2(16.2, 7.4), "sc": Vector3(1.28, 0.86, 1.18), "moss": true},
+		{"pos": Vector2(9.2, 6.8), "sc": Vector3(1.14, 0.74, 1.06), "moss": false},
+		{"pos": Vector2(16.2, 7.6), "sc": Vector3(1.28, 0.86, 1.18), "moss": true},
 		{"pos": Vector2(10.8, 12.8), "sc": Vector3(1.16, 0.76, 1.08), "moss": false},
-		# Crossroads & hillside boulders (outside all roadbeds)
+		# Distant meadow & hillside boulders (outside all roadbeds)
 		{"pos": Vector2(-12.8, -12.8), "sc": Vector3(1.55, 1.12, 1.42), "moss": true},
-		{"pos": Vector2(-7.8, -5.8), "sc": Vector3(1.18, 0.84, 1.10), "moss": true},
+		{"pos": Vector2(-8.8, -6.4), "sc": Vector3(1.18, 0.84, 1.10), "moss": true},
 		{"pos": Vector2(-15.5, -19.5), "sc": Vector3(1.75, 1.26, 1.60), "moss": true},
 	]
 
@@ -168,27 +202,27 @@ static func create_kevar_bush_3d(is_kevalu: bool = false) -> Node3D:
 	var root := Node3D.new()
 	root.name = "KevaluLocus3D" if is_kevalu else "KevarBush3D"
 
-	# Base botanical bush model from Quaternius Nature kit
 	var bush_style := {
 		"plant":
 		{
-			"color_dark": Color(0.24, 0.30, 0.34) if is_kevalu else Color(0.14, 0.34, 0.14),
-			"color_light": Color(0.56, 0.68, 0.76) if is_kevalu else Color(0.38, 0.64, 0.26),
-			"texture_color_mix": 0.45,
+			"color_dark": Color(0.18, 0.25, 0.28) if is_kevalu else Color(0.10, 0.23, 0.09),
+			"color_light": Color(0.42, 0.52, 0.58) if is_kevalu else Color(0.29, 0.44, 0.16),
+			"texture_color_mix": 0.36,
 		}
 	}
-	var bush_model := "Bush_Common_Flowers" if is_kevalu else "Bush_Common"
+	var bush_model := "Bush_Common_Flowers" if not is_kevalu else "Bush_Common"
 	var base_mesh := SevaraAssetLibrary3D.nature_mesh(bush_model, bush_style)
 	var base_mi := MeshInstance3D.new()
 	base_mi.mesh = base_mesh
-	base_mi.scale = Vector3(0.68, 0.68, 0.68)
+	base_mi.scale = Vector3(0.76, 0.72, 0.76)
+	base_mi.visibility_range_end = 86.0
 	root.add_child(base_mi)
 
-	# Upright medicinal spikes (Kevar warm cream-green vs Kevalu slate-ash frost)
 	var spike_mesh := SevaraAssetLibrary3D.nature_mesh("Proc_Kevalu" if is_kevalu else "Proc_Kevar")
 	var spike_mi := MeshInstance3D.new()
 	spike_mi.mesh = spike_mesh
-	spike_mi.scale = Vector3(0.95, 0.95, 0.95)
+	spike_mi.scale = Vector3(0.88, 0.88, 0.88)
+	spike_mi.visibility_range_end = 68.0
 	root.add_child(spike_mi)
 	return root
 
@@ -201,19 +235,30 @@ static func create_talina_willow_3d(variant: int = 0) -> Node3D:
 		"stiffness": 2.6,
 		"leaves":
 		{
-			"color_dark": Color(0.14, 0.32, 0.18),
-			"color_light": Color(0.42, 0.62, 0.34),
-			"texture_color_mix": 0.82,
-			"snow_cover": 0.02,
+			"color_dark": Color(0.10, 0.23, 0.10),
+			"color_light": Color(0.32, 0.46, 0.18),
+			"texture_color_mix": 0.35,
 		},
 	}
 	var mesh := SevaraAssetLibrary3D.nature_mesh(model_name, style)
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
-	var scale_f := 0.42 + float(posmod(variant, 3)) * 0.05
-	mi.scale = Vector3(scale_f * 1.05, scale_f * 0.92, scale_f * 1.05)
-	mi.rotation = Vector3(0.06, float(variant) * 1.28, -0.05)
+	var scale_f := 0.39 + float(posmod(variant, 3)) * 0.04
+	mi.scale = Vector3(scale_f * 1.04, scale_f * 0.92, scale_f * 1.04)
+	mi.rotation = Vector3(0.05, float(variant) * 1.28, -0.04)
+	mi.visibility_range_end = 135.0
+	mi.visibility_range_end_margin = 10.0
+	mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	root.add_child(mi)
+
+	var collar_mi := MeshInstance3D.new()
+	collar_mi.mesh = SevaraAssetLibrary3D.build_grass_patch_mesh(
+		36, 1.05, 0.034, 651 + (variant % 4), {"segments": 2}
+	)
+	collar_mi.scale = Vector3(1.32, 0.68, 1.32)
+	collar_mi.position = Vector3(0.0, 0.03, 0.0)
+	collar_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(collar_mi)
 	return root
 
 
@@ -311,52 +356,16 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 	var root := Node3D.new()
 	root.name = "TimberBridge3D"
 	var wood_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_aged_timber",
-		Color(0.58, 0.47, 0.35),
-		Color(0.46, 0.36, 0.26),
-		0.52,
-		0.48,
-		0.45,
-		0.78,
-		0.0,
-		0.0,
-		0.22
+		"pbr_aged_timber", Color(0.58, 0.47, 0.35), Color.BLACK, 0.52, 0.48, 0.45, 0.78
 	)
 	var warm_plank_alt_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_aged_timber",
-		Color(0.54, 0.43, 0.32),
-		Color(0.42, 0.33, 0.24),
-		0.50,
-		0.45,
-		0.45,
-		0.78,
-		0.0,
-		0.0,
-		0.22
+		"pbr_aged_timber", Color(0.54, 0.43, 0.32), Color.BLACK, 0.50, 0.45, 0.45, 0.78
 	)
 	var dark_beam_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_aged_timber",
-		Color(0.45, 0.35, 0.25),
-		Color(0.34, 0.26, 0.18),
-		0.48,
-		0.45,
-		0.45,
-		0.80,
-		0.0,
-		0.0,
-		0.22
+		"pbr_aged_timber", Color(0.45, 0.35, 0.25), Color.BLACK, 0.48, 0.45, 0.45, 0.80
 	)
 	var stone_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_cliff_rock",
-		Color(0.92, 0.90, 0.86),
-		Color(0.42, 0.42, 0.40),
-		0.48,
-		0.45,
-		0.42,
-		0.80,
-		0.0,
-		0.08,
-		0.24
+		"pbr_cliff_rock", Color(0.92, 0.90, 0.86), Color.BLACK, 0.48, 0.45, 0.42, 0.80, 0.0, 0.08
 	)
 
 	var x_min := SevaraTerrainGen3D.BRIDGE_X_MIN
@@ -380,7 +389,7 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 			}
 		)
 	)
-	var pier_xs: Array[float] = [6.35, 9.85, 14.15, 17.65]
+	var pier_xs: Array[float] = [9.85, 14.15]
 	for pier_x: float in pier_xs:
 		var pz := SevaraTerrainGen3D._main_road_z(pier_x)
 		var py := SevaraTerrainGen3D.get_bridge_deck_y_at_x(pier_x)
@@ -397,14 +406,14 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 		pier_grp.rotation.y = yaw
 		root.add_child(pier_grp)
 		for tier in range(3):
-			var ty := -0.78 - float(tier) * 0.36
-			var w_mult := 1.0 + float(tier) * 0.14
+			var ty := -0.84 - float(tier) * 0.36
+			var w_mult := 0.94 + float(tier) * 0.12
 			for k in range(3):
-				var z_off := (float(k) - 1.0) * 0.86
+				var z_off := (float(k) - 1.0) * 0.68
 				var st_mi := MeshInstance3D.new()
 				st_mi.mesh = pier_stone_mesh
-				st_mi.scale = Vector3(0.32 * w_mult, 0.22, 0.34 * w_mult)
-				st_mi.position = Vector3(sin(float(k + tier) * 1.7) * 0.05, ty, z_off)
+				st_mi.scale = Vector3(0.30 * w_mult, 0.21, 0.31 * w_mult)
+				st_mi.position = Vector3(sin(float(k + tier) * 1.7) * 0.04, ty, z_off)
 				st_mi.rotation.y = float(k * 2 + tier) * 1.1
 				st_mi.material_override = stone_mat
 				pier_grp.add_child(st_mi)
@@ -540,16 +549,7 @@ static func create_weir_barrier_3d(width_m: float = 4.6) -> Node3D:
 	var root := Node3D.new()
 	root.name = "WeirBarrier3D"
 	var wood_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_aged_timber",
-		Color(0.44, 0.32, 0.20),
-		Color(0.28, 0.19, 0.12),
-		0.55,
-		0.46,
-		0.80,
-		0.84,
-		0.0,
-		0.58,
-		0.22
+		"pbr_aged_timber", Color(0.44, 0.32, 0.20), Color.BLACK, 0.55, 0.46, 0.80, 0.84
 	)
 	var stake_count := maxi(int(width_m / 0.34), 8)
 	for i in range(stake_count):

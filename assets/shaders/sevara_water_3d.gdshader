@@ -184,19 +184,18 @@ void fragment() {
 	float wake = 0.0;
 	float pz1 = main_road_z(9.85);
 	float pz2 = main_road_z(14.15);
-	// Exact bridge in-water stone piers (`pier_xs = [9.85, 14.15]`, `z_off in [-0.74, +0.74]`)
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(9.85, pz1 - 0.74), 0.68, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(9.85, pz1 + 0.74), 0.68, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(14.15, pz2 - 0.74), 0.68, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(14.15, pz2 + 0.74), 0.68, t, n_turb));
+	// Exact bridge in-water stone piers (`pier_xs = [9.85, 14.15]`, `z_off in [-0.68, +0.68]`)
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(9.85, pz1 - 0.68), 0.65, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(9.85, pz1 + 0.68), 0.65, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(14.15, pz2 - 0.68), 0.65, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(14.15, pz2 + 0.68), 0.65, t, n_turb));
 	// In-stream rapids boulders & shoreline boulders touching water
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(9.4, -5.8), 0.92, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(13.8, -12.4), 0.98, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(7.2, 8.8), 0.88, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(3.8, 0.6), 0.95, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(19.4, 3.8), 0.95, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(4.2, -3.5), 0.92, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(15.2, -4.8), 0.95, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(8.4, -3.2), 0.85, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(14.4, -3.5), 0.88, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(7.4, -8.8), 0.82, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(12.2, -11.5), 0.90, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(9.2, 6.8), 0.85, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(16.2, 7.6), 0.90, t, n_turb));
 
 	// Longitudinal current streaks along the main thalweg
 	float streak_n = fbm(vec2(v_world_pos.x * 2.8 + sin(v_world_pos.z * 0.5) * 0.7, v_world_pos.z * 0.85 - t * 2.45));
