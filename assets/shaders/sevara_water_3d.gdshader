@@ -7,11 +7,11 @@ render_mode blend_mix, depth_draw_never, cull_back, diffuse_burley, specular_sch
 // - Physical white water foam rings & downstream V-wakes around bridge stone piers and in-stream boulders
 // - Beer-Lambert optical depth absorption: golden-pebble shallows -> deep emerald-sapphire channel
 
-uniform vec4 shallow_color : source_color = vec4(0.16, 0.31, 0.22, 0.22);
-uniform vec4 mid_color : source_color = vec4(0.05, 0.24, 0.23, 0.72);
-uniform vec4 deep_color : source_color = vec4(0.02, 0.13, 0.18, 0.94);
-uniform vec4 sky_reflection_tint : source_color = vec4(0.62, 0.78, 0.92, 1.0);
-uniform vec4 foam_color : source_color = vec4(0.90, 0.94, 0.92, 1.0);
+uniform vec4 shallow_color : source_color = vec4(0.14, 0.28, 0.20, 0.24);
+uniform vec4 mid_color : source_color = vec4(0.03, 0.18, 0.21, 0.76);
+uniform vec4 deep_color : source_color = vec4(0.01, 0.09, 0.15, 0.95);
+uniform vec4 sky_reflection_tint : source_color = vec4(0.46, 0.64, 0.82, 1.0);
+uniform vec4 foam_color : source_color = vec4(0.88, 0.93, 0.91, 1.0);
 uniform float flow_speed = 0.58;
 uniform float wave_height = 0.022;
 uniform float silt_load = 0.16;
@@ -78,24 +78,26 @@ vec3 procedural_riverbed(vec2 uv) {
 	return col;
 }
 
+// Exact bridge centerline matching `SevaraTerrainGen3D._main_road_z(wx)`
+float main_road_z(float wx) {
+	return -2.2 + sin(wx * 0.085 + 0.35) * 3.8 + cos(wx * 0.045 - 0.4) * 1.9 - wx * 0.06;
+}
+
 // Compute foam ring + downstream V-wake around an obstacle at `obs_xz` with radius `rad`
 float obstacle_foam_wake(vec2 pos_xz, vec2 obs_xz, float rad, float t, float n_turb) {
 	vec2 rel = pos_xz - obs_xz;
-	// River flows along +Z / slight +X; rotate wake frame slightly along channel
 	vec2 flow_rel = vec2(rel.x - rel.y * 0.16, rel.y);
 	float d = length(rel);
-	// Upstream & side collar ring right around the boulder/pier waterline
-	float ring_dist = abs(d - rad * 0.95);
-	float collar = exp(-pow(ring_dist / (rad * 0.38), 2.0)) * smoothstep(0.20, 0.72, n_turb);
-	// Downstream V-shaped turbulent wake trail
-	float down_z = clamp(flow_rel.y, 0.0, rad * 4.2);
-	float wake_half_w = rad * 0.55 + down_z * 0.34;
+	float ring_dist = abs(d - rad * 0.92);
+	float collar = exp(-pow(ring_dist / (rad * 0.34), 2.0)) * smoothstep(0.26, 0.76, n_turb) * 0.85;
+	float down_z = clamp(flow_rel.y, 0.0, rad * 3.6);
+	float wake_half_w = rad * 0.48 + down_z * 0.28;
 	float cross_d = abs(flow_rel.x);
-	float wake_env = (1.0 - smoothstep(wake_half_w * 0.35, wake_half_w, cross_d))
-		* (1.0 - smoothstep(0.0, rad * 4.0, down_z))
-		* step(0.0, flow_rel.y + rad * 0.25);
-	float v_ripples = sin(cross_d * 5.2 - down_z * 2.4 + t * 4.2) * 0.5 + 0.5;
-	float tail = wake_env * smoothstep(0.32, 0.78, n_turb * 0.65 + v_ripples * 0.45) * 0.82;
+	float wake_env = (1.0 - smoothstep(wake_half_w * 0.32, wake_half_w, cross_d))
+		* (1.0 - smoothstep(0.0, rad * 3.5, down_z))
+		* step(0.0, flow_rel.y + rad * 0.20);
+	float v_ripples = sin(cross_d * 5.6 - down_z * 2.6 + t * 4.2) * 0.5 + 0.5;
+	float tail = wake_env * smoothstep(0.38, 0.82, n_turb * 0.62 + v_ripples * 0.45) * 0.72;
 	return clamp(collar + tail, 0.0, 1.0);
 }
 
@@ -151,62 +153,64 @@ void fragment() {
 	vec3 view_world = normalize((INV_VIEW_MATRIX * vec4(-VIEW, 0.0)).xyz);
 	vec3 refl_world = reflect(-view_world, wave_nrm_world);
 	float ndotv = clamp(dot(wave_nrm_world, view_world), 0.0, 1.0);
-	float fresnel = 0.06 + 0.66 * pow(1.0 - ndotv, 3.6);
+	float fresnel = 0.04 + 0.52 * pow(1.0 - ndotv, 3.8);
 
-	// Reflected environment dome: green grassy banks at low elevation, azure sky & clouds higher up
-	vec3 bank_refl = vec3(0.14, 0.26, 0.11);
-	vec3 horizon_refl = vec3(0.66, 0.78, 0.86);
-	vec3 zenith_refl = sky_reflection_tint.rgb * vec3(0.58, 0.74, 0.92);
+	// Reflected environment dome: green grassy banks at low elevation, deep mountain sky & clouds higher up
+	vec3 bank_refl = vec3(0.11, 0.22, 0.09);
+	vec3 horizon_refl = vec3(0.42, 0.58, 0.70);
+	vec3 zenith_refl = sky_reflection_tint.rgb * vec3(0.44, 0.62, 0.82);
 	float cloud_refl = fbm(refl_world.xz * 1.8 + vec2(t * 0.05, -t * 0.03));
 	vec3 sky_refl = mix(horizon_refl, zenith_refl, smoothstep(0.05, 0.65, max(refl_world.y, 0.0)));
-	sky_refl = mix(sky_refl, vec3(0.88, 0.90, 0.86), smoothstep(0.48, 0.78, cloud_refl) * 0.42);
-	vec3 env_refl = mix(bank_refl, sky_refl, smoothstep(0.02, 0.26, refl_world.y));
+	sky_refl = mix(sky_refl, vec3(0.76, 0.82, 0.84), smoothstep(0.50, 0.80, cloud_refl) * 0.35);
+	vec3 env_refl = mix(bank_refl, sky_refl, smoothstep(0.02, 0.28, refl_world.y));
 
-	// Bridge shadow & underside timber reflection under NivarelBridge3D
-	float bridge_z_center = 1.95 + 0.55 * sin(v_world_pos.x * 0.055 + 0.35);
-	float under_bridge = (1.0 - smoothstep(1.35, 2.25, abs(v_world_pos.z - bridge_z_center)))
-		* (1.0 - smoothstep(5.2, 6.6, abs(v_world_pos.x - 12.0)));
-	env_refl = mix(env_refl, vec3(0.16, 0.12, 0.08), under_bridge * 0.75);
+	// Bridge shadow & underside timber reflection under NivarelBridge3D (exact centerline `main_road_z`)
+	float bridge_z_center = main_road_z(v_world_pos.x);
+	float under_bridge = (1.0 - smoothstep(1.35, 2.15, abs(v_world_pos.z - bridge_z_center)))
+		* (1.0 - smoothstep(5.4, 6.6, abs(v_world_pos.x - 12.0)));
+	env_refl = mix(env_refl, vec3(0.12, 0.09, 0.06), under_bridge * 0.82);
 
-	water_col = mix(water_col, env_refl, fresnel * (0.58 + 0.28 * water_depth));
-	water_col *= mix(1.0, 0.64, under_bridge);
+	water_col = mix(water_col, env_refl, fresnel * (0.42 + 0.24 * water_depth));
+	water_col *= mix(1.0, 0.48, under_bridge);
 
 	// 5) Crisp shoreline foam lace along both grassy riverbanks
 	float fn1 = fbm(v_world_pos.xz * 2.6 + vec2(-t * 0.42, -t * 1.55));
 	float fn2 = fbm(v_world_pos.xz * 4.8 + vec2(t * 0.34, -t * 2.25));
 	float n_turb = fn1 * 0.55 + fn2 * 0.45;
-	float shore_band = (1.0 - smoothstep(0.02, 0.18, water_depth)) * smoothstep(0.004, 0.028, water_depth);
-	float shore_lace = smoothstep(0.36, 0.64, n_turb + shore_band * 0.22) * shore_band * 0.78;
+	float shore_band = (1.0 - smoothstep(0.02, 0.16, water_depth)) * smoothstep(0.004, 0.026, water_depth);
+	float shore_lace = smoothstep(0.38, 0.66, n_turb + shore_band * 0.20) * shore_band * 0.72;
 
 	// 6) Physical white water foam rings & V-wakes around Bridge Piers & River Boulders
 	float wake = 0.0;
-	// Bridge stone piers (`pier_xs = [6.35, 9.85, 14.15, 17.65]`)
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(6.35, 2.15), 0.95, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(9.85, 2.22), 1.05, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(14.15, 2.28), 1.05, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(17.65, 2.34), 0.95, t, n_turb));
+	float pz1 = main_road_z(9.85);
+	float pz2 = main_road_z(14.15);
+	// Exact bridge in-water stone piers (`pier_xs = [9.85, 14.15]`, `z_off in [-0.74, +0.74]`)
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(9.85, pz1 - 0.74), 0.68, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(9.85, pz1 + 0.74), 0.68, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(14.15, pz2 - 0.74), 0.68, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(14.15, pz2 + 0.74), 0.68, t, n_turb));
 	// In-stream rapids boulders & shoreline boulders touching water
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(9.4, -5.8), 1.15, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(13.8, -12.4), 1.25, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(7.2, 8.8), 1.10, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(3.8, 0.6), 1.20, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(19.4, 3.8), 1.20, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(4.2, -3.5), 1.15, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(15.2, -4.8), 1.20, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(9.4, -5.8), 0.92, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(13.8, -12.4), 0.98, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(7.2, 8.8), 0.88, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(3.8, 0.6), 0.95, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(19.4, 3.8), 0.95, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(4.2, -3.5), 0.92, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(15.2, -4.8), 0.95, t, n_turb));
 
 	// Longitudinal current streaks along the main thalweg
 	float streak_n = fbm(vec2(v_world_pos.x * 2.8 + sin(v_world_pos.z * 0.5) * 0.7, v_world_pos.z * 0.85 - t * 2.45));
-	float current_wisps = smoothstep(0.52, 0.76, streak_n * 0.65 + fn2 * 0.45) * (rapids_weight * 0.35 + 0.14) * smoothstep(0.08, 0.35, water_depth);
+	float current_wisps = smoothstep(0.56, 0.80, streak_n * 0.65 + fn2 * 0.45) * (rapids_weight * 0.28 + 0.10) * smoothstep(0.08, 0.35, water_depth);
 
 	// 7) Sunlit wave crest glints & sparkling water highlights
 	vec3 sun_dir = normalize(vec3(0.45, 0.68, 0.58));
 	vec3 half_vec = normalize(sun_dir + view_world);
-	float spec_glint = pow(clamp(dot(wave_nrm_world, half_vec), 0.0, 1.0), 48.0) * (1.0 - under_bridge * 0.85);
-	float crest_glint = smoothstep(0.66, 0.84, h0) * 0.28 * (1.0 - under_bridge * 0.75);
+	float spec_glint = pow(clamp(dot(wave_nrm_world, half_vec), 0.0, 1.0), 54.0) * (1.0 - under_bridge * 0.85);
+	float crest_glint = smoothstep(0.70, 0.86, h0) * 0.22 * (1.0 - under_bridge * 0.75);
 
-	float total_foam = clamp(shore_lace + wake * 0.82 + current_wisps + crest_glint, 0.0, 0.82);
+	float total_foam = clamp(shore_lace + wake * 0.76 + current_wisps + crest_glint, 0.0, 0.76);
 	vec3 final_rgb = mix(water_col, foam_color.rgb, total_foam);
-	final_rgb += vec3(0.95, 0.92, 0.80) * spec_glint * 0.52;
+	final_rgb += vec3(0.95, 0.92, 0.80) * spec_glint * 0.48;
 
 	ALBEDO = final_rgb;
 	ROUGHNESS = mix(0.07, 0.44, total_foam);
