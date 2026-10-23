@@ -10,8 +10,8 @@ const WATER_SURFACE_Y := 0.42
 const WORLD_SCALE := TILE_SIZE_M / 32.0
 ## Look-Dev mode: CBT proving ground with stepped terraces, two-track roads & Nivarel river bridge.
 const STEP1_CLEAN_MEADOW := true
-const BRIDGE_X_MIN := 5.3
-const BRIDGE_X_MAX := 18.7
+const BRIDGE_X_MIN := 5.6
+const BRIDGE_X_MAX := 18.4
 const BRIDGE_HALF_WIDTH := 1.68
 
 
@@ -77,13 +77,13 @@ static func is_on_bridge(wx: float, wz: float) -> bool:
 
 static func get_bridge_deck_y_at_x(wx: float) -> float:
 	var t := clampf((wx - BRIDGE_X_MIN) / (BRIDGE_X_MAX - BRIDGE_X_MIN), 0.0, 1.0)
-	var west_ground := get_height_at(BRIDGE_X_MIN, _main_road_z(BRIDGE_X_MIN))
-	var east_ground := get_height_at(BRIDGE_X_MAX, _main_road_z(BRIDGE_X_MAX))
+	var west_ground := get_height_at(BRIDGE_X_MIN, _main_road_z(BRIDGE_X_MIN)) + 0.02
+	var east_ground := get_height_at(BRIDGE_X_MAX, _main_road_z(BRIDGE_X_MAX)) + 0.02
 	var base_line := lerpf(west_ground, east_ground, t)
 	# Smoothly rises from flush road grade at both ramps to a level timber deck
-	var ramp_env := smoothstep(0.0, 0.16, t) * (1.0 - smoothstep(0.84, 1.0, t))
-	var camber := sin(t * PI) * 0.16
-	return lerpf(base_line, 1.12 + camber, ramp_env)
+	var ramp_env := smoothstep(0.0, 0.14, t) * (1.0 - smoothstep(0.86, 1.0, t))
+	var camber := sin(t * PI) * 0.14
+	return lerpf(base_line, 1.06 + camber, ramp_env)
 
 
 static func get_walkable_height_at(wx: float, wz: float) -> float:
@@ -128,7 +128,7 @@ static func get_road_core_at(wx: float, wz: float) -> float:
 	# Stop the earthen roadbed cleanly at the riverbanks so no dirt path runs underwater
 	var r_cx := river_center_x(wz)
 	var r_hw := river_half_width(wz)
-	var bridge_channel_cut := smoothstep(r_hw * 0.86, r_hw * 1.03, absf(wx - r_cx))
+	var bridge_channel_cut := smoothstep(r_hw * 0.74, r_hw * 0.92, absf(wx - r_cx))
 	var m_main := (1.0 - smoothstep(0.68, 1.05, d_main / 1.32)) * fade_main * bridge_channel_cut
 
 	var d_north := absf(_north_branch_signed_dist(wx, wz))

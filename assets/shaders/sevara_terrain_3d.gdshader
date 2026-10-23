@@ -156,7 +156,7 @@ vec4 eval_road_network(vec2 xz) {
 	float d_main = abs(signed_main);
 	float r_cx = river_center_x(wz);
 	float r_hw = river_half_width(wz);
-	float bridge_channel_cut = smoothstep(r_hw * 0.86, r_hw * 1.03, abs(wx - r_cx));
+	float bridge_channel_cut = smoothstep(r_hw * 0.74, r_hw * 0.92, abs(wx - r_cx));
 	float fade_main = smoothstep(-66.0, -54.0, wx) * (1.0 - smoothstep(54.0, 66.0, wx)) * bridge_channel_cut;
 
 	// 2. NW Overlook terrace trail

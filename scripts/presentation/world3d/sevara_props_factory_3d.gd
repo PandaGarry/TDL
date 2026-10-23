@@ -129,15 +129,15 @@ static func create_boulder_3d(scale_vec: Vector3 = Vector3.ONE, mossy: bool = tr
 		sub_mi.rotation = Vector3(-0.14 * cos(ang), ang + 1.2, 0.10 * sin(ang))
 		root.add_child(sub_mi)
 
-		# Physical 3D plush "fur-moss" blanket crowning the top dome of mossy boulders
-		var fur_mesh := SevaraAssetLibrary3D.build_grass_patch_mesh(
-			58, 0.46, 0.024, 709, {"segments": 2}
-		)
-		var fur_mi := MeshInstance3D.new()
-		fur_mi.mesh = fur_mesh
-		fur_mi.scale = Vector3(scale_vec.x * 0.92, 0.28, scale_vec.z * 0.92)
-		fur_mi.position = Vector3(0.0, 0.72 * scale_vec.y, 0.0)
-		root.add_child(fur_mi)
+		# Lush 3D clover cluster nestled against the boulder's mossy shoulder
+		var clv_mesh := SevaraAssetLibrary3D.nature_mesh("Clover_1", {})
+		if clv_mesh != null:
+			var clv_mi := MeshInstance3D.new()
+			clv_mi.mesh = clv_mesh
+			clv_mi.scale = Vector3.ONE * (0.28 * scale_vec.x)
+			clv_mi.position = Vector3(-cos(ang) * rad * 0.82, 0.06, -sin(ang) * rad * 0.82)
+			clv_mi.rotation.y = ang * 1.7
+			root.add_child(clv_mi)
 
 		# Ground-hugging grass tuft collar so the boulder sits nestled in meadow turf
 		var collar_mesh := SevaraAssetLibrary3D.build_grass_patch_mesh(
@@ -300,107 +300,59 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 	root.name = "TimberBridge3D"
 	var wood_mat := SevaraAssetLibrary3D._make_arch_shader_material(
 		"pbr_aged_timber",
-		Color(0.56, 0.40, 0.26),
-		Color(0.38, 0.26, 0.16),
-		0.52,
+		Color(0.68, 0.56, 0.42),
+		Color(0.46, 0.36, 0.26),
+		0.56,
 		0.48,
-		0.78,
-		0.78,
+		0.82,
+		0.82,
 		0.0,
-		0.45,
+		0.18,
 		0.26
 	)
 	var dark_beam_mat := SevaraAssetLibrary3D._make_arch_shader_material(
 		"pbr_aged_timber",
-		Color(0.40, 0.28, 0.18),
-		Color(0.26, 0.18, 0.11),
-		0.48,
-		0.45,
-		0.80,
-		0.82,
-		0.0,
+		Color(0.50, 0.40, 0.29),
+		Color(0.34, 0.26, 0.18),
 		0.52,
+		0.45,
+		0.85,
+		0.85,
+		0.0,
+		0.22,
 		0.24
 	)
 	var stone_mat := SevaraAssetLibrary3D._make_arch_shader_material(
 		"pbr_cliff_rock",
-		Color(0.88, 0.86, 0.82),
+		Color(0.86, 0.84, 0.80),
 		Color(0.38, 0.39, 0.38),
 		0.52,
 		0.45,
 		0.82,
 		0.80,
 		0.0,
-		0.58,
+		0.08,
 		0.32
 	)
 	var cobble_mat := SevaraAssetLibrary3D._make_arch_shader_material(
 		"pbr_cobble_masonry",
-		Color(0.90, 0.86, 0.80),
+		Color(0.84, 0.80, 0.74),
 		Color(0.42, 0.40, 0.36),
 		0.58,
 		0.50,
 		0.85,
 		0.82,
 		0.0,
-		0.48,
+		0.06,
 		0.28
 	)
 
 	var x_min := SevaraTerrainGen3D.BRIDGE_X_MIN
 	var x_max := SevaraTerrainGen3D.BRIDGE_X_MAX
-	var deck_w := 2.96
+	var deck_w := 2.92
 
-	# 1. Graded Stone Approach Ramps & Wing-Wall Parapets (flush with earthen road on both banks)
-	var ramp_ranges: Array[Vector2] = [
-		Vector2(x_min - 0.3, x_min + 1.85), Vector2(x_max - 1.85, x_max + 0.3)
-	]
-	for rr: Vector2 in ramp_ranges:
-		var steps := 7
-		var step_dx := (rr.y - rr.x) / float(steps)
-		for s in range(steps):
-			var sx := rr.x + (float(s) + 0.5) * step_dx
-			var sz := SevaraTerrainGen3D._main_road_z(sx)
-			var sy := SevaraTerrainGen3D.get_bridge_deck_y_at_x(sx)
-			var dy := (
-				(
-					SevaraTerrainGen3D.get_bridge_deck_y_at_x(sx + 0.15)
-					- SevaraTerrainGen3D.get_bridge_deck_y_at_x(sx - 0.15)
-				)
-				/ 0.30
-			)
-			var dz := (
-				(
-					SevaraTerrainGen3D._main_road_z(sx + 0.15)
-					- SevaraTerrainGen3D._main_road_z(sx - 0.15)
-				)
-				/ 0.30
-			)
-			var yaw := -atan2(dz, 1.0)
-			var pitch := atan2(dy, 1.0)
-			var ramp_block := MeshInstance3D.new()
-			var rbox := BoxMesh.new()
-			rbox.size = Vector3(step_dx + 0.08, 0.72, deck_w + 0.24)
-			ramp_block.mesh = rbox
-			ramp_block.position = Vector3(sx, sy - 0.35, sz)
-			ramp_block.rotation = Vector3(0.0, yaw, pitch)
-			ramp_block.material_override = cobble_mat
-			root.add_child(ramp_block)
-
-			# Low stone wing-wall curbs along the approach ramp edges
-			for side_z in [-1.0, 1.0]:
-				var curb := MeshInstance3D.new()
-				var cbox := BoxMesh.new()
-				cbox.size = Vector3(step_dx + 0.06, 0.88, 0.28)
-				curb.mesh = cbox
-				var n_off := float(side_z) * (deck_w * 0.5 + 0.12)
-				curb.position = Vector3(sx - sin(yaw) * n_off, sy - 0.20, sz + cos(yaw) * n_off)
-				curb.rotation = Vector3(0.0, yaw, pitch)
-				curb.material_override = stone_mat
-				root.add_child(curb)
-
-	# 2. Deep-Channel Stone Masonry Piers & Timber Knee Braces in the Nivarel River
-	for pier_x in [9.65, 14.35]:
+	# 1. Bank Stone Abutment Foundations & Deep-Channel Masonry Piers in the Nivarel River
+	for pier_x in [6.35, 9.85, 14.15, 17.65]:
 		var pz := SevaraTerrainGen3D._main_road_z(pier_x)
 		var py := SevaraTerrainGen3D.get_bridge_deck_y_at_x(pier_x)
 		var dz := (
@@ -411,19 +363,20 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 			/ 0.4
 		)
 		var yaw := -atan2(dz, 1.0)
+		var is_bank := pier_x < 7.5 or pier_x > 16.5
 		var pier := MeshInstance3D.new()
 		var pbox := BoxMesh.new()
-		pbox.size = Vector3(1.05, 2.70, deck_w + 0.36)
+		pbox.size = Vector3(1.25 if is_bank else 0.96, 2.50, deck_w + 0.24)
 		pier.mesh = pbox
-		pier.position = Vector3(pier_x, py - 1.44, pz)
+		pier.position = Vector3(pier_x, py - 1.36, pz)
 		pier.rotation.y = yaw
-		pier.material_override = stone_mat
+		pier.material_override = cobble_mat if is_bank else stone_mat
 		root.add_child(pier)
 
-	# 3. Timber Deck Planks, Longitudinal Carrier Stringers, Wheel Runners & Guard Curbs
-	var span_start := x_min + 1.65
-	var span_end := x_max - 1.65
-	var plank_count := 34
+	# 2. Continuous Timber Plank Deck, Under-Deck Carrier Beams & Side Wheel-Guard Curbs
+	var span_start := x_min
+	var span_end := x_max
+	var plank_count := 42
 	var span_dx := (span_end - span_start) / float(plank_count)
 	for i in range(plank_count):
 		var px := span_start + (float(i) + 0.5) * span_dx
@@ -448,39 +401,37 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 
 		var plank := MeshInstance3D.new()
 		var pmesh := BoxMesh.new()
-		var jitter_w := deck_w + sin(float(i) * 2.1) * 0.04
-		pmesh.size = Vector3(span_dx * 0.92, 0.10, jitter_w)
+		var jitter_w := deck_w + sin(float(i) * 2.1) * 0.03
+		pmesh.size = Vector3(span_dx * 0.93, 0.09, jitter_w)
 		plank.mesh = pmesh
-		plank.position = Vector3(px, py - 0.04, pz)
+		plank.position = Vector3(px, py - 0.035, pz)
 		plank.rotation = Vector3(0.0, yaw, pitch)
 		plank.material_override = wood_mat if (i % 3 != 0) else dark_beam_mat
 		root.add_child(plank)
 
-		# Heavy under-deck longitudinal carrier beams + wheel-track wear planks + side curbs
-		for r_off in [-0.52, 0.52]:
-			var runner := MeshInstance3D.new()
-			var rmesh := BoxMesh.new()
-			rmesh.size = Vector3(span_dx + 0.02, 0.035, 0.36)
-			runner.mesh = rmesh
-			runner.position = Vector3(
-				px - sin(yaw) * float(r_off), py + 0.015, pz + cos(yaw) * float(r_off)
-			)
-			runner.rotation = Vector3(0.0, yaw, pitch)
-			runner.material_override = dark_beam_mat
-			root.add_child(runner)
 		for side_z in [-1.0, 1.0]:
-			var off_z := float(side_z) * (deck_w * 0.46)
+			var off_z := float(side_z) * (deck_w * 0.45)
 			var beam := MeshInstance3D.new()
 			var bmesh := BoxMesh.new()
-			bmesh.size = Vector3(span_dx + 0.04, 0.22, 0.22)
+			bmesh.size = Vector3(span_dx + 0.04, 0.20, 0.20)
 			beam.mesh = bmesh
-			beam.position = Vector3(px - sin(yaw) * off_z, py - 0.18, pz + cos(yaw) * off_z)
+			beam.position = Vector3(px - sin(yaw) * off_z, py - 0.16, pz + cos(yaw) * off_z)
 			beam.rotation = Vector3(0.0, yaw, pitch)
 			beam.material_override = dark_beam_mat
 			root.add_child(beam)
 
-	# 4. Timber Railing Posts & Double Handrails along the span
-	var post_count := 7
+			var curb := MeshInstance3D.new()
+			var cmesh := BoxMesh.new()
+			cmesh.size = Vector3(span_dx + 0.03, 0.09, 0.14)
+			curb.mesh = cmesh
+			var c_off := float(side_z) * (deck_w * 0.46)
+			curb.position = Vector3(px - sin(yaw) * c_off, py + 0.045, pz + cos(yaw) * c_off)
+			curb.rotation = Vector3(0.0, yaw, pitch)
+			curb.material_override = dark_beam_mat
+			root.add_child(curb)
+
+	# 3. Timber Railing Posts & Double Handrails along the entire bridge span
+	var post_count := 8
 	for side_z in [-1.0, 1.0]:
 		for p in range(post_count):
 			var pt := float(p) / float(post_count - 1)
@@ -653,6 +604,8 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 			if Vector2(wx, wz).length() > 84.0:
 				continue
 			var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
+			if SevaraTerrainGen3D.is_on_bridge(wx, wz):
+				continue
 			var r_cx := SevaraTerrainGen3D.river_center_x(wz)
 			var r_hw := SevaraTerrainGen3D.river_half_width(wz)
 			var in_stream_corridor := absf(wx - r_cx) < r_hw * 1.25
@@ -718,7 +671,10 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 			var wx := -52.0 + (float(vx) + rng.randf_range(0.15, 0.85)) * v_step
 			var wz := -44.0 + (float(vz) + rng.randf_range(0.15, 0.85)) * v_step
 			var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
-			if wy < SevaraTerrainGen3D.WATER_SURFACE_Y + 0.04:
+			if (
+				wy < SevaraTerrainGen3D.WATER_SURFACE_Y + 0.04
+				or SevaraTerrainGen3D.is_on_bridge(wx, wz)
+			):
 				continue
 			var pw := SevaraTerrainGen3D.get_path_weight_at(wx, wz)
 			var r_cx := SevaraTerrainGen3D.river_center_x(wz)
@@ -764,7 +720,7 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 
 
 static func _scatter_road_cobbles_and_clover(
-	parent: Node3D, pebble_mesh: ArrayMesh, dens: float
+	parent: Node3D, _pebble_mesh: ArrayMesh, dens: float
 ) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 618209
@@ -772,8 +728,24 @@ static func _scatter_road_cobbles_and_clover(
 	var cob_cu: Array[Color] = []
 	var clv_xf: Array[Transform3D] = []
 	var clv_cu: Array[Color] = []
-	var target_cob := int(560.0 * dens)
-	var target_clv := int(220.0 * dens)
+	var target_cob := int(780.0 * dens)
+	var target_clv := int(240.0 * dens)
+	var road_stone_mesh := (
+		SevaraAssetLibrary3D
+		. nature_mesh(
+			"Pebble_Round_1",
+			{
+				"rock":
+				{
+					"moss_amount": 0.06,
+					"snow_amount": 0.0,
+					"wetness": 0.10,
+					"triplanar": 1.0,
+					"tint": Color(1.08, 1.04, 0.96),
+				}
+			}
+		)
+	)
 	for i in range(target_cob * 4):
 		if cob_xf.size() >= target_cob and clv_xf.size() >= target_clv:
 			break
@@ -783,29 +755,29 @@ static func _scatter_road_cobbles_and_clover(
 			continue
 		var r_cx := SevaraTerrainGen3D.river_center_x(wz)
 		var r_hw := SevaraTerrainGen3D.river_half_width(wz)
-		if absf(wx - r_cx) < r_hw * 1.04:
+		if absf(wx - r_cx) < r_hw * 0.96:
 			continue
 		var pw := SevaraTerrainGen3D.get_path_weight_at(wx, wz)
 		if pw < 0.08:
 			continue
 		var wy := SevaraTerrainGen3D.get_height_at(wx, wz)
 		var gn := SevaraTerrainGen3D.get_ground_normal(wx, wz)
-		if pw >= 0.18 and cob_xf.size() < target_cob:
+		if pw >= 0.16 and cob_xf.size() < target_cob:
 			var is_rut_stone := i % 3 == 0
-			var sc := rng.randf_range(0.54, 0.96) if is_rut_stone else rng.randf_range(0.28, 0.56)
-			var sy := sc * (0.44 if is_rut_stone else 0.52)
+			var sc := rng.randf_range(0.62, 1.12) if is_rut_stone else rng.randf_range(0.34, 0.66)
+			var sy := sc * (0.48 if is_rut_stone else 0.56)
 			var b := _align_up_with_yaw(gn, rng.randf() * TAU, 1.0).scaled(Vector3(sc, sy, sc))
-			var sink := -0.016 if is_rut_stone else -0.010
+			var sink := -0.008 if is_rut_stone else -0.005
 			cob_xf.append(Transform3D(b, Vector3(wx, wy + sink, wz)))
-			var sh := rng.randf_range(0.76, 1.08)
-			cob_cu.append(Color(sh, sh * 0.96, sh * 0.90, rng.randf_range(0.08, 0.42)))
+			var sh := rng.randf_range(0.88, 1.16)
+			cob_cu.append(Color(sh, sh * 0.97, sh * 0.92, rng.randf_range(0.02, 0.16)))
 		elif pw <= 0.48 and clv_xf.size() < target_clv:
 			var c_sc := rng.randf_range(0.22, 0.38)
 			var cb := _align_up_with_yaw(gn, rng.randf() * TAU, c_sc)
 			clv_xf.append(Transform3D(cb, Vector3(wx, wy - 0.015, wz)))
 			clv_cu.append(Color(0.32, 0.52, 0.18, rng.randf_range(0.35, 0.85)))
 	if not cob_xf.is_empty():
-		parent.add_child(_create_multimesh_node("RoadCobblesMM", pebble_mesh, cob_xf, cob_cu))
+		parent.add_child(_create_multimesh_node("RoadCobblesMM", road_stone_mesh, cob_xf, cob_cu))
 	var clover_mesh := SevaraAssetLibrary3D.nature_mesh("Clover_1", {})
 	if clover_mesh != null and not clv_xf.is_empty():
 		parent.add_child(_create_multimesh_node("RoadsideCloverMM", clover_mesh, clv_xf, clv_cu))
