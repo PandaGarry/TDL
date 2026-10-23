@@ -290,4 +290,14 @@ Linux) и мобильных устройствах (iPhone/iPad через Xogo
      2-сегментные травинки вместо 4-сегментных (минус 50% треугольников при
      сохранении густоты ковра), а `GreyboxStage` предоставляет сенсорную
      панель управления `TouchControlsMargin`.
+5. **Батчинг путевого декора и гидротехнических объектов Шага 2 (`RoadCobblesMM`, `RoadsideCloverMM`, `RiverPebblesMM`, `NivarelBridge3D`):**
+   - Все 3D-булыжники дорожного полотна (`RoadCobblesMM`), придорожный клевер
+     (`RoadsideCloverMM`) и донная речная галька (`RiverPebblesMM`) рендерятся
+     едиными аппаратно-инстансированными узлами `MultiMeshInstance3D` с
+     настроенным `visibility_range_end` (`52–72` м) и `VISIBILITY_RANGE_FADE_SELF`.
+   - Каменно-деревянный мост `NivarelBridge3D` и его аналитический профиль
+     высоты `SevaraTerrainGen3D.get_bridge_deck_y_at_x(wx)` используются как
+     для размещения 3D-конструкций моста, так и для вертикальной привязки
+     акторов (`SevaraWorld3D._tile_to_world()`), не затрагивая 2D-клеточную
+     симуляцию и `state_hash` в `The Seed`.
 

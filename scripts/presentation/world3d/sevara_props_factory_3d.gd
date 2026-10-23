@@ -57,26 +57,26 @@ static func create_tree_3d(variant: int = 0, is_stump: bool = false) -> Node3D:
 
 static func get_step2_boulder_specs() -> Array[Dictionary]:
 	return [
-		# Bridge west & east abutment guardian boulders (flanking the stone approach ramps)
-		{"pos": Vector2(6.2, 0.1), "sc": Vector3(1.28, 0.92, 1.18), "moss": true},
-		{"pos": Vector2(6.4, 4.5), "sc": Vector3(1.22, 0.88, 1.14), "moss": true},
-		{"pos": Vector2(17.5, 0.0), "sc": Vector3(1.32, 0.96, 1.22), "moss": true},
-		{"pos": Vector2(17.4, 4.4), "sc": Vector3(1.26, 0.90, 1.16), "moss": true},
+		# Bridge west & east abutment guardian boulders (alternating mossy & chiseled granite)
+		{"pos": Vector2(6.2, 0.1), "sc": Vector3(1.34, 0.96, 1.24), "moss": true},
+		{"pos": Vector2(6.4, 4.5), "sc": Vector3(1.26, 0.92, 1.18), "moss": false},
+		{"pos": Vector2(17.5, 0.0), "sc": Vector3(1.36, 0.98, 1.26), "moss": false},
+		{"pos": Vector2(17.4, 4.4), "sc": Vector3(1.32, 0.94, 1.22), "moss": true},
 		# West riverbank boulder clusters (north & south of bridge)
-		{"pos": Vector2(5.2, -3.5), "sc": Vector3(1.42, 1.04, 1.32), "moss": true},
-		{"pos": Vector2(4.5, -7.8), "sc": Vector3(1.18, 0.82, 1.10), "moss": false},
-		{"pos": Vector2(2.4, -13.5), "sc": Vector3(1.56, 1.14, 1.44), "moss": true},
-		{"pos": Vector2(-0.5, -19.5), "sc": Vector3(1.48, 1.08, 1.36), "moss": true},
+		{"pos": Vector2(5.2, -3.5), "sc": Vector3(1.48, 1.08, 1.36), "moss": true},
+		{"pos": Vector2(4.5, -7.8), "sc": Vector3(1.22, 0.86, 1.14), "moss": false},
+		{"pos": Vector2(2.4, -13.5), "sc": Vector3(1.58, 1.16, 1.46), "moss": true},
+		{"pos": Vector2(-0.5, -19.5), "sc": Vector3(1.48, 1.08, 1.36), "moss": false},
 		{"pos": Vector2(-2.8, -25.0), "sc": Vector3(1.68, 1.22, 1.54), "moss": true},
-		{"pos": Vector2(7.2, 7.2), "sc": Vector3(1.38, 0.98, 1.28), "moss": true},
-		{"pos": Vector2(8.4, 11.8), "sc": Vector3(1.52, 1.12, 1.42), "moss": true},
-		{"pos": Vector2(9.6, 16.5), "sc": Vector3(1.35, 0.95, 1.24), "moss": false},
+		{"pos": Vector2(7.2, 7.2), "sc": Vector3(1.44, 1.04, 1.32), "moss": true},
+		{"pos": Vector2(8.4, 11.8), "sc": Vector3(1.52, 1.12, 1.42), "moss": false},
+		{"pos": Vector2(9.6, 16.5), "sc": Vector3(1.38, 0.98, 1.26), "moss": true},
 		# East riverbank boulder clusters (north & south of bridge)
-		{"pos": Vector2(16.2, -3.2), "sc": Vector3(1.46, 1.06, 1.34), "moss": true},
-		{"pos": Vector2(14.8, -8.2), "sc": Vector3(1.25, 0.88, 1.16), "moss": false},
-		{"pos": Vector2(12.6, -14.2), "sc": Vector3(1.54, 1.12, 1.42), "moss": true},
-		{"pos": Vector2(9.8, -20.5), "sc": Vector3(1.44, 1.04, 1.32), "moss": true},
-		{"pos": Vector2(18.5, 6.8), "sc": Vector3(1.50, 1.08, 1.38), "moss": true},
+		{"pos": Vector2(16.2, -3.2), "sc": Vector3(1.48, 1.08, 1.36), "moss": true},
+		{"pos": Vector2(14.8, -8.2), "sc": Vector3(1.28, 0.90, 1.18), "moss": false},
+		{"pos": Vector2(12.6, -14.2), "sc": Vector3(1.56, 1.14, 1.44), "moss": true},
+		{"pos": Vector2(9.8, -20.5), "sc": Vector3(1.44, 1.04, 1.32), "moss": false},
+		{"pos": Vector2(18.5, 6.8), "sc": Vector3(1.50, 1.08, 1.38), "moss": false},
 		{"pos": Vector2(19.8, 11.5), "sc": Vector3(1.64, 1.18, 1.52), "moss": true},
 		{"pos": Vector2(20.6, 16.2), "sc": Vector3(1.40, 1.00, 1.30), "moss": false},
 		# In-river wet rocks & mossy island boulders along the shallow shelves
