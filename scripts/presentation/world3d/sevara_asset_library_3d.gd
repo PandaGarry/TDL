@@ -980,20 +980,20 @@ static func _proc_reeds(st: SurfaceTool, rng: RandomNumberGenerator) -> void:
 
 
 static func _proc_kevar(st: SurfaceTool, rng: RandomNumberGenerator, is_kevalu: bool) -> void:
-	var stem_dark := Color(0.14, 0.22, 0.24) if is_kevalu else Color(0.08, 0.18, 0.07)
-	var stem_mid := Color(0.24, 0.34, 0.38) if is_kevalu else Color(0.16, 0.29, 0.12)
-	for _i in range(22):
+	var stem_dark := Color(0.10, 0.18, 0.18) if is_kevalu else Color(0.08, 0.17, 0.07)
+	var stem_mid := Color(0.18, 0.28, 0.28) if is_kevalu else Color(0.15, 0.28, 0.11)
+	for _i in range(18):
 		var ang := rng.randf() * TAU
 		var r0 := sqrt(rng.randf()) * 0.22
 		var base := Vector3(cos(ang) * r0, 0.0, sin(ang) * r0)
-		var lean := rng.randf_range(0.18, 0.48)
-		var h := rng.randf_range(0.48, 0.78)
+		var lean := rng.randf_range(0.16, 0.42)
+		var h := rng.randf_range(0.42, 0.68)
 		var tip := base + Vector3(cos(ang) * lean * h, h, sin(ang) * lean * h)
 		var mid := base.lerp(tip, 0.58)
 		var blossom := (
-			Color(0.32, 0.46, 0.56)
+			Color(0.22, 0.34, 0.38)
 			if is_kevalu
-			else Color(0.34, 0.44, 0.62).lerp(Color(0.54, 0.44, 0.20), rng.randf() * 0.48)
+			else Color(0.22, 0.34, 0.14).lerp(Color(0.38, 0.32, 0.14), rng.randf() * 0.55)
 		)
-		_proc_cross(st, base, mid, 0.016, 0.012, stem_dark, stem_mid, ang)
-		_proc_cross(st, mid, tip, 0.032, 0.014, blossom.darkened(0.22), blossom, ang + 0.4)
+		_proc_cross(st, base, mid, 0.014, 0.010, stem_dark, stem_mid, ang)
+		_proc_cross(st, mid, tip, 0.022, 0.010, blossom.darkened(0.20), blossom, ang + 0.4)

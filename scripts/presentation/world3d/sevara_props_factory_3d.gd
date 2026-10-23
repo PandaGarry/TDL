@@ -195,37 +195,31 @@ static func create_boulder_3d(scale_vec: Vector3 = Vector3.ONE, mossy: bool = tr
 static func create_kevar_bush_3d(is_kevalu: bool = false) -> Node3D:
 	var root := Node3D.new()
 	root.name = "KevaluLocus3D" if is_kevalu else "KevarBush3D"
-	var bush_style := {
-		"plant":
-		{
-			"color_dark": Color(0.14, 0.20, 0.22) if is_kevalu else Color(0.08, 0.18, 0.07),
-			"color_light": Color(0.34, 0.44, 0.48) if is_kevalu else Color(0.24, 0.37, 0.13),
-			"texture_color_mix": 0.22,
-		}
+	var leaf_cfg := {
+		"color_dark": Color(0.11, 0.18, 0.18) if is_kevalu else Color(0.08, 0.18, 0.07),
+		"color_light": Color(0.24, 0.35, 0.34) if is_kevalu else Color(0.24, 0.37, 0.13),
+		"texture_color_mix": 0.24,
 	}
+	var bush_style := {"leaves": leaf_cfg, "plant": leaf_cfg}
+	var base_mi := MeshInstance3D.new()
+	base_mi.mesh = SevaraAssetLibrary3D.nature_mesh("Bush_Common", bush_style)
+	base_mi.scale = Vector3(0.64, 0.54, 0.64)
+	base_mi.visibility_range_end = 86.0
+	root.add_child(base_mi)
 	var fern_mesh := SevaraAssetLibrary3D.nature_mesh("Fern_1", bush_style)
 	if fern_mesh != null:
-		for f in range(3):
+		for f in range(2):
 			var fern_mi := MeshInstance3D.new()
 			fern_mi.mesh = fern_mesh
-			var fang := float(f) * 2.09
-			var fsc := 0.11 + float(f % 2) * 0.02
-			fern_mi.scale = Vector3(fsc, fsc * 0.95, fsc)
-			fern_mi.position = Vector3(cos(fang) * 0.22, 0.02, sin(fang) * 0.22)
-			fern_mi.rotation = Vector3(0.06, fang, -0.05)
+			var fang := float(f) * 2.4 + 0.5
+			fern_mi.scale = Vector3(0.18, 0.20, 0.18)
+			fern_mi.position = Vector3(cos(fang) * 0.34, 0.02, sin(fang) * 0.34)
+			fern_mi.rotation = Vector3(0.05, fang, -0.04)
 			fern_mi.visibility_range_end = 78.0
 			root.add_child(fern_mi)
-	var collar_mi := MeshInstance3D.new()
-	collar_mi.mesh = SevaraAssetLibrary3D.build_grass_patch_mesh(
-		32, 0.82, 0.032, 709, {"segments": 2}
-	)
-	collar_mi.scale = Vector3(1.15, 0.62, 1.15)
-	collar_mi.position = Vector3(0.0, 0.02, 0.0)
-	collar_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	root.add_child(collar_mi)
 	var spike_mi := MeshInstance3D.new()
 	spike_mi.mesh = SevaraAssetLibrary3D.nature_mesh("Proc_Kevalu" if is_kevalu else "Proc_Kevar")
-	spike_mi.scale = Vector3(0.76, 0.76, 0.76)
+	spike_mi.scale = Vector3(0.56, 0.52, 0.56)
 	spike_mi.visibility_range_end = 68.0
 	root.add_child(spike_mi)
 	return root
