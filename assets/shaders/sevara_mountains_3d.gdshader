@@ -59,14 +59,7 @@ float ridge_profile(float a) {
 	n += ridged2d(dir * 5.8 + vec2(seed * 31.0, seed * 19.0)) * 0.29;
 	n += ridged2d(dir * 12.5 + vec2(seed * 57.0, seed * 41.0)) * 0.15;
 	float valley_pass = 0.65 + 0.35 * sin(a * 2.0 + seed * 9.0);
-	float prof = 0.16 + pow(clamp(n * valley_pass, 0.0, 1.0), 1.25) * 0.84;
-	// Carve a dramatic V-shaped mountain canyon pass where the Nivarel river enters from the north
-	vec2 river_entry_dir = normalize(vec2(0.08, -0.996));
-	float river_align = max(dot(dir, river_entry_dir), 0.0);
-	float inner_ring = 1.0 - smoothstep(65.0, 105.0, radius);
-	float gorge_notch = pow(river_align, 64.0) * inner_ring;
-	float gorge_shoulders = pow(river_align, 14.0) * (1.0 - pow(river_align, 48.0)) * inner_ring;
-	return max(prof * (1.0 - gorge_notch * 0.82) + gorge_shoulders * 0.32, 0.04);
+	return 0.18 + pow(clamp(n * valley_pass, 0.0, 1.0), 1.25) * 0.82;
 }
 
 void vertex() {

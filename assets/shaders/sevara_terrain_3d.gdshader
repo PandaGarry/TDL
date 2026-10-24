@@ -392,7 +392,7 @@ void fragment() {
 		* smoothstep(14.0, 56.0, dist_origin) * 0.22;
 	col = mix(col, vec3(0.44, 0.54, 0.52), low_mist);
 
-	float rim_haze = smoothstep(66.0, 98.0, dist_origin);
+	float rim_haze = smoothstep(82.0, 118.0, dist_origin);
 	col = mix(col, vec3(0.32, 0.42, 0.35), rim_haze * 0.42);
 
 	ALBEDO = col;

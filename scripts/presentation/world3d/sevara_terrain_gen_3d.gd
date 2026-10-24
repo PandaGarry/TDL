@@ -4,8 +4,8 @@ extends RefCounted
 ## and distant mountain range rings for the Sevara Valley.
 
 const TILE_SIZE_M := 1.65
-const VALLEY_WIDTH_M := 176.0
-const VALLEY_DEPTH_M := 148.0
+const VALLEY_WIDTH_M := 236.0
+const VALLEY_DEPTH_M := 236.0
 const WATER_SURFACE_Y := 0.42
 const WORLD_SCALE := TILE_SIZE_M / 32.0
 ## Look-Dev mode: CBT proving ground with stepped terraces, two-track roads & Nivarel river bridge.
@@ -186,9 +186,9 @@ static func get_height_at(wx: float, wz: float) -> float:
 			* valley_pass_clear
 		)
 		var north_gorge_walls := (
-			(1.0 - smoothstep(-54.0, -20.0, wz))
-			* smoothstep(r_hw * 1.18, r_hw * 3.2, dist_river)
-			* 3.6
+			(1.0 - smoothstep(-96.0, -20.0, wz))
+			* smoothstep(r_hw * 1.15, r_hw * 3.4, dist_river)
+			* 7.2
 		)
 
 		# Crisp stepped natural terraces on the hillside slopes (rock ledges & grassy shelves)
@@ -210,11 +210,11 @@ static func get_height_at(wx: float, wz: float) -> float:
 			terrace_blend * 0.76
 		)
 
-		var rim_x := smoothstep(46.0, 76.0, absf(wx))
-		var rim_z := smoothstep(36.0, 56.0, absf(wz))
+		var rim_x := smoothstep(52.0, 108.0, absf(wx))
+		var rim_z := smoothstep(44.0, 104.0, absf(wz))
 		var rim_h := (
 			clampf(rim_x + rim_z - rim_x * rim_z * 0.4, 0.0, 1.0)
-			* (2.8 + 0.9 * sin(wx * 0.08 + 0.4))
+			* (4.6 + 1.2 * sin(wx * 0.08 + 0.4))
 			* valley_pass_clear
 		)
 
@@ -356,10 +356,10 @@ static func build_water_mesh(
 ) -> ArrayMesh:
 	var half_w := VALLEY_WIDTH_M * 0.5
 	var half_d := VALLEY_DEPTH_M * 0.5
-	# High-precision stream-following ribbon mesh (perfectly smooth banks, 3x fewer triangles)
-	var z_start := -72.0
-	var z_end := 64.0
-	var steps_z := 240
+	# High-precision stream-following ribbon mesh reaching all the way into the northern mountain pass
+	var z_start := -114.0
+	var z_end := 86.0
+	var steps_z := 264
 	var steps_u := 44
 	var dz := (z_end - z_start) / float(steps_z)
 	var u_span := 1.06
@@ -402,29 +402,20 @@ static func build_mountain_rings() -> Node3D:
 	var ring_mesh := _create_mountain_ring_mesh(256, 10)
 	var specs: Array[Dictionary] = [
 		{
-			"radius": 58.0,
-			"height": 22.0,
-			"seed": 0.41,
-			"haze": 0.24,
-			"snow": 0.28,
-			"base_color": Color(0.22, 0.32, 0.34),
-			"shadow_color": Color(0.14, 0.21, 0.28),
-		},
-		{
-			"radius": 118.0,
-			"height": 34.0,
+			"radius": 106.0,
+			"height": 28.0,
 			"seed": 0.19,
-			"haze": 0.42,
-			"snow": 0.46,
+			"haze": 0.36,
+			"snow": 0.42,
 			"base_color": Color(0.25, 0.34, 0.38),
 			"shadow_color": Color(0.17, 0.24, 0.32),
 		},
 		{
-			"radius": 220.0,
-			"height": 48.0,
+			"radius": 215.0,
+			"height": 46.0,
 			"seed": 0.63,
-			"haze": 0.64,
-			"snow": 0.60,
+			"haze": 0.62,
+			"snow": 0.58,
 			"base_color": Color(0.32, 0.42, 0.52),
 			"shadow_color": Color(0.22, 0.31, 0.42),
 		},
