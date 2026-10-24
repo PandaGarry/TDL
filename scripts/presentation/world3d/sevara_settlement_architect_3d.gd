@@ -88,13 +88,15 @@ static func place_or_relocate_building(
 	if existing != null and prev_tier != tier:
 		existing.free()
 		existing = null
-	if existing == null:
+	var is_new := existing == null
+	if is_new:
 		existing = create_settlement_building_3d(building_id, archetype, tier)
-		settlement_root.add_child(existing)
 
 	var wy := SevaraTerrainGen3D.get_height_at(world_xz.x, world_xz.y)
 	existing.position = Vector3(world_xz.x, wy - 0.04, world_xz.y)
 	existing.rotation = _get_gentle_ground_tilt(world_xz.x, world_xz.y, yaw, 0.16)
+	if is_new:
+		settlement_root.add_child(existing)
 
 	var radii: Vector2 = existing.get_meta("footprint_radii", Vector2(2.4, 2.4))
 	var door_off: Vector2 = existing.get_meta("door_offset", Vector2(0.0, 1.2))
@@ -147,16 +149,14 @@ static func populate_settlement(settlement_root: Node3D) -> void:
 	var sunbeams := Node3D.new()
 	sunbeams.name = "ValleyGodRays3D"
 	var beam_spots: Array[Vector3] = [
-		Vector3(-9.5, 4.2, -7.8),
-		Vector3(0.2, 4.0, -5.8),
-		Vector3(11.5, 4.4, 1.8),
+		Vector3(-19.5, 6.2, -14.5),
+		Vector3(-9.5, 6.6, -18.5),
+		Vector3(3.5, 6.0, -16.5),
 	]
 	for b_idx in range(beam_spots.size()):
-		var ray := _create_vfx_quad(
-			4, Vector2(4.2, 8.8), Color(1.0, 0.90, 0.66, 0.18), 0.35 + float(b_idx) * 0.18
-		)
+		var ray := _create_vfx_quad(4, Vector2(3.8, 12.5), Color(1.0, 0.92, 0.68, 0.15), 0.85)
 		ray.position = beam_spots[b_idx]
-		ray.rotation = Vector3(-0.24, 0.42 - float(b_idx) * 0.22, -0.32)
+		ray.rotation_degrees = Vector3(-28.0, -34.0 + float(b_idx) * 28.0, 22.0)
 		sunbeams.add_child(ray)
 	settlement_root.add_child(sunbeams)
 
@@ -171,31 +171,35 @@ static func _assemble_tier1_daub_hut(
 	is_round: bool,
 	seed_val: int
 ) -> void:
-	var ao := _create_vfx_quad(0, Vector2(rx * 3.1, rz * 3.1), Color(0.05, 0.04, 0.03, 0.86), 0.85)
+	var ao := _create_vfx_quad(0, Vector2(rx * 2.8, rz * 2.8), Color(0.02, 0.03, 0.02, 0.56), 0.85)
 	ao.rotation.x = -PI * 0.5
-	ao.position = Vector3(0.0, 0.03, 0.0)
+	ao.position = Vector3(0.0, 0.05, 0.0)
 	root.add_child(ao)
 
 	var daub_tint := (
-		Color(0.76, 0.64, 0.48)
+		Color(0.58, 0.46, 0.34)
 		if is_elder
-		else (Color(0.72, 0.59, 0.44) if is_round else Color(0.74, 0.62, 0.46))
+		else (Color(0.52, 0.41, 0.30) if is_round else Color(0.55, 0.44, 0.32))
 	)
 	var daub_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_clay_daub", daub_tint, Color.BLACK, 0.52, 0.38, 0.32, 0.92, 0.0, 0.10
+		"pbr_clay_daub", daub_tint, Color.BLACK, 0.52, 0.38, 0.32, 0.94, 0.0, 0.12
 	)
 	var timber_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_aged_timber", Color(0.46, 0.35, 0.24), Color.BLACK, 0.55, 0.48, 0.52, 0.86
+		"pbr_aged_timber", Color(0.42, 0.32, 0.21), Color.BLACK, 0.55, 0.48, 0.52, 0.88
 	)
 	var rope_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_wattle_weave", Color(0.66, 0.54, 0.36), Color.BLACK, 0.48, 0.40, 0.28, 0.88
+		"pbr_wattle_weave", Color(0.60, 0.48, 0.32), Color.BLACK, 0.48, 0.40, 0.28, 0.88
 	)
-	var thatch_tint := Color(0.74, 0.62, 0.40) if is_elder else Color(0.70, 0.58, 0.38)
+	var thatch_tint := (
+		Color(0.60, 0.48, 0.31)
+		if is_elder
+		else (Color(0.53, 0.42, 0.27) if is_round else Color(0.57, 0.46, 0.29))
+	)
 	var thatch_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_thatch_roof", thatch_tint, Color.BLACK, 0.52, 0.36, 0.28, 0.92, 0.0, 0.24
+		"pbr_thatch_roof", thatch_tint, Color.BLACK, 0.52, 0.36, 0.28, 0.94, 0.0, 0.28
 	)
 	var stone_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_cliff_rock", Color(0.84, 0.80, 0.74), Color.BLACK, 0.50, 0.44, 0.42, 0.84, 0.0, 0.18
+		"pbr_cliff_rock", Color(0.76, 0.72, 0.66), Color.BLACK, 0.50, 0.44, 0.42, 0.86, 0.0, 0.22
 	)
 
 	var wall_mi := MeshInstance3D.new()
@@ -297,25 +301,25 @@ static func _build_layered_thatch_roof_mesh(
 	var tier_count := 3
 	var segs := 28
 	var rings_per_tier := 6
-	var ridge_half_x := 0.06 if is_round else maxf(eave_rx - eave_rz, 0.32) * 0.62
+	var ridge_half_x := 0.05 if is_round else maxf(eave_rx * 0.48, 0.42)
 
 	for t_idx in range(tier_count):
 		var t_v0 := float(t_idx) / float(tier_count)
-		var v_start := maxf(0.0, t_v0 - (0.06 if t_idx > 0 else 0.0))
+		var v_start := maxf(0.0, t_v0 - (0.04 if t_idx > 0 else 0.0))
 		var v_end := float(t_idx + 1) / float(tier_count)
-		var tier_bulge := 0.095 - float(t_idx) * 0.012
+		var tier_bulge := 0.042 - float(t_idx) * 0.008
 		var base_vert := (segs + 1) * (rings_per_tier + 1) * t_idx
 
 		for r in range(rings_per_tier + 1):
 			var rv := float(r) / float(rings_per_tier)
 			var gv := lerpf(v_start, v_end, rv)
-			var roll_lip := sin(clampf(rv / 0.25, 0.0, 1.0) * PI * 0.5)
-			var step_out := (1.0 - gv) + tier_bulge * roll_lip * (1.0 - gv * 0.45)
+			var roll_lip := sin(clampf(rv / 0.22, 0.0, 1.0) * PI * 0.5)
+			var step_out := (1.0 - gv) + tier_bulge * roll_lip * (1.0 - gv * 0.55)
 			var py := (
 				base_y
-				+ pow(gv, 0.86) * roof_h
-				+ float(t_idx) * 0.045 * (1.0 - rv * 0.5)
-				- (1.0 - roll_lip) * 0.055
+				+ pow(gv, 0.92) * roof_h
+				+ float(t_idx) * 0.022 * (1.0 - rv * 0.5)
+				- (1.0 - roll_lip) * 0.032
 			)
 			for s in range(segs + 1):
 				var u := float(s) / float(segs)
@@ -367,13 +371,19 @@ static func _add_tribal_doorway_and_window(
 		root, 0.075, 0.078, 1.12, Vector3(0.0, 1.16, dz + 0.08), Vector3(0, 0, PI * 0.5), timber_mat
 	)
 
+	var dark_in_mat := StandardMaterial3D.new()
+	dark_in_mat.albedo_color = Color(0.07, 0.05, 0.03)
+	dark_in_mat.roughness = 0.95
 	var glow_mat := StandardMaterial3D.new()
-	glow_mat.albedo_color = Color(0.95, 0.54, 0.18)
+	glow_mat.albedo_color = Color(0.78, 0.36, 0.10)
 	glow_mat.emission_enabled = true
-	glow_mat.emission = Color(0.96, 0.52, 0.14)
-	glow_mat.emission_energy_multiplier = 1.65
-	glow_mat.roughness = 0.45
-	_add_box(root, Vector3(0.72, 1.06, 0.12), Vector3(0.0, 0.54, dz - 0.02), Vector3.ZERO, glow_mat)
+	glow_mat.emission = Color(0.84, 0.36, 0.08)
+	glow_mat.emission_energy_multiplier = 0.55
+	glow_mat.roughness = 0.65
+	_add_box(
+		root, Vector3(0.72, 1.06, 0.10), Vector3(0.0, 0.54, dz - 0.03), Vector3.ZERO, dark_in_mat
+	)
+	_add_box(root, Vector3(0.56, 0.42, 0.08), Vector3(0.0, 0.28, dz - 0.01), Vector3.ZERO, glow_mat)
 	_add_box(
 		root,
 		Vector3(0.46, 0.98, 0.06),
@@ -386,17 +396,17 @@ static func _add_tribal_doorway_and_window(
 	)
 	_add_box(
 		root,
-		Vector3(0.10, 0.36, 0.36),
+		Vector3(0.10, 0.34, 0.34),
 		Vector3(rx - 0.02, wall_h * 0.62, 0.0),
 		Vector3.ZERO,
 		glow_mat
 	)
 
 	var door_light := OmniLight3D.new()
-	door_light.position = Vector3(0.0, 0.85, dz + 0.45)
-	door_light.light_color = Color(1.0, 0.62, 0.24)
-	door_light.light_energy = 1.15 if is_elder else 0.85
-	door_light.omni_range = 3.8
+	door_light.position = Vector3(0.0, 0.65, dz + 0.38)
+	door_light.light_color = Color(1.0, 0.58, 0.20)
+	door_light.light_energy = 0.55 if is_elder else 0.42
+	door_light.omni_range = 2.8
 	root.add_child(door_light)
 
 	if is_elder:
@@ -492,25 +502,25 @@ static func _add_roof_wind_poles_and_smoke(
 
 
 static func _assemble_tier1_craft_shed(root: Node3D) -> void:
-	var ao := _create_vfx_quad(0, Vector2(5.4, 4.8), Color(0.05, 0.04, 0.03, 0.84), 0.85)
+	var ao := _create_vfx_quad(0, Vector2(4.6, 4.2), Color(0.02, 0.03, 0.02, 0.56), 0.85)
 	ao.rotation.x = -PI * 0.5
-	ao.position = Vector3(0.0, 0.03, 0.0)
+	ao.position = Vector3(0.0, 0.05, 0.0)
 	root.add_child(ao)
 
 	var timber_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_aged_timber", Color(0.45, 0.34, 0.23), Color.BLACK, 0.55, 0.48, 0.52, 0.86
+		"pbr_aged_timber", Color(0.42, 0.32, 0.21), Color.BLACK, 0.55, 0.48, 0.52, 0.88
 	)
 	var rope_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_wattle_weave", Color(0.66, 0.54, 0.36), Color.BLACK, 0.48, 0.40, 0.28, 0.88
+		"pbr_wattle_weave", Color(0.58, 0.46, 0.30), Color.BLACK, 0.48, 0.40, 0.28, 0.88
 	)
 	var thatch_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_thatch_roof", Color(0.72, 0.60, 0.38), Color.BLACK, 0.52, 0.36, 0.28, 0.92, 0.0, 0.22
+		"pbr_thatch_roof", Color(0.56, 0.45, 0.28), Color.BLACK, 0.52, 0.36, 0.28, 0.94, 0.0, 0.26
 	)
 	var daub_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_clay_daub", Color(0.74, 0.58, 0.42), Color.BLACK, 0.54, 0.42, 0.36, 0.92, 0.0, 0.08
+		"pbr_clay_daub", Color(0.50, 0.36, 0.25), Color.BLACK, 0.54, 0.42, 0.36, 0.94, 0.0, 0.08
 	)
 	var stone_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_cliff_rock", Color(0.82, 0.78, 0.72), Color.BLACK, 0.52, 0.45, 0.42, 0.84, 0.0, 0.16
+		"pbr_cliff_rock", Color(0.74, 0.70, 0.64), Color.BLACK, 0.52, 0.45, 0.42, 0.86, 0.0, 0.18
 	)
 
 	var xs: Array[float] = [-1.32, 0.0, 1.32]
@@ -525,34 +535,44 @@ static func _assemble_tier1_craft_shed(root: Node3D) -> void:
 	root.add_child(screen)
 
 	var shed_roof := MeshInstance3D.new()
-	shed_roof.mesh = _build_layered_thatch_roof_mesh(1.78, 1.38, 1.62, 0.96, false, 53)
+	shed_roof.mesh = _build_layered_thatch_roof_mesh(1.78, 1.38, 1.62, 0.92, false, 53)
 	shed_roof.material_override = thatch_mat
 	root.add_child(shed_roof)
 
-	_add_cyl(root, 0.68, 0.76, 0.36, Vector3(-0.62, 0.12, -0.22), Vector3.ZERO, stone_mat)
+	var kiln_stone_mesh := _make_ring_stone_mesh(Color(0.74, 0.70, 0.65), 0.14)
+	for i in range(8):
+		var ang := float(i) * TAU / 8.0
+		var ks := MeshInstance3D.new()
+		ks.mesh = kiln_stone_mesh
+		ks.scale = Vector3(0.22, 0.18, 0.22)
+		ks.position = Vector3(-0.62 + cos(ang) * 0.58, 0.12, -0.22 + sin(ang) * 0.58)
+		ks.rotation.y = ang
+		ks.material_override = stone_mat
+		root.add_child(ks)
+
 	var kiln_dome := MeshInstance3D.new()
 	var kd_sphere := SphereMesh.new()
-	kd_sphere.radius = 0.62
-	kd_sphere.height = 0.96
+	kd_sphere.radius = 0.56
+	kd_sphere.height = 0.82
 	kd_sphere.is_hemisphere = true
 	kiln_dome.mesh = kd_sphere
-	kiln_dome.position = Vector3(-0.62, 0.28, -0.22)
+	kiln_dome.position = Vector3(-0.62, 0.18, -0.22)
 	kiln_dome.material_override = daub_mat
 	root.add_child(kiln_dome)
-	_add_cyl(root, 0.16, 0.22, 0.95, Vector3(-0.62, 1.52, -0.22), Vector3.ZERO, daub_mat)
+	_add_cyl(root, 0.15, 0.20, 0.72, Vector3(-0.62, 1.18, -0.22), Vector3.ZERO, daub_mat)
 
-	var ember_mouth := _create_vfx_quad(1, Vector2(0.54, 0.54), Color(1.0, 0.42, 0.08, 0.95), 0.95)
+	var ember_mouth := _create_vfx_quad(1, Vector2(0.52, 0.52), Color(1.0, 0.42, 0.08, 0.95), 0.95)
 	ember_mouth.rotation.x = -PI * 0.5
-	ember_mouth.position = Vector3(-0.62, 0.31, 0.24)
+	ember_mouth.position = Vector3(-0.62, 0.16, 0.22)
 	root.add_child(ember_mouth)
 
 	var kiln_light := OmniLight3D.new()
-	kiln_light.position = Vector3(-0.62, 0.62, 0.48)
-	kiln_light.light_color = Color(1.0, 0.52, 0.16)
-	kiln_light.light_energy = 1.25
-	kiln_light.omni_range = 3.6
+	kiln_light.position = Vector3(-0.62, 0.48, 0.42)
+	kiln_light.light_color = Color(1.0, 0.50, 0.14)
+	kiln_light.light_energy = 0.55
+	kiln_light.omni_range = 2.6
 	root.add_child(kiln_light)
-	root.add_child(_create_smoke_plume_particles(Vector3(-0.62, 2.58, -0.22), 14, 0.68))
+	root.add_child(_create_smoke_plume_particles(Vector3(-0.62, 2.52, -0.22), 12, 0.52))
 
 	var stump := SevaraAssetLibrary3D.instantiate_model(
 		SevaraAssetLibrary3D.NATURE_DIR + "TreeStump_Moss.glb", 0.48, {}, true
@@ -622,19 +642,27 @@ static func _assemble_tier1_spring_well(root: Node3D) -> void:
 
 
 static func _assemble_tier1_tribal_hearth(root: Node3D) -> void:
-	var ao := _create_vfx_quad(0, Vector2(4.2, 4.2), Color(0.05, 0.04, 0.03, 0.85), 0.85)
+	var ao := _create_vfx_quad(0, Vector2(3.8, 3.8), Color(0.02, 0.03, 0.02, 0.54), 0.85)
 	ao.rotation.x = -PI * 0.5
-	ao.position = Vector3(0.0, 0.03, 0.0)
+	ao.position = Vector3(0.0, 0.04, 0.0)
 	root.add_child(ao)
 
-	var ember_bed := _create_vfx_quad(1, Vector2(1.48, 1.48), Color(1.0, 0.44, 0.08, 0.96), 0.95)
+	var ember_bed := _create_vfx_quad(1, Vector2(1.42, 1.42), Color(1.0, 0.44, 0.08, 0.96), 0.95)
 	ember_bed.rotation.x = -PI * 0.5
-	ember_bed.position = Vector3(0.0, 0.05, 0.0)
+	ember_bed.position = Vector3(0.0, 0.06, 0.0)
 	root.add_child(ember_bed)
 
-	var stone_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_cliff_rock", Color(0.76, 0.72, 0.68), Color.BLACK, 0.55, 0.48, 0.52, 0.85
+	root.add_child(
+		SevaraAssetLibrary3D.instantiate_model(
+			SevaraAssetLibrary3D.VILLAGE_DIR + "Bonfire_Lit.glb", 0.78, {}, true
+		)
 	)
+	var cauldron := SevaraAssetLibrary3D.instantiate_model(
+		SevaraAssetLibrary3D.VILLAGE_DIR + "Cauldron.glb", 0.50, {}, true
+	)
+	cauldron.position = Vector3(0.0, 0.34, 0.0)
+	root.add_child(cauldron)
+
 	var wood_mat := SevaraAssetLibrary3D._make_arch_shader_material(
 		"pbr_aged_timber", Color(0.44, 0.33, 0.22), Color.BLACK, 0.55, 0.48, 0.55, 0.86
 	)
@@ -646,91 +674,56 @@ static func _assemble_tier1_tribal_hearth(root: Node3D) -> void:
 	iron_mat.metallic = 0.78
 	iron_mat.roughness = 0.42
 
-	var ring_stone_mesh := _make_ring_stone_mesh(Color(0.78, 0.74, 0.70), 0.12)
-	for i in range(10):
-		var ang := float(i) * TAU / 10.0
-		var st := MeshInstance3D.new()
-		st.mesh = ring_stone_mesh
-		st.scale = Vector3(0.19, 0.14, 0.19)
-		st.position = Vector3(cos(ang) * 0.78, 0.06, sin(ang) * 0.78)
-		st.rotation.y = ang + 0.4
-		st.material_override = stone_mat
-		root.add_child(st)
-
-	for i in range(4):
-		var ang := float(i) * PI * 0.5 + 0.35
-		_add_cyl(
-			root,
-			0.068,
-			0.078,
-			0.94,
-			Vector3(cos(ang) * 0.16, 0.14, sin(ang) * 0.16),
-			Vector3(PI * 0.38, ang, 0.0),
-			wood_mat
-		)
 	for i in range(3):
-		var ang := float(i) * TAU / 3.0 + 0.25
+		var ang := float(i) * TAU / 3.0 + 0.45
 		_add_cyl(
 			root,
-			0.036,
-			0.056,
-			2.18,
-			Vector3(cos(ang) * 0.46, 0.92, sin(ang) * 0.46),
-			Vector3(-sin(ang) * 0.36, 0.0, cos(ang) * 0.36),
+			0.034,
+			0.052,
+			1.88,
+			Vector3(cos(ang) * 0.48, 0.82, sin(ang) * 0.48),
+			Vector3(-sin(ang) * 0.27, 0.0, cos(ang) * 0.27),
 			wood_mat
 		)
-	_add_torus(root, 0.055, 0.095, Vector3(0.0, 1.72, 0.0), Vector3.ZERO, rope_mat)
-	_add_cyl(root, 0.020, 0.020, 0.88, Vector3(0.0, 1.28, 0.0), Vector3.ZERO, iron_mat)
-
-	var pot := MeshInstance3D.new()
-	var pot_mesh := SphereMesh.new()
-	pot_mesh.radius = 0.30
-	pot_mesh.height = 0.48
-	pot.mesh = pot_mesh
-	pot.position = Vector3(0.0, 0.68, 0.0)
-	pot.material_override = iron_mat
-	root.add_child(pot)
-
-	var log_angles: Array[float] = [-2.25, 0.15, 2.15]
-	for l_ang: float in log_angles:
-		var sit_log := SevaraAssetLibrary3D.instantiate_model(
-			SevaraAssetLibrary3D.NATURE_DIR + "WoodLog_Moss.glb", 0.54, {}, true
+	_add_torus(root, 0.055, 0.095, Vector3(0.0, 1.62, 0.0), Vector3.ZERO, rope_mat)
+	for l_i in range(7):
+		var rot_l := Vector3(0.0, float(l_i % 2) * PI * 0.5, PI * 0.5)
+		_add_torus(
+			root, 0.022, 0.044, Vector3(0.0, 1.52 - float(l_i) * 0.095, 0.0), rot_l, iron_mat
 		)
-		sit_log.position = Vector3(cos(l_ang) * 1.92, -0.02, sin(l_ang) * 1.92)
-		sit_log.rotation.y = -l_ang + PI * 0.5
-		root.add_child(sit_log)
 
-	var fire_mat := StandardMaterial3D.new()
-	fire_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	fire_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	fire_mat.vertex_color_use_as_albedo = true
-	fire_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	var flames := CPUParticles3D.new()
-	flames.position = Vector3(0.0, 0.22, 0.0)
-	flames.amount = 18
-	flames.lifetime = 0.9
-	flames.preprocess = 1.0
-	var f_quad := QuadMesh.new()
-	f_quad.size = Vector2(0.40, 0.56)
-	f_quad.material = fire_mat
-	flames.mesh = f_quad
-	flames.direction = Vector3.UP
-	flames.spread = 16.0
-	flames.gravity = Vector3(0.0, 1.2, 0.0)
-	flames.initial_velocity_min = 0.35
-	flames.initial_velocity_max = 0.72
-	var f_grad := Gradient.new()
-	f_grad.set_color(0, Color(1.0, 0.82, 0.28, 0.90))
-	f_grad.add_point(0.5, Color(0.98, 0.38, 0.08, 0.72))
-	f_grad.set_color(1, Color(0.24, 0.08, 0.04, 0.0))
-	flames.color_ramp = f_grad
-	root.add_child(flames)
+	# 3 Compact Split-Log Seats (`1.18m` long on chock blocks) + Mossy Tree-Stump Stools
+	var log_angles: Array[float] = [-2.20, 0.20, 2.15]
+	for l_ang: float in log_angles:
+		var seat_grp := Node3D.new()
+		seat_grp.position = Vector3(cos(l_ang) * 1.56, 0.0, sin(l_ang) * 1.56)
+		seat_grp.rotation.y = -l_ang + PI * 0.5
+		root.add_child(seat_grp)
+		_add_cyl(
+			seat_grp, 0.135, 0.145, 1.18, Vector3(0.0, 0.22, 0.0), Vector3(0, 0, PI * 0.5), wood_mat
+		)
+		for ch_x: float in [-0.38, 0.38]:
+			_add_cyl(
+				seat_grp,
+				0.09,
+				0.10,
+				0.28,
+				Vector3(ch_x, 0.08, 0.0),
+				Vector3(PI * 0.5, 0, 0),
+				wood_mat
+			)
 
-	root.add_child(_create_smoke_plume_particles(Vector3(0.0, 0.88, 0.0), 16, 0.74))
+	var stump_seat := SevaraAssetLibrary3D.instantiate_model(
+		SevaraAssetLibrary3D.NATURE_DIR + "TreeStump_Moss.glb", 0.42, {}, true
+	)
+	stump_seat.position = Vector3(-1.12, -0.03, 1.18)
+	root.add_child(stump_seat)
+
+	root.add_child(_create_smoke_plume_particles(Vector3(0.0, 0.92, 0.0), 14, 0.55))
 	var f_light := OmniLight3D.new()
 	f_light.position = Vector3(0.0, 0.95, 0.0)
 	f_light.light_color = Color(1.0, 0.62, 0.22)
-	f_light.light_energy = 1.65
+	f_light.light_energy = 1.45
 	f_light.omni_range = 6.2
 	root.add_child(f_light)
 
@@ -926,7 +919,7 @@ static func _add_torus(
 
 
 static func _create_vfx_quad(
-	mode: int, quad_size: Vector2, tint: Color, softness: float = 0.85
+	mode: int, quad_size: Vector2, tint: Color, _softness: float = 0.85
 ) -> MeshInstance3D:
 	if _decal_shader_cache == null:
 		_decal_shader_cache = SevaraAssetLibrary3D.load_shader("sevara_vfx_decal_3d.gdshader")
@@ -937,49 +930,44 @@ static func _create_vfx_quad(
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var smat := ShaderMaterial.new()
 	smat.shader = _decal_shader_cache
-	smat.set_shader_parameter("effect_mode", mode)
+	smat.set_shader_parameter("vfx_mode", mode)
 	smat.set_shader_parameter("tint_color", tint)
 	smat.set_shader_parameter("intensity", 1.0)
-	smat.set_shader_parameter("softness", softness)
 	mi.material_override = smat
 	return mi
 
 
 static func _create_smoke_plume_particles(
-	origin: Vector3, amount_count: int = 16, quad_scale: float = 0.72
+	origin: Vector3, amount_count: int = 14, scale_fac: float = 0.55
 ) -> CPUParticles3D:
 	if _decal_shader_cache == null:
 		_decal_shader_cache = SevaraAssetLibrary3D.load_shader("sevara_vfx_decal_3d.gdshader")
 	var smat := ShaderMaterial.new()
 	smat.shader = _decal_shader_cache
-	smat.set_shader_parameter("effect_mode", 2)
-	smat.set_shader_parameter("tint_color", Color(0.76, 0.78, 0.82, 0.34))
-	smat.set_shader_parameter("intensity", 0.92)
-	smat.set_shader_parameter("softness", 0.92)
+	smat.set_shader_parameter("vfx_mode", 2)
+	smat.set_shader_parameter("tint_color", Color(0.74, 0.76, 0.78, 0.34))
+	smat.set_shader_parameter("intensity", 1.0)
+
+	var puff_mesh := SphereMesh.new()
+	puff_mesh.radial_segments = 10
+	puff_mesh.rings = 6
 
 	var smoke := CPUParticles3D.new()
 	smoke.position = origin
+	smoke.local_coords = true
 	smoke.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	smoke.amount = amount_count
-	smoke.lifetime = 3.2
+	smoke.lifetime = 3.0
 	smoke.preprocess = 2.0
-	var s_quad := QuadMesh.new()
-	s_quad.size = Vector2(quad_scale, quad_scale)
-	s_quad.material = smat
-	smoke.mesh = s_quad
-	smoke.direction = Vector3(0.18, 1.0, 0.08).normalized()
+	smoke.mesh = puff_mesh
+	smoke.material_override = smat
+	smoke.direction = Vector3(0.18, 1.0, 0.10).normalized()
 	smoke.spread = 14.0
-	smoke.gravity = Vector3(0.08, 0.36, 0.04)
-	smoke.initial_velocity_min = 0.24
-	smoke.initial_velocity_max = 0.48
-	smoke.scale_amount_min = 0.65
-	smoke.scale_amount_max = 1.65
-	var s_grad := Gradient.new()
-	s_grad.set_color(0, Color(0.68, 0.68, 0.72, 0.0))
-	s_grad.add_point(0.22, Color(0.74, 0.75, 0.78, 0.36))
-	s_grad.add_point(0.68, Color(0.80, 0.82, 0.86, 0.22))
-	s_grad.set_color(1, Color(0.86, 0.88, 0.92, 0.0))
-	smoke.color_ramp = s_grad
+	smoke.gravity = Vector3(0.10, 0.36, 0.05)
+	smoke.initial_velocity_min = 0.28 * scale_fac
+	smoke.initial_velocity_max = 0.52 * scale_fac
+	smoke.scale_amount_min = 0.26 * scale_fac
+	smoke.scale_amount_max = 0.64 * scale_fac
 	return smoke
 
 
