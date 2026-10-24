@@ -82,9 +82,9 @@ void fragment() {
 		ALPHA = clamp(alpha_smoke, 0.0, 0.74);
 	} else if (vfx_mode == 3) {
 		// Mode 3: River Pier Foam Rings & Churning Whitewater Wake (radially feathered)
-		float radial_fade = 1.0 - smoothstep(0.28, 0.92, dist + (fbm2(v_world.xz * 4.2) - 0.5) * 0.22);
+		float radial_fade = 1.0 - smoothstep(0.28, 0.92, r + (fbm2(v_world.xz * 4.2) - 0.5) * 0.22);
 		float foam_n = fbm2(v_world.xz * 5.6 + vec2(TIME * 2.2, -TIME * 1.8));
-		float ripple_ring = 0.55 + 0.45 * sin(dist * 18.0 - TIME * 4.2 + foam_n * 3.0);
+		float ripple_ring = 0.55 + 0.45 * sin(r * 18.0 - TIME * 4.2 + foam_n * 3.0);
 		float spray_mask = radial_fade * smoothstep(0.18, 0.78, foam_n * ripple_ring);
 		ALBEDO = mix(vec3(0.72, 0.88, 0.95), vec3(0.96, 0.99, 1.0), foam_n);
 		ALPHA = clamp(spray_mask * tint_color.a * v_color.a * intensity, 0.0, 0.76);
