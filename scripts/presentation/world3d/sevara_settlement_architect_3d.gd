@@ -46,7 +46,7 @@ static func populate_settlement(settlement_root: Node3D) -> void:
 	settlement_root.add_child(well_plaza)
 
 	# 4. Northern Meadow Terrace: Timber Barn, Stable & Hay Yard
-	var barn_pos := Vector2(-6.2, -14.8)
+	var barn_pos := Vector2(-7.2, -15.8)
 	var barn := create_barn_stable_yard_3d()
 	barn.position = Vector3(
 		barn_pos.x, SevaraTerrainGen3D.get_height_at(barn_pos.x, barn_pos.y) - 0.08, barn_pos.y
@@ -55,7 +55,7 @@ static func populate_settlement(settlement_root: Node3D) -> void:
 	settlement_root.add_child(barn)
 
 	# 5. Central Terrace: Selima's Chronicle Pavilion
-	var pav_pos := Vector2(-5.8, -8.8)
+	var pav_pos := Vector2(-5.4, -8.2)
 	var scriptorium := create_selima_chronicle_hall_3d()
 	scriptorium.position = Vector3(
 		pav_pos.x, SevaraTerrainGen3D.get_height_at(pav_pos.x, pav_pos.y) - 0.07, pav_pos.y
@@ -64,14 +64,14 @@ static func populate_settlement(settlement_root: Node3D) -> void:
 	settlement_root.add_child(scriptorium)
 
 	# 6. Nivarel Rapids Bank: Centered-Roof Watermill with Submerged Waterwheel & White Foam
-	var mill_pos := Vector2(-0.8, -11.6)
+	var mill_pos := Vector2(-0.8, -12.2)
 	var watermill := create_nivarel_watermill_3d()
 	watermill.position = Vector3(mill_pos.x, SevaraTerrainGen3D.WATER_SURFACE_Y + 0.02, mill_pos.y)
 	watermill.rotation.y = 0.0
 	settlement_root.add_child(watermill)
 
 	# 7. Riverbank Promontory: Ancestral Hearth with Coal Bed, Smoke & Chain-Suspended Cauldron
-	var hearth_pos := Vector2(-0.5, -5.8)
+	var hearth_pos := Vector2(0.6, -4.8)
 	var hearth := create_sevara_hearth_sanctuary_3d()
 	hearth.position = Vector3(
 		hearth_pos.x,
@@ -279,15 +279,15 @@ static func create_selima_chronicle_hall_3d() -> Node3D:
 	var dark_wood_mat := _dark_wood_mat()
 	var warm_wood_mat := _warm_wood_mat()
 
-	# Forest-Moss Green Shingle Roof over the Centered 4-Pillar Pavilion (`Gazebo.glb`)
+	# Forest-Olive Shingle Roof over the Centered 4-Pillar Pavilion (`Gazebo.glb`)
 	var overrides := {
-		"RoofTiles_Red": Color(0.22, 0.35, 0.24),
+		"RoofTiles_Red": Color(0.28, 0.35, 0.22),
 	}
 	var portico := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.VILLAGE_DIR + "Gazebo.glb", 3.15, overrides, true
+		SevaraAssetLibrary3D.VILLAGE_DIR + "Gazebo.glb", 2.78, overrides, true
 	)
 	root.add_child(portico)
-	_add_contact_shadow(root, Vector3(0.0, 0.08, 0.0), 2.85, 2.85, 0.56)
+	_add_contact_shadow(root, Vector3(0.0, 0.08, 0.0), 2.55, 2.55, 0.56)
 
 	var bench := SevaraAssetLibrary3D.instantiate_model(
 		SevaraAssetLibrary3D.VILLAGE_DIR + "Bench_1.glb", 0.54, {}, true
@@ -437,6 +437,7 @@ static func create_nivarel_watermill_3d() -> Node3D:
 	root.add_child(mill_house)
 	_add_contact_shadow(root, Vector3(-0.15, 0.03, 0.0), 2.85, 2.95, 0.56)
 	_add_warm_window_light(root, Vector3(0.0, 1.35, 1.22), Color(1.0, 0.72, 0.30), 1.35, 6.8)
+	_add_smoke_plume(root, Vector3(-0.22, 3.22, -0.72), 0.78)
 
 	# 2. Submerged Oak Waterwheel (`radius = 1.24 m`) attached flush to the right stone wall
 	# Mill sits at `y = WATER_SURFACE_Y + 0.02 = 0.44`. Wheel center at `y = 0.42` (`world_y = 0.86`).

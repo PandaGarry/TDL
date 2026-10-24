@@ -184,10 +184,10 @@ vec4 eval_road_network(vec2 xz) {
 	float pad_lh = exp(-pow((wx - (-13.5)) / 3.4, 2.0) - pow((wz - (-10.5)) / 3.2, 2.0));
 	float pad_bs = exp(-pow((wx - (-18.5)) / 3.4, 2.0) - pow((wz - (-7.5)) / 3.0, 2.0));
 	float pad_well = exp(-pow((wx - (-12.0)) / 2.3, 2.0) - pow((wz - (-6.0)) / 2.3, 2.0));
-	float pad_barn = exp(-pow((wx - (-6.2)) / 3.4, 2.0) - pow((wz - (-14.8)) / 2.8, 2.0));
-	float pad_hearth = exp(-pow((wx - (-0.5)) / 2.8, 2.0) - pow((wz - (-5.8)) / 2.8, 2.0));
-	float pad_pav = exp(-pow((wx - (-5.8)) / 2.4, 2.0) - pow((wz - (-8.8)) / 2.4, 2.0));
-	float pad_mill = exp(-pow((wx - (-0.8)) / 2.8, 2.0) - pow((wz - (-11.6)) / 2.8, 2.0));
+	float pad_barn = exp(-pow((wx - (-7.2)) / 3.4, 2.0) - pow((wz - (-15.8)) / 2.8, 2.0));
+	float pad_hearth = exp(-pow((wx - 0.6) / 2.8, 2.0) - pow((wz - (-4.8)) / 2.8, 2.0));
+	float pad_pav = exp(-pow((wx - (-5.4)) / 2.4, 2.0) - pow((wz - (-8.2)) / 2.4, 2.0));
+	float pad_mill = exp(-pow((wx - (-0.8)) / 2.8, 2.0) - pow((wz - (-12.2)) / 2.8, 2.0));
 	float pad_east = exp(-pow((wx - 23.0) / 3.6, 2.0) - pow((wz - (-4.2)) / 3.6, 2.0));
 	float pad_any = max(
 		max(max(pad_lh, pad_bs), max(pad_well, pad_barn)),
@@ -199,10 +199,10 @@ vec4 eval_road_network(vec2 xz) {
 	d_fp = min(d_fp, seg_dist(xz, vec2(-18.5, -7.2), vec2(-12.0, -6.0)));
 	d_fp = min(d_fp, seg_dist(xz, vec2(-12.0, -6.0), vec2(-6.0, -5.8)));
 	d_fp = min(d_fp, seg_dist(xz, vec2(-12.0, -6.0), vec2(-13.5, -9.8)));
-	d_fp = min(d_fp, seg_dist(xz, vec2(-11.2, -13.2), vec2(-6.2, -14.2)));
-	d_fp = min(d_fp, seg_dist(xz, vec2(-7.8, -8.4), vec2(-5.8, -8.8)));
-	d_fp = min(d_fp, seg_dist(xz, vec2(-5.8, -8.8), vec2(-1.4, -11.2)));
-	d_fp = min(d_fp, seg_dist(xz, vec2(-3.8, -3.5), vec2(-0.5, -5.8)));
+	d_fp = min(d_fp, seg_dist(xz, vec2(-11.6, -14.2), vec2(-7.2, -15.2)));
+	d_fp = min(d_fp, seg_dist(xz, vec2(-7.5, -8.0), vec2(-5.4, -8.2)));
+	d_fp = min(d_fp, seg_dist(xz, vec2(-5.4, -8.2), vec2(-1.4, -11.6)));
+	d_fp = min(d_fp, seg_dist(xz, vec2(-2.8, -3.0), vec2(0.6, -4.8)));
 	d_fp = min(d_fp, seg_dist(xz, vec2(20.6, 0.2), vec2(23.0, -4.4)));
 	float m_fp = 1.0 - smoothstep(0.36, 0.72, d_fp + warp_a * 0.42);
 	float rut_fp = exp(-pow((d_fp + warp_a * 0.25) / 0.26, 2.0)) * 0.65;
@@ -426,12 +426,12 @@ void fragment() {
 		max(
 			max(
 				exp(-pow((xz.x - (-12.0)) / 1.15, 2.0) - pow((xz.y - (-6.0)) / 1.15, 2.0)),
-				exp(-pow((xz.x - (-6.2)) / 2.25, 2.0) - pow((xz.y - (-14.8)) / 1.75, 2.0))
+				exp(-pow((xz.x - (-7.2)) / 2.25, 2.0) - pow((xz.y - (-15.8)) / 1.75, 2.0))
 			),
 			max(
-				exp(-pow((xz.x - (-5.8)) / 1.45, 2.0) - pow((xz.y - (-8.8)) / 1.45, 2.0)),
+				exp(-pow((xz.x - (-5.4)) / 1.45, 2.0) - pow((xz.y - (-8.2)) / 1.45, 2.0)),
 				max(
-					exp(-pow((xz.x - (-0.8)) / 1.65, 2.0) - pow((xz.y - (-11.6)) / 1.65, 2.0)),
+					exp(-pow((xz.x - (-0.8)) / 1.65, 2.0) - pow((xz.y - (-12.2)) / 1.65, 2.0)),
 					exp(-pow((xz.x - 23.0) / 1.85, 2.0) - pow((xz.y - (-5.0)) / 1.85, 2.0))
 				)
 			)
