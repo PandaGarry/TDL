@@ -48,12 +48,12 @@ static func populate_settlement(settlement_root: Node3D) -> void:
 	settlement_root.add_child(well_plaza)
 
 	# 4. Central Terrace: Selima's Scriptorium & Chronicle Hall
-	var pav_pos := Vector2(-5.4, -9.2)
+	var pav_pos := Vector2(-5.8, -11.2)
 	var scriptorium := create_selima_chronicle_hall_3d()
 	scriptorium.position = Vector3(
 		pav_pos.x, SevaraTerrainGen3D.get_height_at(pav_pos.x, pav_pos.y) - 0.03, pav_pos.y
 	)
-	scriptorium.rotation.y = -0.34
+	scriptorium.rotation.y = -0.24
 	settlement_root.add_child(scriptorium)
 
 	# 5. Riverbank Promontory: Stone Council Ring & Ancestral Hearth Sanctuary
@@ -67,7 +67,7 @@ static func populate_settlement(settlement_root: Node3D) -> void:
 	settlement_root.add_child(hearth)
 
 	# 6. Nivarel Rapids Bank: Pile-Supported Watermill with Oak Waterwheel in the River
-	var mill_pos := Vector2(0.8, -12.8)
+	var mill_pos := Vector2(1.2, -12.4)
 	var watermill := create_nivarel_watermill_3d()
 	var mill_y := maxf(
 		SevaraTerrainGen3D.get_height_at(mill_pos.x, mill_pos.y),
@@ -151,10 +151,7 @@ static func create_longhouse_bastion_3d() -> Node3D:
 		rock.rotation.y = br.x * 0.9 + br.z * 0.5
 		root.add_child(rock)
 
-	# 3. Sculpted River-Stone Chimney Stack built from bevel-smoothed boulders
-	_add_stone_chimney_stack(root, Vector3(-1.12, 1.45, -0.25), 5)
-
-	# 4. Carved Sevara Ridge Beam & Crossed Heruna Antler-Horn Finials on the High Gable Peak
+	# 3. Carved Sevara Ridge Beam & Crossed Heruna Antler-Horn Finials on the High Gable Peak
 	_add_carved_ridge_crest(root, Vector3(0.0, 4.06, 0.14), 3.05, 0.0, dark_wood_mat, warm_wood_mat)
 
 	# 5. Twin Carved Entry Totem Pillars with Lit Torches flanking the front timber porch
@@ -448,9 +445,9 @@ static func create_nivarel_watermill_3d() -> Node3D:
 	for d_i in range(11):
 		var plank := MeshInstance3D.new()
 		var pmesh := BoxMesh.new()
-		pmesh.size = Vector3(4.55, 0.09, 0.32)
+		pmesh.size = Vector3(3.45, 0.09, 0.32)
 		plank.mesh = pmesh
-		plank.position = Vector3(0.0, -0.04, -1.75 + float(d_i) * 0.35)
+		plank.position = Vector3(-0.32, -0.04, -1.75 + float(d_i) * 0.35)
 		plank.material_override = plank_mat
 		root.add_child(plank)
 
@@ -646,37 +643,6 @@ static func create_totem_lantern_pillar_3d(height_m: float = 1.68) -> Node3D:
 	torch.position = Vector3(0.36, height_m - 0.44, 0.0)
 	root.add_child(torch)
 	return root
-
-
-static func _add_stone_chimney_stack(parent: Node3D, base_pos: Vector3, tiers: int) -> void:
-	var stone_mesh := (
-		SevaraAssetLibrary3D
-		. build_bevel_smoothed_rock_mesh(
-			"Rock_Medium_2",
-			{
-				"rock":
-				{
-					"moss_amount": 0.25,
-					"snow_amount": 0.0,
-					"wetness": 0.15,
-					"triplanar": 1.0,
-					"tint": Color(0.86, 0.83, 0.78),
-				}
-			}
-		)
-	)
-	var stone_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_cliff_rock", Color(0.86, 0.83, 0.78), Color.BLACK, 0.48, 0.45, 0.42, 0.80, 0.0, 0.22
-	)
-	for t_i in range(tiers):
-		var st := MeshInstance3D.new()
-		st.mesh = stone_mesh
-		var taper := 1.0 - float(t_i) * 0.06
-		st.scale = Vector3(0.38 * taper, 0.34, 0.38 * taper)
-		st.position = base_pos + Vector3(0.0, float(t_i) * 0.44, 0.0)
-		st.rotation.y = float(t_i) * 1.25
-		st.material_override = stone_mat
-		parent.add_child(st)
 
 
 static func _add_carved_ridge_crest(
