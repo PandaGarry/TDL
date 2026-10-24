@@ -340,10 +340,22 @@ static func create_bridge_3d(
 	lashing_torus.rings = 12
 	lashing_torus.ring_segments = 10
 
+	var vfx_shader := SevaraAssetLibrary3D.load_shader("sevara_vfx_decal_3d.gdshader")
+	var foam_mat := ShaderMaterial.new()
+	foam_mat.shader = vfx_shader
+	foam_mat.set_shader_parameter("vfx_mode", 3)
+	foam_mat.set_shader_parameter("tint_color", Color(0.92, 0.97, 1.0, 0.76))
+	foam_mat.set_shader_parameter("intensity", 1.25)
+	var foam_quad := QuadMesh.new()
+	foam_quad.size = Vector2(1.45, 1.15)
+	var spray_sphere := SphereMesh.new()
+	spray_sphere.radial_segments = 8
+	spray_sphere.rings = 5
+
 	var pier_xs: Array[float] = [9.85, 14.15]
 	for pier_x: float in pier_xs:
 		var pz := SevaraTerrainGen3D._main_road_z(pier_x)
-		var py := SevaraTerrainGen3D.get_bridge_deck_y_at_x(pier_x)
+		var py := SevaraTerrainGen3D.get_bridge_deck_y_at_x(pier_x) + 0.07
 		var dz := (
 			(
 				SevaraTerrainGen3D._main_road_z(pier_x + 0.2)
@@ -356,6 +368,7 @@ static func create_bridge_3d(
 		pier_grp.position = Vector3(pier_x, py, pz)
 		pier_grp.rotation.y = yaw
 		root.add_child(pier_grp)
+		var water_rel_y := SevaraTerrainGen3D.WATER_SURFACE_Y - py + 0.03
 		for k in range(3):
 			var z_off := (float(k) - 1.0) * 0.72
 			var piling := MeshInstance3D.new()
@@ -371,6 +384,14 @@ static func create_bridge_3d(
 			p_lash.material_override = rope_mat
 			pier_grp.add_child(p_lash)
 
+			var foam_ring := MeshInstance3D.new()
+			foam_ring.mesh = foam_quad
+			foam_ring.rotation.x = -PI * 0.5
+			foam_ring.position = Vector3(0.0, water_rel_y, z_off)
+			foam_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			foam_ring.material_override = foam_mat
+			pier_grp.add_child(foam_ring)
+
 			var st_mi := MeshInstance3D.new()
 			st_mi.mesh = pier_stone_mesh
 			st_mi.scale = Vector3(0.28, 0.20, 0.28)
@@ -378,6 +399,26 @@ static func create_bridge_3d(
 			st_mi.rotation.y = float(k * 2) * 1.1
 			st_mi.material_override = stone_mat
 			pier_grp.add_child(st_mi)
+
+		var spray := CPUParticles3D.new()
+		spray.position = Vector3(0.0, water_rel_y + 0.04, 0.0)
+		spray.local_coords = true
+		spray.amount = 14
+		spray.lifetime = 0.95
+		spray.preprocess = 1.0
+		spray.mesh = spray_sphere
+		spray.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+		spray.emission_box_extents = Vector3(0.35, 0.06, 0.85)
+		spray.direction = Vector3(0.15, 0.85, 0.55).normalized()
+		spray.spread = 28.0
+		spray.gravity = Vector3(0.0, -2.2, 0.65)
+		spray.initial_velocity_min = 0.45
+		spray.initial_velocity_max = 0.95
+		spray.scale_amount_min = 0.14
+		spray.scale_amount_max = 0.32
+		spray.material_override = foam_mat
+		spray.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		pier_grp.add_child(spray)
 
 	# 2. Tier 1 Rough Round-Log Corduroy Deck with Uneven Log Ends & Rope Lashings
 	var span_start := x_min
@@ -403,7 +444,7 @@ static func create_bridge_3d(
 	for i in range(log_count):
 		var px := span_start + (float(i) + 0.5) * span_dx
 		var pz := SevaraTerrainGen3D._main_road_z(px)
-		var py := SevaraTerrainGen3D.get_bridge_deck_y_at_x(px)
+		var py := SevaraTerrainGen3D.get_bridge_deck_y_at_x(px) + 0.07
 		var dy := (
 			(
 				SevaraTerrainGen3D.get_bridge_deck_y_at_x(px + 0.15)
@@ -424,8 +465,8 @@ static func create_bridge_3d(
 		var log_node := MeshInstance3D.new()
 		var lmesh := CylinderMesh.new()
 		var log_r := span_dx * (0.41 + sin(float(i) * 2.7) * 0.03)
-		var jitter_w := deck_w + sin(float(i) * 2.3) * 0.24 + cos(float(i) * 3.9) * 0.12
-		var z_shift := sin(float(i) * 1.7) * 0.05
+		var jitter_w := deck_w + sin(float(i) * 2.3) * 0.22 + cos(float(i) * 3.9) * 0.10
+		var z_shift := sin(float(i) * 1.7) * 0.04
 		lmesh.top_radius = log_r * 0.94
 		lmesh.bottom_radius = log_r * 1.04
 		lmesh.height = jitter_w
@@ -433,7 +474,7 @@ static func create_bridge_3d(
 		log_node.mesh = lmesh
 		log_node.position = Vector3(
 			px - sin(yaw) * z_shift,
-			py - 0.036 + sin(float(i) * 3.1) * 0.008,
+			py - 0.032 + sin(float(i) * 3.1) * 0.007,
 			pz + cos(yaw) * z_shift
 		)
 		log_node.rotation = Vector3(PI * 0.5, yaw + sin(float(i) * 2.1) * 0.025, pitch)
@@ -465,25 +506,27 @@ static func create_bridge_3d(
 				lash.material_override = rope_mat
 				root.add_child(lash)
 
-	# 3. Rough Unbarked Stake Posts with Thick Rope Lashings & Sagging Catenary Hemp Rope Rails
+	# 3. Rough Unbarked Stake Posts with Thick Multi-Wrap Rope Knots & Sagging Hemp Rope Rails
 	var stake_cyl := CylinderMesh.new()
-	stake_cyl.top_radius = 0.054
-	stake_cyl.bottom_radius = 0.086
-	stake_cyl.height = 0.96
+	stake_cyl.top_radius = 0.056
+	stake_cyl.bottom_radius = 0.088
+	stake_cyl.height = 0.98
 	stake_cyl.radial_segments = 10
 	var post_lash_torus := TorusMesh.new()
-	post_lash_torus.inner_radius = 0.052
-	post_lash_torus.outer_radius = 0.088
+	post_lash_torus.inner_radius = 0.048
+	post_lash_torus.outer_radius = 0.118
 	post_lash_torus.rings = 12
-	post_lash_torus.ring_segments = 8
+	post_lash_torus.ring_segments = 10
 
 	var post_count := 7
 	for side_z in [-1.0, 1.0]:
+		var knot_tops: Array[Vector3] = []
+		var knot_mids: Array[Vector3] = []
 		for p in range(post_count):
 			var pt := float(p) / float(post_count - 1)
 			var post_x := lerpf(span_start + 0.22, span_end - 0.22, pt)
 			var post_z := SevaraTerrainGen3D._main_road_z(post_x)
-			var post_y := SevaraTerrainGen3D.get_bridge_deck_y_at_x(post_x)
+			var post_y := SevaraTerrainGen3D.get_bridge_deck_y_at_x(post_x) + 0.07
 			var dz := (
 				(
 					SevaraTerrainGen3D._main_road_z(post_x + 0.2)
@@ -499,55 +542,53 @@ static func create_bridge_3d(
 			var post := MeshInstance3D.new()
 			post.mesh = stake_cyl
 			post.position = w_pos
-			var lean_out := float(side_z) * (0.04 + absf(sin(float(p) * 1.9)) * 0.04)
-			var lean_along := sin(float(p * 3 + int(side_z))) * 0.05
+			var lean_out := float(side_z) * (0.03 + absf(sin(float(p) * 1.9)) * 0.03)
+			var lean_along := sin(float(p * 3 + int(side_z))) * 0.04
 			post.rotation = Vector3(lean_out, yaw, lean_along)
 			post.material_override = dark_beam_mat
 			root.add_child(post)
 
+			# Attach double-wrapped hemp rope knots directly as children of the post so they hug it!
 			var knot_dys: Array[float] = [0.34, 0.02, -0.34]
 			for knot_dy: float in knot_dys:
-				var knot := MeshInstance3D.new()
-				knot.mesh = post_lash_torus
-				knot.position = w_pos + Vector3(0.0, knot_dy, 0.0)
-				knot.rotation.z = lean_along
-				knot.material_override = rope_mat
-				root.add_child(knot)
+				for wrap_off: float in [-0.018, 0.018]:
+					var knot := MeshInstance3D.new()
+					knot.mesh = post_lash_torus
+					knot.position = Vector3(0.0, knot_dy + wrap_off, 0.0)
+					knot.material_override = rope_mat
+					post.add_child(knot)
 
-			if p < post_count - 1:
-				var next_pt := float(p + 1) / float(post_count - 1)
-				var nx := lerpf(span_start + 0.22, span_end - 0.22, next_pt)
-				var nz := SevaraTerrainGen3D._main_road_z(nx)
-				var ny := SevaraTerrainGen3D.get_bridge_deck_y_at_x(nx)
-				var nw_pos := Vector3(nx - sin(yaw) * off_z, ny + 0.40, nz + cos(yaw) * off_z)
-				var rope_hs: Array[float] = [0.34, 0.02]
-				for rail_h: float in rope_hs:
-					var p0 := w_pos + Vector3(0.0, rail_h, 0.0)
-					var p1 := nw_pos + Vector3(0.0, rail_h, 0.0)
-					var rope_segs := 5
-					var sag_depth := 0.11 if rail_h > 0.2 else 0.07
-					for rs in range(rope_segs):
-						var t0 := float(rs) / float(rope_segs)
-						var t1 := float(rs + 1) / float(rope_segs)
-						var sag0 := 4.0 * t0 * (1.0 - t0) * sag_depth
-						var sag1 := 4.0 * t1 * (1.0 - t1) * sag_depth
-						var rp0 := p0.lerp(p1, t0) - Vector3(0.0, sag0, 0.0)
-						var rp1 := p0.lerp(p1, t1) - Vector3(0.0, sag1, 0.0)
-						var r_delta := rp1 - rp0
-						var r_len := r_delta.length()
-						var r_pitch := atan2(r_delta.y, Vector2(r_delta.x, r_delta.z).length())
-						var r_yaw := -atan2(r_delta.z, r_delta.x)
-						var rope_seg := MeshInstance3D.new()
-						var rmesh := CylinderMesh.new()
-						rmesh.top_radius = 0.028 if rail_h > 0.2 else 0.022
-						rmesh.bottom_radius = rmesh.top_radius
-						rmesh.height = r_len + 0.02
-						rmesh.radial_segments = 8
-						rope_seg.mesh = rmesh
-						rope_seg.position = (rp0 + rp1) * 0.5
-						rope_seg.rotation = Vector3(0.0, r_yaw, r_pitch - PI * 0.5)
-						rope_seg.material_override = rope_mat
-						root.add_child(rope_seg)
+			knot_tops.append(post.to_global(Vector3(0.0, 0.34, 0.0)))
+			knot_mids.append(post.to_global(Vector3(0.0, 0.02, 0.0)))
+
+		for p in range(post_count - 1):
+			for r_idx in range(2):
+				var p0: Vector3 = knot_tops[p] if r_idx == 0 else knot_mids[p]
+				var p1: Vector3 = knot_tops[p + 1] if r_idx == 0 else knot_mids[p + 1]
+				var rope_segs := 5
+				var sag_depth := 0.11 if r_idx == 0 else 0.07
+				for rs in range(rope_segs):
+					var t0 := float(rs) / float(rope_segs)
+					var t1 := float(rs + 1) / float(rope_segs)
+					var sag0 := 4.0 * t0 * (1.0 - t0) * sag_depth
+					var sag1 := 4.0 * t1 * (1.0 - t1) * sag_depth
+					var rp0 := p0.lerp(p1, t0) - Vector3(0.0, sag0, 0.0)
+					var rp1 := p0.lerp(p1, t1) - Vector3(0.0, sag1, 0.0)
+					var r_delta := rp1 - rp0
+					var r_len := r_delta.length()
+					var r_pitch := atan2(r_delta.y, Vector2(r_delta.x, r_delta.z).length())
+					var r_yaw := -atan2(r_delta.z, r_delta.x)
+					var rope_seg := MeshInstance3D.new()
+					var rmesh := CylinderMesh.new()
+					rmesh.top_radius = 0.030 if r_idx == 0 else 0.024
+					rmesh.bottom_radius = rmesh.top_radius
+					rmesh.height = r_len + 0.02
+					rmesh.radial_segments = 8
+					rope_seg.mesh = rmesh
+					rope_seg.position = (rp0 + rp1) * 0.5
+					rope_seg.rotation = Vector3(0.0, r_yaw, r_pitch - PI * 0.5)
+					rope_seg.material_override = rope_mat
+					root.add_child(rope_seg)
 	return root
 
 
@@ -676,7 +717,9 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 			if (in_stream_corridor and wy < SevaraTerrainGen3D.WATER_SURFACE_Y + 0.14) or wy > 9.2:
 				continue
 			var path_w := SevaraTerrainGen3D.get_path_weight_at(wx, wz)
-			if path_w > 0.22:
+			if path_w > 0.48:
+				continue
+			if path_w > 0.12 and rng.randf() < smoothstep(0.12, 0.48, path_w) * 0.78:
 				continue
 			var gn := SevaraTerrainGen3D.get_ground_normal(wx, wz)
 			# Keep all hillside slopes lush with grass (only vertical cliffs >65 deg bare)
@@ -688,11 +731,12 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 				wy
 			)
 			var edge_taper := (
-				(1.0 - smoothstep(0.02, 0.28, path_w) * 0.65) * lerpf(0.45, 1.0, bank_taper)
+				(1.0 - smoothstep(0.01, 0.46, path_w) * 0.80) * lerpf(0.45, 1.0, bank_taper)
 			)
-			var height_mult := clampf(edge_taper * rng.randf_range(0.86, 1.16), 0.26, 1.28)
+			var verge_w := smoothstep(0.02, 0.36, path_w)
+			var height_mult := clampf(edge_taper * rng.randf_range(0.84, 1.16), 0.18, 1.28)
 			var patch_scale := clampf(
-				(0.60 + 0.40 * edge_taper) * rng.randf_range(0.92, 1.12), 0.50, 1.15
+				(0.48 + 0.52 * edge_taper) * rng.randf_range(0.90, 1.12), 0.42, 1.15
 			)
 			var basis := _align_up_with_yaw(gn, rng.randf() * TAU, patch_scale)
 			var col_idx := clampi(int(floorf((wx - x_min) / sector_w)), 0, sector_cols - 1)
@@ -701,7 +745,7 @@ static func build_dense_meadow_multimeshes(foliage_density: float = 1.0) -> Node
 			(sector_xforms[s_idx] as Array[Transform3D]).append(
 				Transform3D(basis, Vector3(wx, wy - 0.015, wz))
 			)
-			(sector_customs[s_idx] as Array[Color]).append(Color(0.0, 0.0, 0.0, height_mult))
+			(sector_customs[s_idx] as Array[Color]).append(Color(verge_w, 0.0, 0.0, height_mult))
 
 	for r_i in range(sector_rows):
 		for c_i in range(sector_cols):

@@ -74,12 +74,12 @@ void fragment() {
 	} else if (vfx_mode == 2) {
 		// Mode 2: Billowing Soft Smoke Plume (3D sphere puff or billboard quad)
 		float ndotv = abs(dot(normalize(v_normal_view), normalize(VIEW)));
-		float sphere_soft = pow(clamp(ndotv, 0.0, 1.0), 1.35);
+		float sphere_soft = pow(clamp(ndotv, 0.0, 1.0), 1.05);
 		float wisp = fbm2(v_world.xz * 2.2 + vec2(v_world.y * 1.6 - TIME * 0.45, TIME * 0.25));
-		float alpha_smoke = sphere_soft * smoothstep(0.22, 0.78, wisp) * tint_color.a * v_color.a * intensity;
-		vec3 smoke_col = mix(tint_color.rgb * 0.78, tint_color.rgb * 1.12, wisp);
+		float alpha_smoke = sphere_soft * smoothstep(0.16, 0.74, wisp) * tint_color.a * v_color.a * intensity;
+		vec3 smoke_col = mix(tint_color.rgb * 0.68, tint_color.rgb * 1.08, wisp);
 		ALBEDO = smoke_col;
-		ALPHA = clamp(alpha_smoke, 0.0, 0.48);
+		ALPHA = clamp(alpha_smoke, 0.0, 0.74);
 	} else if (vfx_mode == 3) {
 		// Mode 3: Churning White Waterwheel Foam & Spray
 		float ndotv = abs(dot(normalize(v_normal_view), normalize(VIEW)));

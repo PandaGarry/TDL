@@ -124,15 +124,15 @@ void vertex() {
 
 	// Exact root match with the underlying terrain (including earthy verge tint near road edges)
 	vec3 ground_col = meadow_ground_palette(world_v.xz);
-	vec3 verge_root = vec3(0.20, 0.24, 0.12);
-	v_root_col = mix(ground_col, verge_root, verge_tint * 0.65);
+	vec3 verge_root = vec3(0.24, 0.21, 0.13);
+	v_root_col = mix(ground_col, verge_root, verge_tint * 0.85);
 
 	float warm_patch = fbm(world_v.xz * 0.085 + vec2(3.1, 1.7));
 	float cool_patch = fbm(world_v.xz * 0.16 + vec2(-2.4, 4.3));
 	vec3 base_tip = mix(tip_color, tip_color_warm, smoothstep(0.24, 0.76, warm_patch));
 	base_tip = mix(base_tip, vec3(0.19, 0.35, 0.14), smoothstep(0.54, 0.84, cool_patch) * 0.36);
 	base_tip = mix(base_tip, vec3(0.44, 0.50, 0.20), smoothstep(0.54, 0.84, clump) * 0.46);
-	base_tip = mix(base_tip, vec3(0.32, 0.39, 0.17), verge_tint * 0.45);
+	base_tip = mix(base_tip, vec3(0.39, 0.37, 0.18), verge_tint * 0.78);
 	v_tip_col = base_tip * (0.88 + (rnd.r - 0.5) * 0.24);
 	v_t = t;
 	v_gust = gust;

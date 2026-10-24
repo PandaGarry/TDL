@@ -444,27 +444,36 @@ void fragment() {
 		rough = mix(rough, mix(0.80, 0.26, wet_dark), smoothstep(0.06, 0.58, river_bed));
 	}
 
-	// --- 6. Building Perimeter Contact Ambient Occlusion, Sunbeams & Distant Rim Perspective ---
-	float bld_ao = max(
-		max(
-			exp(-pow((xz.x - (-13.5)) / 1.85, 2.0) - pow((xz.y - (-10.5)) / 1.85, 2.0)),
-			exp(-pow((xz.x - (-18.5)) / 2.05, 2.0) - pow((xz.y - (-7.5)) / 1.85, 2.0))
-		),
-		max(
-			max(
-				exp(-pow((xz.x - (-12.0)) / 1.15, 2.0) - pow((xz.y - (-6.0)) / 1.15, 2.0)),
-				exp(-pow((xz.x - (-7.2)) / 2.25, 2.0) - pow((xz.y - (-15.8)) / 1.75, 2.0))
-			),
-			max(
-				exp(-pow((xz.x - (-5.4)) / 1.45, 2.0) - pow((xz.y - (-8.2)) / 1.45, 2.0)),
-				max(
-					exp(-pow((xz.x - (-0.8)) / 1.65, 2.0) - pow((xz.y - (-12.2)) / 1.65, 2.0)),
-					exp(-pow((xz.x - 23.0) / 1.85, 2.0) - pow((xz.y - (-5.0)) / 1.85, 2.0))
-				)
-			)
-		)
-	);
-	col *= mix(1.0, 0.44, clamp(bld_ao, 0.0, 0.92));
+	// --- 6. Dynamic Building Contact Ambient Occlusion, Hearth Ground Glow & Charred Ash Pit ---
+	float bld_ao = 0.0;
+	int n_pads = clamp(dynamic_pad_count, 0, 10);
+	for (int i = 0; i < 10; i++) {
+		if (i >= n_pads) {
+			break;
+		}
+		vec4 pad = dynamic_pads[i];
+		vec2 rxz = max(pad.zw * 0.78, vec2(0.85));
+		vec2 d = (xz - pad.xy) / rxz;
+		bld_ao = max(bld_ao, exp(-dot(d, d)));
+	}
+	col *= mix(1.0, 0.36, clamp(bld_ao, 0.0, 0.94));
+
+	// Communal Hearth charred ash pit & warm firelight reflection on the ground
+	float d_hearth = length(xz - vec2(-0.4, -5.2));
+	float ash_ring = 1.0 - smoothstep(0.45, 1.35, d_hearth + (clod_n - 0.5) * 0.24);
+	float ember_core = 1.0 - smoothstep(0.0, 0.68, d_hearth + (crumb_n - 0.5) * 0.16);
+	vec3 soot_soil = mix(vec3(0.06, 0.05, 0.04), vec3(0.16, 0.14, 0.12), crumb_n);
+	col = mix(col, soot_soil, ash_ring * 0.92);
+	col += vec3(0.42, 0.14, 0.02) * ember_core * (0.75 + 0.25 * sin(TIME * 4.2));
+
+	float fire_bounce = (
+		exp(-pow(d_hearth / 3.4, 2.0)) * 0.18
+		+ exp(-pow(length(xz - vec2(-5.8, -8.2)) / 2.6, 2.0)) * 0.14
+		+ exp(-pow(length(xz - vec2(-11.4, -9.2)) / 2.2, 2.0)) * 0.10
+		+ exp(-pow(length(xz - vec2(-16.2, -6.5)) / 2.0, 2.0)) * 0.09
+		+ exp(-pow(length(xz - vec2(-7.8, -11.6)) / 2.0, 2.0)) * 0.09
+	) * (0.90 + 0.10 * sin(TIME * 3.6 + xz.x));
+	col += vec3(0.55, 0.28, 0.07) * fire_bounce * (1.0 - river_bed);
 
 	float sun_beam = smoothstep(0.56, 0.86, sin(xz.x * 0.22 - xz.y * 0.16 + 0.8) * 0.5 + 0.5)
 		* smoothstep(0.38, 0.78, moss_n);
