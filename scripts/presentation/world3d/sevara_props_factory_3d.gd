@@ -506,10 +506,11 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 			post.material_override = dark_beam_mat
 			root.add_child(post)
 
-			for band_dy in [-0.36, 0.36]:
+			var band_dys: Array[float] = [-0.36, 0.36]
+			for band_dy: float in band_dys:
 				var band := MeshInstance3D.new()
 				band.mesh = iron_band_cyl
-				band.position = w_pos + Vector3(0.0, float(band_dy), 0.0)
+				band.position = w_pos + Vector3(0.0, band_dy, 0.0)
 				band.material_override = iron_band_mat
 				root.add_child(band)
 

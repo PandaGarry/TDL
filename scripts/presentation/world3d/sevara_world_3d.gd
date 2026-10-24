@@ -311,12 +311,9 @@ func _build_environment_and_lights() -> void:
 	_environment.fog_enabled = true
 	_environment.fog_light_color = Color(0.76, 0.84, 0.90)
 	_environment.fog_light_energy = 0.62
-	_environment.fog_sun_scatter = 0.28
 	_environment.fog_density = 0.0018
 	_environment.fog_aerial_perspective = 0.48
 	_environment.fog_sky_affect = 0.22
-	_environment.fog_height = 1.65
-	_environment.fog_height_density = 0.16
 	_environment.glow_enabled = true
 	_environment.glow_intensity = 0.28
 	_environment.glow_strength = 0.82

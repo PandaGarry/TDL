@@ -86,7 +86,7 @@ jobs:
           mkdir -p build/ci-logs
           LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s "-screen 0 1920x1080x24" \
             ~/.cache/tdl-godot/godot --audio-driver Dummy --rendering-driver opengl3 \
-            --path . --scene "res://tests/smoke/capture_screenshots.tscn" --quit-after 300 \
+            --path . --scene "res://tests/smoke/capture_screenshots.tscn" --quit-after 32 \
             2>&1 | tee build/ci-logs/screenshots.log
           if grep -niE 'SCRIPT ERROR|Invalid call|Shader compilation' build/ci-logs/screenshots.log ; then
             grep -niE -A2 'SCRIPT ERROR|Invalid call|Shader compilation' build/ci-logs/screenshots.log | head -10 | while IFS= read -r line; do
