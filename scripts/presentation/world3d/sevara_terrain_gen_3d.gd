@@ -4,8 +4,8 @@ extends RefCounted
 ## and distant mountain range rings for the Sevara Valley.
 
 const TILE_SIZE_M := 1.65
-const VALLEY_WIDTH_M := 160.0
-const VALLEY_DEPTH_M := 120.0
+const VALLEY_WIDTH_M := 176.0
+const VALLEY_DEPTH_M := 148.0
 const WATER_SURFACE_Y := 0.42
 const WORLD_SCALE := TILE_SIZE_M / 32.0
 ## Look-Dev mode: CBT proving ground with stepped terraces, two-track roads & Nivarel river bridge.
@@ -39,10 +39,10 @@ static func pixel_to_world_3d(
 
 
 static func river_center_x(wz: float) -> float:
-	# Full-bodied Nivarel mountain river flowing from the northern mountain pass (z = -60)
-	# through the valley floor, spanned by the bridge at z ~ +2.35, to the southern basin (z = +60).
+	# Full-bodied Nivarel mountain river flowing from the northern mountain pass (z = -72)
+	# through the valley floor, spanned by the bridge at z ~ +2.35, to the southern basin (z = +64).
 	var base_cx := 7.8 + wz * 0.22 + sin(wz * 0.088 + 0.35) * 3.6 + cos(wz * 0.044 - 0.2) * 1.8
-	var north_valley_bend := smoothstep(-12.0, -56.0, wz) * 5.2
+	var north_valley_bend := (1.0 - smoothstep(-52.0, -14.0, wz)) * 3.8
 	return base_cx + north_valley_bend
 
 
@@ -177,15 +177,27 @@ static func get_height_at(wx: float, wz: float) -> float:
 
 		var hill_a := sin(wx * 0.075 + 0.3) * cos(wz * 0.085 - 0.4) * 0.88
 		var hill_b := sin(wx * 0.15 - wz * 0.13 + 1.1) * 0.36
-		var nw_plateau := smoothstep(4.0, -38.0, wx * 0.38 + wz * 0.85) * 4.2 * valley_pass_clear
+		var nw_plateau := (
+			(1.0 - smoothstep(-38.0, 4.0, wx * 0.38 + wz * 0.85)) * 4.2 * valley_pass_clear
+		)
 		var ne_knoll := (
-			exp(-pow((wx - 24.0) / 18.0, 2.0) - pow((wz - (-22.0)) / 15.0, 2.0))
-			* 2.65
+			exp(-pow((wx - 22.0) / 18.0, 2.0) - pow((wz - (-26.0)) / 18.0, 2.0))
+			* 3.25
 			* valley_pass_clear
+		)
+		var north_gorge_walls := (
+			(1.0 - smoothstep(-54.0, -20.0, wz))
+			* smoothstep(r_hw * 1.18, r_hw * 3.2, dist_river)
+			* 3.6
 		)
 
 		# Crisp stepped natural terraces on the hillside slopes (rock ledges & grassy shelves)
-		var raw_slope_h := nw_plateau + ne_knoll + maxf(hill_a + hill_b, 0.0) * valley_pass_clear
+		var raw_slope_h := (
+			nw_plateau
+			+ ne_knoll
+			+ north_gorge_walls
+			+ maxf(hill_a + hill_b, 0.0) * valley_pass_clear
+		)
 		var terrace_phase := raw_slope_h * 1.35 + sin(wx * 0.12 + wz * 0.09) * 0.22
 		var terrace_floor := floorf(terrace_phase)
 		var terrace_fract := terrace_phase - terrace_floor
@@ -193,7 +205,7 @@ static func get_height_at(wx: float, wz: float) -> float:
 		var road_c := get_road_core_at(wx, wz)
 		var terrace_blend := smoothstep(0.55, 2.1, raw_slope_h) * (1.0 - road_c * 0.90)
 		var sculpted_hills := lerpf(
-			(hill_a + hill_b) * valley_pass_clear + nw_plateau + ne_knoll,
+			(hill_a + hill_b) * valley_pass_clear + nw_plateau + ne_knoll + north_gorge_walls,
 			terrace_shelf + hill_b * 0.28,
 			terrace_blend * 0.76
 		)
@@ -345,9 +357,9 @@ static func build_water_mesh(
 	var half_w := VALLEY_WIDTH_M * 0.5
 	var half_d := VALLEY_DEPTH_M * 0.5
 	# High-precision stream-following ribbon mesh (perfectly smooth banks, 3x fewer triangles)
-	var z_start := -60.0
-	var z_end := 58.0
-	var steps_z := 224
+	var z_start := -72.0
+	var z_end := 64.0
+	var steps_z := 240
 	var steps_u := 44
 	var dz := (z_end - z_start) / float(steps_z)
 	var u_span := 1.06
@@ -390,20 +402,29 @@ static func build_mountain_rings() -> Node3D:
 	var ring_mesh := _create_mountain_ring_mesh(256, 10)
 	var specs: Array[Dictionary] = [
 		{
-			"radius": 210.0,
-			"height": 26.0,
+			"radius": 58.0,
+			"height": 22.0,
+			"seed": 0.41,
+			"haze": 0.24,
+			"snow": 0.28,
+			"base_color": Color(0.22, 0.32, 0.34),
+			"shadow_color": Color(0.14, 0.21, 0.28),
+		},
+		{
+			"radius": 118.0,
+			"height": 34.0,
 			"seed": 0.19,
-			"haze": 0.38,
-			"snow": 0.42,
+			"haze": 0.42,
+			"snow": 0.46,
 			"base_color": Color(0.25, 0.34, 0.38),
 			"shadow_color": Color(0.17, 0.24, 0.32),
 		},
 		{
-			"radius": 340.0,
-			"height": 42.0,
+			"radius": 220.0,
+			"height": 48.0,
 			"seed": 0.63,
 			"haze": 0.64,
-			"snow": 0.58,
+			"snow": 0.60,
 			"base_color": Color(0.32, 0.42, 0.52),
 			"shadow_color": Color(0.22, 0.31, 0.42),
 		},

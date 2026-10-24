@@ -116,7 +116,7 @@ float main_road_z(float wx) {
 
 float river_center_x(float wz) {
 	float base_cx = 7.8 + wz * 0.22 + sin(wz * 0.088 + 0.35) * 3.6 + cos(wz * 0.044 - 0.2) * 1.8;
-	return base_cx + smoothstep(-12.0, -56.0, wz) * 5.2;
+	return base_cx + (1.0 - smoothstep(-52.0, -14.0, wz)) * 3.8;
 }
 
 float river_half_width(float wz) {
