@@ -1,14 +1,7 @@
 class_name SevaraWorld3D
 extends Node3D
-## Complete 3D valley world for Sevara (160 x 120 m valley floor + distant mountain rings).
-## Built from the ground up with CC0 glTF/GLB models, MultiMesh dense meadows,
-## custom spatial shaders, smooth character locomotion, and scenic valley camera lookpoints.
+## Complete 3D valley world for Sevara (`LOOKDEV_STEP = 4`: Tier 1 Tribal Settlement).
 
-## Step-by-step Look-Dev progression:
-## LOOKDEV_STEP = 1 -> Step 1: Terrain relief, calm velvety 3D grass, path & lighting.
-## LOOKDEV_STEP = 2 -> Step 2: Deep Nivarel river, oak bridge, road cobbles & mossy boulders.
-## LOOKDEV_STEP = 3 -> Step 3: Fluffy Trees (Torava pines, Talina willows, alders) & bushes.
-## LOOKDEV_STEP = 4 -> Step 4: Harmonized Sevara Settlement (Houses, Hearth, Well & Pavilion).
 const LOOKDEV_STEP := 4
 
 const CAMERA_LOOKPOINTS: Array[String] = [
@@ -423,13 +416,36 @@ func _build_containers() -> void:
 func _populate_static_settlement() -> void:
 	var fol_dens := float(SettingsManager.graphics_profile().get("foliage_density", 1.0))
 	_last_meadow_signature = "%.2f" % fol_dens
+	if LOOKDEV_STEP >= 4:
+		SevaraPropsFactory3D.populate_static_settlement(_settlement_root)
+		SevaraTerrainGen3D.sync_terrain_shader(_terrain_mesh_inst)
 	_meadow_multimesh_root.add_child(SevaraPropsFactory3D.build_dense_meadow_multimeshes(fol_dens))
 	if LOOKDEV_STEP >= 3:
 		_rebuild_ecology_and_npcs(null, false, {}, false, fol_dens)
 	elif LOOKDEV_STEP >= 2:
 		_populate_step2_boulders()
-	if LOOKDEV_STEP >= 4:
-		SevaraPropsFactory3D.populate_static_settlement(_settlement_root)
+
+
+func relocate_or_upgrade_building(
+	building_id: String,
+	archetype: String,
+	world_xz: Vector2,
+	yaw: float,
+	road_join_xz: Vector2,
+	tier: int = 1
+) -> Node3D:
+	ensure_built()
+	var node := SevaraSettlementArchitect3D.place_or_relocate_building(
+		_settlement_root, building_id, archetype, world_xz, yaw, road_join_xz, tier
+	)
+	SevaraTerrainGen3D.sync_terrain_shader(_terrain_mesh_inst)
+	var fol_dens := float(SettingsManager.graphics_profile().get("foliage_density", 1.0))
+	for child: Node in _meadow_multimesh_root.get_children():
+		child.free()
+	_meadow_multimesh_root.add_child(SevaraPropsFactory3D.build_dense_meadow_multimeshes(fol_dens))
+	if LOOKDEV_STEP >= 3:
+		_rebuild_ecology_and_npcs(null, false, {}, false, fol_dens)
+	return node
 
 
 func _populate_step2_boulders() -> void:
@@ -444,6 +460,13 @@ func _populate_step2_boulders() -> void:
 		if absf(SevaraTerrainGen3D._main_road_signed_dist(rp.x, rp.y)) < 2.65:
 			continue
 		if SevaraTerrainGen3D.get_path_weight_at(rp.x, rp.y) > 0.08:
+			continue
+		var was_mined := false
+		for mb: Vector2 in SevaraTerrainGen3D.mined_boulders:
+			if rp.distance_to(mb) < 3.4:
+				was_mined = true
+				break
+		if was_mined:
 			continue
 		var sc_v: Vector3 = rs["sc"]
 		var boulder := SevaraPropsFactory3D.create_boulder_3d(sc_v, bool(rs["moss"]))
@@ -525,6 +548,10 @@ func _rebuild_ecology_and_npcs(
 			continue
 		var is_toramek := tc.x < -6.0 and tc.y < -15.0
 		var felled := is_toramek and (float(i % 9) / 9.0) > canopy
+		for ft: Vector2 in SevaraTerrainGen3D.felled_trees:
+			if tc.distance_to(ft) < 4.2:
+				felled = true
+				break
 		var tree := SevaraPropsFactory3D.create_tree_3d(i, felled)
 		tree.position = Vector3(tc.x, SevaraTerrainGen3D.get_height_at(tc.x, tc.y) - 0.06, tc.y)
 		_ecology_root.add_child(tree)
@@ -927,22 +954,17 @@ func _apply_day_phase_lighting(day_phase: String, is_greybox: bool) -> void:
 			Color(0.42, 0.50, 0.65),
 		],
 	}
-	var p: Array = (
-		presets
-		. get(
-			day_phase,
-			[
-				Color(1.0, 0.95, 0.86),
-				1.08,
-				Vector3(-42.0, -34.0, 0.0),
-				Color(0.58, 0.67, 0.76),
-				Color(0.72, 0.80, 0.86),
-				Color(0.20, 0.48, 0.80),
-				Color(0.84, 0.88, 0.90),
-				Color(1.0, 0.98, 0.94),
-			]
-		)
-	)
+	var def_p := [
+		Color(1.0, 0.95, 0.86),
+		1.08,
+		Vector3(-42.0, -34.0, 0.0),
+		Color(0.58, 0.67, 0.76),
+		Color(0.72, 0.80, 0.86),
+		Color(0.20, 0.48, 0.80),
+		Color(0.84, 0.88, 0.90),
+		Color(1.0, 0.98, 0.94),
+	]
+	var p: Array = presets.get(day_phase, def_p)
 	_sun_light.light_color = p[0] as Color
 	_sun_light.light_energy = float(p[1])
 	_sun_light.rotation_degrees = p[2] as Vector3

@@ -283,7 +283,7 @@ void fragment() {
 			METALLIC = 0.0;
 			SPECULAR = 0.10;
 			BACKLIGHT = vec3(0.0);
-		} else {
+		} else if (surface_mode == 5) {
 			// Mode 5: Matte Lime-Clay Daub Plaster with Trowel Micro-Relief & Lower-Wall Grime
 			float p_macro = triplanar_soft_fbm(v_world, base_n, 1.65);
 			float p_micro = triplanar_soft_fbm(v_world + vec3(4.1, -2.3, 1.8), base_n, 5.4);
@@ -293,7 +293,6 @@ void fragment() {
 			NORMAL = normalize((VIEW_MATRIX * vec4(pn, 0.0)).xyz);
 
 			vec3 plaster_base = tint * mix(0.84, 1.04, p_macro * 0.60 + p_micro * 0.40);
-			// Weathering & lower-wall mud/rain-splash grime so plaster is never sterile white
 			float grime_band = 1.0 - smoothstep(0.0, 1.35, h_above + (p_macro - 0.5) * 0.42);
 			float rain_streak = soft_fbm(vec2((v_world.x + v_world.z) * 3.8, v_world.y * 1.2));
 			float grime_mask = clamp(grime_band * 0.78 + (1.0 - rain_streak) * 0.24, 0.0, 0.88);
@@ -305,6 +304,90 @@ void fragment() {
 			ROUGHNESS = clamp(0.92 + (1.0 - p_micro) * 0.05, 0.90, 0.97);
 			METALLIC = 0.0;
 			SPECULAR = 0.06;
+			BACKLIGHT = vec3(0.0);
+		} else if (surface_mode == 6) {
+			// Mode 6 (Tier 1 Tribal): Thick Layered Straw Thatch & Selave Reed Roof
+			float rad_ang = atan(v_local.x, v_local.z);
+			float slope_u = (v_world.x + v_world.z) * 3.6 + rad_ang * 1.8;
+			float slope_v = v_world.y * 2.85;
+			float tier_id = floor(slope_v);
+			float tier_f = fract(slope_v + (soft_fbm(v_world.xz * 2.4) - 0.5) * 0.18);
+			float bundle_u = slope_u * 6.5 + mod(tier_id, 2.0) * 1.7;
+			float strand_n = grad_noise(vec2(bundle_u * 2.8, slope_v * 1.4));
+			float fine_reed = grad_noise(vec2(bundle_u * 7.5, slope_v * 3.2 + 2.3));
+			float tier_lip = smoothstep(0.0, 0.22, tier_f);
+			float tier_ao = mix(0.38, 1.0, tier_lip);
+
+			float nx_strand = (strand_n - 0.5) * 0.52 + (fine_reed - 0.5) * 0.28;
+			float ny_tier = (0.26 - tier_f) * 0.55;
+			vec3 tn = normalize(base_n + vec3(nx_strand, ny_tier, -nx_strand));
+			NORMAL = normalize((VIEW_MATRIX * vec4(tn, 0.0)).xyz);
+
+			vec3 dry_gold = tint * vec3(1.12, 0.98, 0.68);
+			vec3 weathered_reed = tint * vec3(0.76, 0.64, 0.44);
+			vec3 deep_straw = tint * vec3(0.46, 0.37, 0.24);
+			vec3 t_col = mix(deep_straw, weathered_reed, smoothstep(0.15, 0.72, strand_n));
+			t_col = mix(t_col, dry_gold, smoothstep(0.42, 0.88, fine_reed) * 0.62);
+			t_col *= tier_ao;
+
+			float moss_patch = soft_fbm(v_world.xz * 1.4 + vec2(2.7, -1.9));
+			float thatch_moss = smoothstep(0.48, 0.78, moss_patch) * smoothstep(0.15, 0.72, up) * moss_amount;
+			t_col = mix(t_col, vec3(0.20, 0.32, 0.11), thatch_moss * 0.62);
+			t_col *= 0.74 + 0.30 * smoothstep(-0.35, 0.88, tn.y);
+
+			ALBEDO = t_col;
+			ROUGHNESS = clamp(0.90 + (1.0 - fine_reed) * 0.07, 0.88, 0.97);
+			METALLIC = 0.0;
+			SPECULAR = 0.05;
+			BACKLIGHT = vec3(0.08, 0.06, 0.02) * (1.0 - thatch_moss);
+		} else if (surface_mode == 7) {
+			// Mode 7 (Tier 1 Tribal): Hand-Sculpted Sun-Baked River Clay Daub with Straw & Wattle
+			float c_macro = triplanar_soft_fbm(v_world, base_n, 1.55);
+			float c_hand = triplanar_soft_fbm(v_world + vec3(3.1, -1.8, 2.4), base_n, 4.2);
+			float wattle_rib = sin(v_world.y * 26.0 + c_macro * 4.0) * 0.5 + 0.5;
+			float wattle_show = (1.0 - smoothstep(0.08, 0.55, h_above)) * smoothstep(0.35, 0.75, c_macro);
+			vec3 cn = normalize(
+				base_n
+				+ vec3(
+					(c_hand - 0.5) * 0.36,
+					(c_macro - 0.5) * 0.45 + (wattle_rib - 0.5) * wattle_show * 0.42,
+					(0.5 - c_hand) * 0.36
+				)
+			);
+			NORMAL = normalize((VIEW_MATRIX * vec4(cn, 0.0)).xyz);
+
+			vec3 clay_warm = tint * vec3(1.06, 0.92, 0.74);
+			vec3 clay_ochre = tint * vec3(0.84, 0.70, 0.52);
+			vec3 wattle_dark = vec3(0.28, 0.21, 0.13);
+			vec3 c_col = mix(clay_ochre, clay_warm, smoothstep(0.22, 0.78, c_macro * 0.6 + c_hand * 0.4));
+			float straw_fleck = smoothstep(0.74, 0.88, grad_noise(v_world.xz * 14.0 + vec2(v_world.y * 11.0, 1.7)));
+			c_col = mix(c_col, vec3(0.68, 0.56, 0.32), straw_fleck * 0.45);
+			c_col = mix(c_col, wattle_dark, wattle_show * smoothstep(0.25, 0.75, wattle_rib) * 0.55);
+
+			float damp_mud = 1.0 - smoothstep(0.0, 0.62, h_above + (c_macro - 0.5) * 0.25);
+			c_col = mix(c_col, vec3(0.18, 0.15, 0.10), damp_mud * 0.68) * foundation_ao;
+			c_col *= 0.76 + 0.26 * smoothstep(-0.4, 0.85, cn.y);
+
+			ALBEDO = c_col;
+			ROUGHNESS = clamp(0.91 + (1.0 - c_hand) * 0.06, 0.89, 0.97);
+			METALLIC = 0.0;
+			SPECULAR = 0.05;
+			BACKLIGHT = vec3(0.0);
+		} else {
+			// Mode 8 (Tier 1 Tribal): Woven Talina Willow Wattle & Hemp Rope Lashings
+			float u_w = (v_world.x + v_world.z) * 14.0;
+			float v_w = v_world.y * 28.0;
+			float weave = sin(u_w + mod(floor(v_w), 2.0) * 3.14159);
+			float rod_sep = smoothstep(0.0, 0.25, fract(v_w)) * (1.0 - smoothstep(0.75, 1.0, fract(v_w)));
+			vec3 wn = normalize(base_n + vec3(weave * 0.35, (rod_sep - 0.5) * 0.45, -weave * 0.35));
+			NORMAL = normalize((VIEW_MATRIX * vec4(wn, 0.0)).xyz);
+
+			vec3 rod_col = tint * mix(0.65, 1.12, weave * 0.5 + 0.5) * mix(0.45, 1.0, rod_sep);
+			rod_col *= 0.76 + 0.26 * smoothstep(-0.4, 0.85, wn.y);
+			ALBEDO = rod_col;
+			ROUGHNESS = 0.90;
+			METALLIC = 0.0;
+			SPECULAR = 0.08;
 			BACKLIGHT = vec3(0.0);
 		}
 	} else {

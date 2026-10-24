@@ -169,6 +169,35 @@ func _test_step2_creek_ford_and_boulders() -> void:
 		"Dry meadow hollows outside the Nivarel stream corridor stay above the water table"
 	)
 
+	var test_settlement := Node3D.new()
+	SevaraSettlementArchitect3D.populate_settlement(test_settlement)
+	_check(
+		SevaraTerrainGen3D.get_settlement_footprint_at(-13.2, -10.2) > 0.85,
+		"Elder wattle-and-daub hut registers compacted earth pad on west bank"
+	)
+	_check(
+		SevaraTerrainGen3D.get_settlement_footprint_at(23.0, -4.2) < 0.05,
+		"East bank Heravo meadow remains untouched wild grassland at Tier 1 start"
+	)
+	var relocated := SevaraSettlementArchitect3D.place_or_relocate_building(
+		test_settlement,
+		"hut_worker_west",
+		"worker_hut_round",
+		Vector2(-21.0, -5.5),
+		0.5,
+		Vector2(-15.0, -4.8),
+		2
+	)
+	_check_equal(int(relocated.get_meta("tier", 0)), 2, "Relocated hut upgrades cleanly to Tier 2")
+	_check(
+		SevaraTerrainGen3D.get_settlement_footprint_at(-21.0, -5.5) > 0.85,
+		"World terrain & grass footprint dynamically adapts to relocated building"
+	)
+	test_settlement.free()
+	SevaraTerrainGen3D.dynamic_pads.clear()
+	SevaraTerrainGen3D.felled_trees.clear()
+	SevaraTerrainGen3D.mined_boulders.clear()
+
 
 func _test_grid_metrics_and_physics_layers() -> void:
 	var center := GreyboxGridMetrics.tile_to_world_center(Vector2i(2, 3), 48.0)

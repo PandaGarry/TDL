@@ -8,6 +8,10 @@ render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 // - Step 2 Nivarel mountain creek riverbed pebbles, wet shore bank, and shallow stone ford.
 
 uniform float silt_stain = 0.16;
+uniform int dynamic_pad_count = 0;
+uniform vec4 dynamic_pads[10];
+uniform int dynamic_fp_count = 0;
+uniform vec4 dynamic_fps[10];
 
 varying vec3 v_world_pos;
 varying vec3 v_world_nrm;
@@ -181,29 +185,52 @@ vec4 eval_road_network(vec2 xz) {
 	float m_main = (1.0 - smoothstep(0.64, 1.05, u_main)) * fade_main;
 	float m_north = (1.0 - smoothstep(0.62, 1.04, u_north)) * fade_north;
 	float m_south = (1.0 - smoothstep(0.62, 1.04, u_south)) * fade_south;
-	float pad_lh = exp(-pow((wx - (-13.5)) / 3.4, 2.0) - pow((wz - (-10.5)) / 3.2, 2.0));
-	float pad_bs = exp(-pow((wx - (-18.5)) / 3.4, 2.0) - pow((wz - (-7.5)) / 3.0, 2.0));
-	float pad_well = exp(-pow((wx - (-12.0)) / 2.3, 2.0) - pow((wz - (-6.0)) / 2.3, 2.0));
-	float pad_barn = exp(-pow((wx - (-7.2)) / 3.4, 2.0) - pow((wz - (-15.8)) / 2.8, 2.0));
-	float pad_hearth = exp(-pow((wx - 0.6) / 2.8, 2.0) - pow((wz - (-4.8)) / 2.8, 2.0));
-	float pad_pav = exp(-pow((wx - (-5.4)) / 2.4, 2.0) - pow((wz - (-8.2)) / 2.4, 2.0));
-	float pad_mill = exp(-pow((wx - (-0.8)) / 2.8, 2.0) - pow((wz - (-12.2)) / 2.8, 2.0));
-	float pad_east = exp(-pow((wx - 23.0) / 3.6, 2.0) - pow((wz - (-4.2)) / 3.6, 2.0));
-	float pad_any = max(
-		max(max(pad_lh, pad_bs), max(pad_well, pad_barn)),
-		max(max(pad_hearth, pad_pav), max(pad_mill, pad_east))
-	);
+	float pad_any = 0.0;
+	if (dynamic_pad_count > 0) {
+		for (int i = 0; i < 10; i++) {
+			if (i >= dynamic_pad_count) {
+				break;
+			}
+			vec4 pd = dynamic_pads[i];
+			float p_val = exp(
+				-pow((wx - pd.x) / max(pd.z, 0.5), 2.0) - pow((wz - pd.y) / max(pd.w, 0.5), 2.0)
+			);
+			pad_any = max(pad_any, p_val);
+		}
+	} else {
+		// Tier 1 Compact West-Bank Tribal Settlement pads (east bank stays untouched wild meadow)
+		float pad_elder = exp(-pow((wx - (-13.2)) / 2.9, 2.0) - pow((wz - (-10.2)) / 2.6, 2.0));
+		float pad_west = exp(-pow((wx - (-17.8)) / 2.4, 2.0) - pow((wz - (-7.2)) / 2.4, 2.0));
+		float pad_well = exp(-pow((wx - (-11.8)) / 1.9, 2.0) - pow((wz - (-6.0)) / 1.9, 2.0));
+		float pad_north = exp(-pow((wx - (-7.8)) / 2.5, 2.0) - pow((wz - (-13.4)) / 2.3, 2.0));
+		float pad_shed = exp(-pow((wx - (-5.8)) / 2.4, 2.0) - pow((wz - (-8.2)) / 2.2, 2.0));
+		float pad_sluice = exp(-pow((wx - (-1.0)) / 2.2, 2.0) - pow((wz - (-11.2)) / 2.2, 2.0));
+		float pad_hearth = exp(-pow((wx - (-0.4)) / 2.5, 2.0) - pow((wz - (-5.2)) / 2.5, 2.0));
+		pad_any = max(
+			max(max(pad_elder, pad_west), max(pad_well, pad_north)),
+			max(max(pad_shed, pad_sluice), pad_hearth)
+		);
+	}
 
-	// Footpaths connecting every house doorway to the road network
-	float d_fp = seg_dist(xz, vec2(-17.8, -3.9), vec2(-18.5, -7.2));
-	d_fp = min(d_fp, seg_dist(xz, vec2(-18.5, -7.2), vec2(-12.0, -6.0)));
-	d_fp = min(d_fp, seg_dist(xz, vec2(-12.0, -6.0), vec2(-6.0, -5.8)));
-	d_fp = min(d_fp, seg_dist(xz, vec2(-12.0, -6.0), vec2(-13.5, -9.8)));
-	d_fp = min(d_fp, seg_dist(xz, vec2(-11.6, -14.2), vec2(-7.2, -15.2)));
-	d_fp = min(d_fp, seg_dist(xz, vec2(-7.5, -8.0), vec2(-5.4, -8.2)));
-	d_fp = min(d_fp, seg_dist(xz, vec2(-5.4, -8.2), vec2(-1.4, -11.6)));
-	d_fp = min(d_fp, seg_dist(xz, vec2(-2.8, -3.0), vec2(0.6, -4.8)));
-	d_fp = min(d_fp, seg_dist(xz, vec2(20.6, 0.2), vec2(23.0, -4.4)));
+	// Footpaths connecting every tribal hut doorway to the road network
+	float d_fp = 99.0;
+	if (dynamic_fp_count > 0) {
+		for (int i = 0; i < 10; i++) {
+			if (i >= dynamic_fp_count) {
+				break;
+			}
+			vec4 fp = dynamic_fps[i];
+			d_fp = min(d_fp, seg_dist(xz, fp.xy, fp.zw));
+		}
+	} else {
+		d_fp = seg_dist(xz, vec2(-17.8, -7.2), vec2(-11.8, -6.0));
+		d_fp = min(d_fp, seg_dist(xz, vec2(-11.8, -6.0), vec2(-5.8, -5.6)));
+		d_fp = min(d_fp, seg_dist(xz, vec2(-11.8, -6.0), vec2(-13.2, -10.2)));
+		d_fp = min(d_fp, seg_dist(xz, vec2(-7.8, -13.4), vec2(-5.8, -8.2)));
+		d_fp = min(d_fp, seg_dist(xz, vec2(-5.8, -8.2), vec2(-5.8, -5.4)));
+		d_fp = min(d_fp, seg_dist(xz, vec2(-5.8, -8.2), vec2(-1.0, -11.2)));
+		d_fp = min(d_fp, seg_dist(xz, vec2(-2.6, -3.2), vec2(-0.4, -5.2)));
+	}
 	float m_fp = 1.0 - smoothstep(0.36, 0.72, d_fp + warp_a * 0.42);
 	float rut_fp = exp(-pow((d_fp + warp_a * 0.25) / 0.26, 2.0)) * 0.65;
 

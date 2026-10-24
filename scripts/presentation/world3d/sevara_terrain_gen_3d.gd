@@ -14,6 +14,69 @@ const BRIDGE_X_MIN := 5.6
 const BRIDGE_X_MAX := 18.4
 const BRIDGE_HALF_WIDTH := 1.68
 
+static var dynamic_pads: Dictionary = {}
+static var felled_trees: Array[Vector2] = []
+static var mined_boulders: Array[Vector2] = []
+
+
+static func register_building_footprint(
+	id: String, pos: Vector2, radii: Vector2, fp_start: Vector2, fp_end: Vector2, tier: int = 1
+) -> void:
+	dynamic_pads[id] = {
+		"pos": pos,
+		"radii": radii,
+		"fp_start": fp_start,
+		"fp_end": fp_end,
+		"tier": tier,
+	}
+	var clear_r := maxf(radii.x, radii.y) + 0.65
+	var found_tree := false
+	for tp: Vector2 in felled_trees:
+		if tp.distance_to(pos) < clear_r * 0.5:
+			found_tree = true
+			break
+	if not found_tree:
+		felled_trees.append(pos)
+	var found_rock := false
+	for rp: Vector2 in mined_boulders:
+		if rp.distance_to(pos) < clear_r * 0.5:
+			found_rock = true
+			break
+	if not found_rock:
+		mined_boulders.append(pos)
+
+
+static func sync_terrain_shader(terrain_node: Node3D) -> void:
+	if terrain_node == null or not (terrain_node is MeshInstance3D):
+		return
+	var mi := terrain_node as MeshInstance3D
+	var smat := mi.material_override as ShaderMaterial
+	if smat == null:
+		return
+	var pads_arr: Array[Vector4] = []
+	var fps_arr: Array[Vector4] = []
+	for key: Variant in dynamic_pads.keys():
+		if pads_arr.size() >= 10:
+			break
+		var entry: Dictionary = dynamic_pads[key]
+		var p: Vector2 = entry.get("pos", Vector2.ZERO)
+		var r: Vector2 = entry.get("radii", Vector2(2.4, 2.4))
+		var fs: Vector2 = entry.get("fp_start", p)
+		var fe: Vector2 = entry.get("fp_end", p)
+		pads_arr.append(Vector4(p.x, p.y, r.x, r.y))
+		if fs.distance_to(fe) > 0.15:
+			fps_arr.append(Vector4(fs.x, fs.y, fe.x, fe.y))
+	var pad_count := pads_arr.size()
+	var fp_count := fps_arr.size()
+	while pads_arr.size() < 10:
+		pads_arr.append(Vector4.ZERO)
+	while fps_arr.size() < 10:
+		fps_arr.append(Vector4.ZERO)
+	smat.set_shader_parameter("dynamic_pad_count", pad_count)
+	smat.set_shader_parameter("dynamic_pads", pads_arr)
+	smat.set_shader_parameter("dynamic_fp_count", fp_count)
+	smat.set_shader_parameter("dynamic_fps", fps_arr)
+
 
 static func tile_to_world_3d(
 	tile: Vector2i, width_tiles: int = 32, height_tiles: int = 24
@@ -151,30 +214,48 @@ static func _seg_dist(p: Vector2, a: Vector2, b: Vector2) -> float:
 
 static func get_settlement_footprint_at(wx: float, wz: float) -> float:
 	var p := Vector2(wx, wz)
-	# Organic compacted earth & gravel courtyard pads beneath Step 4 settlement structures
-	var pad_lh := exp(-pow((wx - (-13.5)) / 3.4, 2.0) - pow((wz - (-10.5)) / 3.2, 2.0))
-	var pad_bs := exp(-pow((wx - (-18.5)) / 3.4, 2.0) - pow((wz - (-7.5)) / 3.0, 2.0))
-	var pad_well := exp(-pow((wx - (-12.0)) / 2.3, 2.0) - pow((wz - (-6.0)) / 2.3, 2.0))
-	var pad_barn := exp(-pow((wx - (-7.2)) / 3.4, 2.0) - pow((wz - (-15.8)) / 2.8, 2.0))
-	var pad_pav := exp(-pow((wx - (-5.4)) / 2.4, 2.0) - pow((wz - (-8.2)) / 2.4, 2.0))
-	var pad_mill := exp(-pow((wx - (-0.8)) / 2.8, 2.0) - pow((wz - (-12.2)) / 2.8, 2.0))
-	var pad_hearth := exp(-pow((wx - 0.6) / 2.8, 2.0) - pow((wz - (-4.8)) / 2.8, 2.0))
-	var pad_east := exp(-pow((wx - 23.0) / 3.6, 2.0) - pow((wz - (-4.2)) / 3.6, 2.0))
-	var west_any := maxf(maxf(pad_lh, pad_bs), maxf(pad_well, pad_barn))
-	var east_any := maxf(maxf(pad_hearth, pad_pav), maxf(pad_mill, pad_east))
+	if not dynamic_pads.is_empty():
+		var pad_max := 0.0
+		var d_fp_dyn := 99.0
+		for key: Variant in dynamic_pads.keys():
+			var entry: Dictionary = dynamic_pads[key]
+			var bpos: Vector2 = entry.get("pos", Vector2.ZERO)
+			var br: Vector2 = entry.get("radii", Vector2(2.4, 2.4))
+			var fs: Vector2 = entry.get("fp_start", bpos)
+			var fe: Vector2 = entry.get("fp_end", bpos)
+			var p_val := exp(
+				(
+					-pow((wx - bpos.x) / maxf(br.x, 0.5), 2.0)
+					- pow((wz - bpos.y) / maxf(br.y, 0.5), 2.0)
+				)
+			)
+			pad_max = maxf(pad_max, p_val)
+			if fs.distance_to(fe) > 0.15:
+				d_fp_dyn = minf(d_fp_dyn, _seg_dist(p, fs, fe))
+		var fp_dyn_mask := 1.0 - smoothstep(0.46, 0.88, d_fp_dyn)
+		return clampf(maxf(pad_max, fp_dyn_mask * 0.92), 0.0, 1.0)
 
-	# Footpaths linking every building doorway directly to the main/north road network
-	var d_fp := _seg_dist(p, Vector2(-17.8, -3.9), Vector2(-18.5, -7.2))
-	d_fp = minf(d_fp, _seg_dist(p, Vector2(-18.5, -7.2), Vector2(-12.0, -6.0)))
-	d_fp = minf(d_fp, _seg_dist(p, Vector2(-12.0, -6.0), Vector2(-6.0, -5.8)))
-	d_fp = minf(d_fp, _seg_dist(p, Vector2(-12.0, -6.0), Vector2(-13.5, -9.8)))
-	d_fp = minf(d_fp, _seg_dist(p, Vector2(-11.6, -14.2), Vector2(-7.2, -15.2)))
-	d_fp = minf(d_fp, _seg_dist(p, Vector2(-7.5, -8.0), Vector2(-5.4, -8.2)))
-	d_fp = minf(d_fp, _seg_dist(p, Vector2(-5.4, -8.2), Vector2(-1.4, -11.6)))
-	d_fp = minf(d_fp, _seg_dist(p, Vector2(-2.8, -3.0), Vector2(0.6, -4.8)))
-	d_fp = minf(d_fp, _seg_dist(p, Vector2(20.6, 0.2), Vector2(23.0, -4.4)))
-	var fp_mask := 1.0 - smoothstep(0.48, 0.92, d_fp)
-	return clampf(maxf(maxf(west_any, east_any), fp_mask * 0.92), 0.0, 1.0)
+	# Default Tier 1 Compact West-Bank Tribal Settlement pads (east bank stays wild meadow)
+	var pad_elder := exp(-pow((wx - (-13.2)) / 2.9, 2.0) - pow((wz - (-10.2)) / 2.6, 2.0))
+	var pad_west := exp(-pow((wx - (-17.8)) / 2.4, 2.0) - pow((wz - (-7.2)) / 2.4, 2.0))
+	var pad_well := exp(-pow((wx - (-11.8)) / 1.9, 2.0) - pow((wz - (-6.0)) / 1.9, 2.0))
+	var pad_north := exp(-pow((wx - (-7.8)) / 2.5, 2.0) - pow((wz - (-13.4)) / 2.3, 2.0))
+	var pad_shed := exp(-pow((wx - (-5.8)) / 2.4, 2.0) - pow((wz - (-8.2)) / 2.2, 2.0))
+	var pad_sluice := exp(-pow((wx - (-1.0)) / 2.2, 2.0) - pow((wz - (-11.2)) / 2.2, 2.0))
+	var pad_hearth := exp(-pow((wx - (-0.4)) / 2.5, 2.0) - pow((wz - (-5.2)) / 2.5, 2.0))
+	var west_any := maxf(maxf(pad_elder, pad_west), maxf(pad_well, pad_north))
+	var near_any := maxf(maxf(pad_shed, pad_sluice), pad_hearth)
+
+	# Footpaths linking every tribal hut doorway directly to the main/north road network
+	var d_fp := _seg_dist(p, Vector2(-17.8, -7.2), Vector2(-11.8, -6.0))
+	d_fp = minf(d_fp, _seg_dist(p, Vector2(-11.8, -6.0), Vector2(-5.8, -5.6)))
+	d_fp = minf(d_fp, _seg_dist(p, Vector2(-11.8, -6.0), Vector2(-13.2, -10.2)))
+	d_fp = minf(d_fp, _seg_dist(p, Vector2(-7.8, -13.4), Vector2(-5.8, -8.2)))
+	d_fp = minf(d_fp, _seg_dist(p, Vector2(-5.8, -8.2), Vector2(-5.8, -5.4)))
+	d_fp = minf(d_fp, _seg_dist(p, Vector2(-5.8, -8.2), Vector2(-1.0, -11.2)))
+	d_fp = minf(d_fp, _seg_dist(p, Vector2(-2.6, -3.2), Vector2(-0.4, -5.2)))
+	var fp_mask := 1.0 - smoothstep(0.46, 0.88, d_fp)
+	return clampf(maxf(maxf(west_any, near_any), fp_mask * 0.92), 0.0, 1.0)
 
 
 static func get_path_weight_at(wx: float, wz: float) -> float:

@@ -732,6 +732,9 @@ static func _make_arch_shader_material(
 		"pbr_roof_slate": 3,
 		"pbr_cobble_masonry": 4,
 		"pbr_lime_plaster": 5,
+		"pbr_thatch_roof": 6,
+		"pbr_clay_daub": 7,
+		"pbr_wattle_weave": 8,
 	}
 	if mode_map.has(stem):
 		var rmat := ShaderMaterial.new()

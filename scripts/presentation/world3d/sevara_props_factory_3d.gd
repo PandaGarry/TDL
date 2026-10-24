@@ -284,27 +284,35 @@ static func create_hearth_3d() -> Node3D:
 	return SevaraSettlementArchitect3D.create_sevara_hearth_sanctuary_3d()
 
 
-static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> Node3D:
+static func create_bridge_3d(
+	_length_m: float = 7.2, _width_m: float = 2.4, tier: int = 1
+) -> Node3D:
 	var root := Node3D.new()
 	root.name = "TimberBridge3D"
+	root.set_meta("building_id", "nivarel_crossing")
+	root.set_meta("archetype", "bridge")
+	root.set_meta("tier", tier)
 	var wood_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_aged_timber", Color(0.58, 0.47, 0.35), Color.BLACK, 0.52, 0.48, 0.45, 0.78
+		"pbr_aged_timber", Color(0.56, 0.45, 0.33), Color.BLACK, 0.56, 0.50, 0.55, 0.84
 	)
-	var warm_plank_alt_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_aged_timber", Color(0.54, 0.43, 0.32), Color.BLACK, 0.50, 0.45, 0.45, 0.78
+	var warm_log_alt_mat := SevaraAssetLibrary3D._make_arch_shader_material(
+		"pbr_aged_timber", Color(0.50, 0.39, 0.28), Color.BLACK, 0.54, 0.48, 0.55, 0.85
 	)
 	var dark_beam_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_aged_timber", Color(0.45, 0.35, 0.25), Color.BLACK, 0.48, 0.45, 0.45, 0.80
+		"pbr_aged_timber", Color(0.42, 0.32, 0.22), Color.BLACK, 0.52, 0.50, 0.58, 0.86
+	)
+	var rope_mat := SevaraAssetLibrary3D._make_arch_shader_material(
+		"pbr_wattle_weave", Color(0.68, 0.56, 0.38), Color.BLACK, 0.48, 0.40, 0.25, 0.88
 	)
 	var stone_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_cliff_rock", Color(0.92, 0.90, 0.86), Color.BLACK, 0.48, 0.45, 0.42, 0.80, 0.0, 0.08
+		"pbr_cliff_rock", Color(0.90, 0.88, 0.84), Color.BLACK, 0.48, 0.45, 0.42, 0.80, 0.0, 0.14
 	)
 
 	var x_min := SevaraTerrainGen3D.BRIDGE_X_MIN
 	var x_max := SevaraTerrainGen3D.BRIDGE_X_MAX
-	var deck_w := 2.92
+	var deck_w := 2.68 if tier <= 1 else 2.92
 
-	# 1. Bevel-Smoothed River-Stone Masonry Bridge Piers strictly UNDER the timber deck
+	# 1. Under-Deck Support Pilings strictly BELOW the log deck (`ty <= -0.84`)
 	var pier_stone_mesh := (
 		SevaraAssetLibrary3D
 		. build_bevel_smoothed_rock_mesh(
@@ -312,15 +320,26 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 			{
 				"rock":
 				{
-					"moss_amount": 0.12,
+					"moss_amount": 0.16,
 					"snow_amount": 0.0,
-					"wetness": 0.45,
+					"wetness": 0.52,
 					"triplanar": 1.0,
-					"tint": Color(0.92, 0.89, 0.84),
+					"tint": Color(0.90, 0.87, 0.82),
 				}
 			}
 		)
 	)
+	var piling_cyl := CylinderMesh.new()
+	piling_cyl.top_radius = 0.105
+	piling_cyl.bottom_radius = 0.125
+	piling_cyl.height = 1.15
+	piling_cyl.radial_segments = 12
+	var lashing_torus := TorusMesh.new()
+	lashing_torus.inner_radius = 0.095
+	lashing_torus.outer_radius = 0.145
+	lashing_torus.rings = 12
+	lashing_torus.ring_segments = 10
+
 	var pier_xs: Array[float] = [9.85, 14.15]
 	for pier_x: float in pier_xs:
 		var pz := SevaraTerrainGen3D._main_road_z(pier_x)
@@ -337,30 +356,51 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 		pier_grp.position = Vector3(pier_x, py, pz)
 		pier_grp.rotation.y = yaw
 		root.add_child(pier_grp)
-		for tier in range(3):
-			var ty := -0.84 - float(tier) * 0.36
-			var w_mult := 0.94 + float(tier) * 0.12
-			for k in range(3):
-				var z_off := (float(k) - 1.0) * 0.68
-				var st_mi := MeshInstance3D.new()
-				st_mi.mesh = pier_stone_mesh
-				st_mi.scale = Vector3(0.30 * w_mult, 0.21, 0.31 * w_mult)
-				st_mi.position = Vector3(sin(float(k + tier) * 1.7) * 0.04, ty, z_off)
-				st_mi.rotation.y = float(k * 2 + tier) * 1.1
-				st_mi.material_override = stone_mat
-				pier_grp.add_child(st_mi)
+		for k in range(3):
+			var z_off := (float(k) - 1.0) * 0.72
+			var piling := MeshInstance3D.new()
+			piling.mesh = piling_cyl
+			piling.position = Vector3(0.0, -0.78, z_off)
+			piling.rotation.x = float(k - 1) * 0.08
+			piling.material_override = dark_beam_mat
+			pier_grp.add_child(piling)
 
-	# 2. Smooth Rounded Timber Plank Deck, Under-Deck Carrier Logs & Rounded Log Curbs
+			var p_lash := MeshInstance3D.new()
+			p_lash.mesh = lashing_torus
+			p_lash.position = Vector3(0.0, -0.32, z_off)
+			p_lash.material_override = rope_mat
+			pier_grp.add_child(p_lash)
+
+			var st_mi := MeshInstance3D.new()
+			st_mi.mesh = pier_stone_mesh
+			st_mi.scale = Vector3(0.28, 0.20, 0.28)
+			st_mi.position = Vector3(sin(float(k) * 1.7) * 0.05, -1.18, z_off)
+			st_mi.rotation.y = float(k * 2) * 1.1
+			st_mi.material_override = stone_mat
+			pier_grp.add_child(st_mi)
+
+	# 2. Tier 1 Rough Round-Log Corduroy Deck with Uneven Log Ends & Rope Lashings
 	var span_start := x_min
 	var span_end := x_max
-	var plank_count := 36
-	var span_dx := (span_end - span_start) / float(plank_count)
-	var curb_cyl := CylinderMesh.new()
-	curb_cyl.top_radius = 0.068
-	curb_cyl.bottom_radius = 0.068
-	curb_cyl.height = span_dx + 0.05
-	curb_cyl.radial_segments = 14
-	for i in range(plank_count):
+	var log_count := 32
+	var span_dx := (span_end - span_start) / float(log_count)
+	var tie_pole_cyl := CylinderMesh.new()
+	tie_pole_cyl.top_radius = 0.058
+	tie_pole_cyl.bottom_radius = 0.058
+	tie_pole_cyl.height = span_dx + 0.05
+	tie_pole_cyl.radial_segments = 10
+	var carrier_cyl := CylinderMesh.new()
+	carrier_cyl.top_radius = 0.095
+	carrier_cyl.bottom_radius = 0.095
+	carrier_cyl.height = span_dx + 0.06
+	carrier_cyl.radial_segments = 10
+	var curb_lash_torus := TorusMesh.new()
+	curb_lash_torus.inner_radius = 0.055
+	curb_lash_torus.outer_radius = 0.092
+	curb_lash_torus.rings = 10
+	curb_lash_torus.ring_segments = 8
+
+	for i in range(log_count):
 		var px := span_start + (float(i) + 0.5) * span_dx
 		var pz := SevaraTerrainGen3D._main_road_z(px)
 		var py := SevaraTerrainGen3D.get_bridge_deck_y_at_x(px)
@@ -381,61 +421,67 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 		var yaw := -atan2(dz, 1.0)
 		var pitch := atan2(dy, 1.0)
 
-		var plank := MeshInstance3D.new()
-		var pmesh := BoxMesh.new()
-		var jitter_w := deck_w + sin(float(i) * 1.9) * 0.025
-		# Physical see-through inter-plank gaps (`0.875 * span_dx`) so water & shadow show between planks
-		pmesh.size = Vector3(span_dx * 0.875, 0.085, jitter_w)
-		plank.mesh = pmesh
-		plank.position = Vector3(px, py - 0.032, pz)
-		plank.rotation = Vector3(0.0, yaw, pitch)
-		plank.material_override = wood_mat if (i % 2 == 0) else warm_plank_alt_mat
-		root.add_child(plank)
+		var log_node := MeshInstance3D.new()
+		var lmesh := CylinderMesh.new()
+		var log_r := span_dx * (0.41 + sin(float(i) * 2.7) * 0.03)
+		var jitter_w := deck_w + sin(float(i) * 2.3) * 0.24 + cos(float(i) * 3.9) * 0.12
+		var z_shift := sin(float(i) * 1.7) * 0.05
+		lmesh.top_radius = log_r * 0.94
+		lmesh.bottom_radius = log_r * 1.04
+		lmesh.height = jitter_w
+		lmesh.radial_segments = 12
+		log_node.mesh = lmesh
+		log_node.position = Vector3(
+			px - sin(yaw) * z_shift,
+			py - 0.036 + sin(float(i) * 3.1) * 0.008,
+			pz + cos(yaw) * z_shift
+		)
+		log_node.rotation = Vector3(PI * 0.5, yaw + sin(float(i) * 2.1) * 0.025, pitch)
+		log_node.material_override = wood_mat if (i % 2 == 0) else warm_log_alt_mat
+		root.add_child(log_node)
 
 		for side_z in [-1.0, 1.0]:
-			var off_z := float(side_z) * (deck_w * 0.44)
+			var off_z := float(side_z) * (deck_w * 0.42)
 			var beam := MeshInstance3D.new()
-			var bmesh := BoxMesh.new()
-			bmesh.size = Vector3(span_dx + 0.04, 0.18, 0.18)
-			beam.mesh = bmesh
-			beam.position = Vector3(px - sin(yaw) * off_z, py - 0.15, pz + cos(yaw) * off_z)
-			beam.rotation = Vector3(0.0, yaw, pitch)
+			beam.mesh = carrier_cyl
+			beam.position = Vector3(px - sin(yaw) * off_z, py - 0.14, pz + cos(yaw) * off_z)
+			beam.rotation = Vector3(0.0, yaw, pitch - PI * 0.5)
 			beam.material_override = dark_beam_mat
 			root.add_child(beam)
 
-			var curb := MeshInstance3D.new()
-			curb.mesh = curb_cyl
-			var c_off := float(side_z) * (deck_w * 0.46)
-			curb.position = Vector3(px - sin(yaw) * c_off, py + 0.038, pz + cos(yaw) * c_off)
-			curb.rotation = Vector3(0.0, yaw, pitch - PI * 0.5)
-			curb.material_override = dark_beam_mat
-			root.add_child(curb)
+			var c_off := float(side_z) * (deck_w * 0.45)
+			var tie_pole := MeshInstance3D.new()
+			tie_pole.mesh = tie_pole_cyl
+			tie_pole.position = Vector3(px - sin(yaw) * c_off, py + 0.036, pz + cos(yaw) * c_off)
+			tie_pole.rotation = Vector3(0.0, yaw, pitch - PI * 0.5)
+			tie_pole.material_override = dark_beam_mat
+			root.add_child(tie_pole)
 
-	# 3. Turned Round Timber Railing Posts with Forged Iron Collar Bands, Finial Caps & Handrails
-	var iron_band_mat := StandardMaterial3D.new()
-	iron_band_mat.albedo_color = Color(0.14, 0.15, 0.17)
-	iron_band_mat.metallic = 0.82
-	iron_band_mat.roughness = 0.34
-	var iron_band_cyl := CylinderMesh.new()
-	iron_band_cyl.top_radius = 0.086
-	iron_band_cyl.bottom_radius = 0.088
-	iron_band_cyl.height = 0.048
-	iron_band_cyl.radial_segments = 14
-	var post_cyl := CylinderMesh.new()
-	post_cyl.top_radius = 0.072
-	post_cyl.bottom_radius = 0.082
-	post_cyl.height = 0.92
-	post_cyl.radial_segments = 16
-	var cap_sphere := SphereMesh.new()
-	cap_sphere.radius = 0.088
-	cap_sphere.height = 0.14
-	cap_sphere.radial_segments = 16
-	cap_sphere.rings = 8
-	var post_count := 8
+			if i % 3 == 1:
+				var lash := MeshInstance3D.new()
+				lash.mesh = curb_lash_torus
+				lash.position = Vector3(px - sin(yaw) * c_off, py + 0.012, pz + cos(yaw) * c_off)
+				lash.rotation = Vector3(0.0, yaw, PI * 0.5)
+				lash.material_override = rope_mat
+				root.add_child(lash)
+
+	# 3. Rough Unbarked Stake Posts with Thick Rope Lashings & Sagging Catenary Hemp Rope Rails
+	var stake_cyl := CylinderMesh.new()
+	stake_cyl.top_radius = 0.054
+	stake_cyl.bottom_radius = 0.086
+	stake_cyl.height = 0.96
+	stake_cyl.radial_segments = 10
+	var post_lash_torus := TorusMesh.new()
+	post_lash_torus.inner_radius = 0.052
+	post_lash_torus.outer_radius = 0.088
+	post_lash_torus.rings = 12
+	post_lash_torus.ring_segments = 8
+
+	var post_count := 7
 	for side_z in [-1.0, 1.0]:
 		for p in range(post_count):
 			var pt := float(p) / float(post_count - 1)
-			var post_x := lerpf(span_start + 0.18, span_end - 0.18, pt)
+			var post_x := lerpf(span_start + 0.22, span_end - 0.22, pt)
 			var post_z := SevaraTerrainGen3D._main_road_z(post_x)
 			var post_y := SevaraTerrainGen3D.get_bridge_deck_y_at_x(post_x)
 			var dz := (
@@ -446,52 +492,62 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 				/ 0.4
 			)
 			var yaw := -atan2(dz, 1.0)
-			var off_z := float(side_z) * (deck_w * 0.465)
+			var off_z := float(side_z) * (deck_w * 0.46)
 			var w_pos := Vector3(
-				post_x - sin(yaw) * off_z, post_y + 0.42, post_z + cos(yaw) * off_z
+				post_x - sin(yaw) * off_z, post_y + 0.40, post_z + cos(yaw) * off_z
 			)
 			var post := MeshInstance3D.new()
-			post.mesh = post_cyl
+			post.mesh = stake_cyl
 			post.position = w_pos
-			post.rotation.y = yaw
+			var lean_out := float(side_z) * (0.04 + absf(sin(float(p) * 1.9)) * 0.04)
+			var lean_along := sin(float(p * 3 + int(side_z))) * 0.05
+			post.rotation = Vector3(lean_out, yaw, lean_along)
 			post.material_override = dark_beam_mat
 			root.add_child(post)
 
-			var band_dys: Array[float] = [-0.36, 0.36]
-			for band_dy: float in band_dys:
-				var band := MeshInstance3D.new()
-				band.mesh = iron_band_cyl
-				band.position = w_pos + Vector3(0.0, band_dy, 0.0)
-				band.material_override = iron_band_mat
-				root.add_child(band)
-
-			var cap := MeshInstance3D.new()
-			cap.mesh = cap_sphere
-			cap.position = w_pos + Vector3(0.0, 0.47, 0.0)
-			cap.material_override = wood_mat
-			root.add_child(cap)
+			var knot_dys: Array[float] = [0.34, 0.02, -0.34]
+			for knot_dy: float in knot_dys:
+				var knot := MeshInstance3D.new()
+				knot.mesh = post_lash_torus
+				knot.position = w_pos + Vector3(0.0, knot_dy, 0.0)
+				knot.rotation.z = lean_along
+				knot.material_override = rope_mat
+				root.add_child(knot)
 
 			if p < post_count - 1:
 				var next_pt := float(p + 1) / float(post_count - 1)
-				var nx := lerpf(span_start + 0.18, span_end - 0.18, next_pt)
+				var nx := lerpf(span_start + 0.22, span_end - 0.22, next_pt)
 				var nz := SevaraTerrainGen3D._main_road_z(nx)
 				var ny := SevaraTerrainGen3D.get_bridge_deck_y_at_x(nx)
-				var nw_pos := Vector3(nx - sin(yaw) * off_z, ny + 0.42, nz + cos(yaw) * off_z)
-				var delta := nw_pos - w_pos
-				var seg_len := delta.length()
-				var pitch := atan2(delta.y, Vector2(delta.x, delta.z).length())
-				for rail_h in [0.36, 0.06]:
-					var rail := MeshInstance3D.new()
-					var rmesh := CylinderMesh.new()
-					rmesh.top_radius = 0.044
-					rmesh.bottom_radius = 0.044
-					rmesh.height = seg_len + 0.06
-					rmesh.radial_segments = 14
-					rail.mesh = rmesh
-					rail.position = (w_pos + nw_pos) * 0.5 + Vector3(0.0, float(rail_h), 0.0)
-					rail.rotation = Vector3(0.0, yaw, pitch - PI * 0.5)
-					rail.material_override = wood_mat
-					root.add_child(rail)
+				var nw_pos := Vector3(nx - sin(yaw) * off_z, ny + 0.40, nz + cos(yaw) * off_z)
+				var rope_hs: Array[float] = [0.34, 0.02]
+				for rail_h: float in rope_hs:
+					var p0 := w_pos + Vector3(0.0, rail_h, 0.0)
+					var p1 := nw_pos + Vector3(0.0, rail_h, 0.0)
+					var rope_segs := 5
+					var sag_depth := 0.11 if rail_h > 0.2 else 0.07
+					for rs in range(rope_segs):
+						var t0 := float(rs) / float(rope_segs)
+						var t1 := float(rs + 1) / float(rope_segs)
+						var sag0 := 4.0 * t0 * (1.0 - t0) * sag_depth
+						var sag1 := 4.0 * t1 * (1.0 - t1) * sag_depth
+						var rp0 := p0.lerp(p1, t0) - Vector3(0.0, sag0, 0.0)
+						var rp1 := p0.lerp(p1, t1) - Vector3(0.0, sag1, 0.0)
+						var r_delta := rp1 - rp0
+						var r_len := r_delta.length()
+						var r_pitch := atan2(r_delta.y, Vector2(r_delta.x, r_delta.z).length())
+						var r_yaw := -atan2(r_delta.z, r_delta.x)
+						var rope_seg := MeshInstance3D.new()
+						var rmesh := CylinderMesh.new()
+						rmesh.top_radius = 0.028 if rail_h > 0.2 else 0.022
+						rmesh.bottom_radius = rmesh.top_radius
+						rmesh.height = r_len + 0.02
+						rmesh.radial_segments = 8
+						rope_seg.mesh = rmesh
+						rope_seg.position = (rp0 + rp1) * 0.5
+						rope_seg.rotation = Vector3(0.0, r_yaw, r_pitch - PI * 0.5)
+						rope_seg.material_override = rope_mat
+						root.add_child(rope_seg)
 	return root
 
 
