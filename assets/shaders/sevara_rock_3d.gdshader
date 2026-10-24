@@ -394,19 +394,21 @@ void fragment() {
 			BACKLIGHT = vec3(0.0);
 		} else {
 			// Mode 8 (Tier 1 Tribal): Woven Talina Willow Wattle & Hemp Rope Lashings
+			vec3 face_n = FRONT_FACING ? base_n : -base_n;
 			float u_w = (v_world.x + v_world.z) * 14.0;
 			float v_w = v_world.y * 28.0;
 			float weave = sin(u_w + mod(floor(v_w), 2.0) * 3.14159);
-			float rod_sep = smoothstep(0.0, 0.25, fract(v_w)) * (1.0 - smoothstep(0.75, 1.0, fract(v_w)));
-			vec3 wn = normalize(base_n + vec3(weave * 0.35, (rod_sep - 0.5) * 0.45, -weave * 0.35));
+			float rod_sep = smoothstep(0.0, 0.28, fract(v_w)) * (1.0 - smoothstep(0.72, 1.0, fract(v_w)));
+			vec3 wn = normalize(face_n + vec3(weave * 0.45, (rod_sep - 0.5) * 0.55, -weave * 0.45));
 			NORMAL = normalize((VIEW_MATRIX * vec4(wn, 0.0)).xyz);
 
-			vec3 rod_col = tint * mix(0.65, 1.12, weave * 0.5 + 0.5) * mix(0.45, 1.0, rod_sep);
-			rod_col *= 0.76 + 0.26 * smoothstep(-0.4, 0.85, wn.y);
+			vec3 bark_base = tint * vec3(0.78, 0.62, 0.42);
+			vec3 rod_col = bark_base * mix(0.52, 1.04, weave * 0.5 + 0.5) * mix(0.32, 1.0, rod_sep);
+			rod_col *= 0.72 + 0.28 * smoothstep(-0.4, 0.85, wn.y);
 			ALBEDO = rod_col;
-			ROUGHNESS = 0.90;
+			ROUGHNESS = 0.98;
 			METALLIC = 0.0;
-			SPECULAR = 0.08;
+			SPECULAR = 0.01;
 			BACKLIGHT = vec3(0.0);
 		}
 	} else {
