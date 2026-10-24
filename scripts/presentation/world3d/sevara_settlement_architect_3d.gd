@@ -736,7 +736,7 @@ static func _add_terrain_fitted_wattle_run(
 			var v01 := p_a + off + _v3(0.0, height_m * 0.86, 0.0)
 			var v11 := sp + off + _v3(0.0, height_m * 0.86, 0.0)
 			var nrm := _v3(n2.x * side, 0.15, n2.y * side).normalized()
-			var verts: Array[Vector3] = (
+			var verts: Array = (
 				[v00, v10, v11, v00, v11, v01] if side > 0.0 else [v00, v11, v10, v00, v01, v11]
 			)
 			for v_pt: Vector3 in verts:
