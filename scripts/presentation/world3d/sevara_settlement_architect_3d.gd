@@ -371,17 +371,17 @@ static func _add_hut_openings(
 	)
 
 	if is_elder:
-		var r_raf := _v3(PI * 0.5 + 0.26, 0.0, 0.0)
-		var r_brc := _v3(-0.68, 0.0, 0.0)
+		var r_raf := _v3(PI * 0.5 + 0.24, 0.0, 0.0)
+		var r_brc := _v3(-0.65, 0.0, 0.0)
 		for px_s: float in [-0.58, 0.58]:
-			_add_cyl(root, 0.056, 0.072, 1.28, _v3(px_s, 0.56, dz + 0.54), V0, t_mat)
-			_add_torus(root, 0.048, 0.084, _v3(px_s, 1.16, dz + 0.54), rot_z90, r_mat)
-			_add_cyl(root, 0.048, 0.054, 0.92, _v3(px_s, 1.27, dz + 0.18), r_raf, t_mat)
-			_add_torus(root, 0.046, 0.080, _v3(px_s, 1.34, dz - 0.04), rot_x90, r_mat)
-			_add_cyl(root, 0.036, 0.042, 0.48, _v3(px_s, 0.98, dz + 0.38), r_brc, t_mat)
-		_add_cyl(root, 0.052, 0.052, 1.46, _v3(0.0, 1.18, dz + 0.54), rot_z90, t_mat)
-		_add_box(root, _v3(1.52, 0.14, 0.88), _v3(0.0, 1.34, dz + 0.22), _v3(0.26, 0, 0), th_mat)
-		_add_prop_ao(root, _v3(0.0, 0.08, dz + 0.36), Vector2(1.65, 1.15), 0.72)
+			_add_cyl(root, 0.056, 0.072, 1.12, _v3(px_s, 0.50, dz + 0.88), V0, t_mat)
+			_add_torus(root, 0.048, 0.086, _v3(px_s, 1.04, dz + 0.88), rot_z90, r_mat)
+			_add_cyl(root, 0.048, 0.054, 1.06, _v3(px_s, 1.16, dz + 0.42), r_raf, t_mat)
+			_add_torus(root, 0.046, 0.082, _v3(px_s, 1.26, dz - 0.02), rot_x90, r_mat)
+			_add_cyl(root, 0.036, 0.042, 0.46, _v3(px_s, 0.86, dz + 0.72), r_brc, t_mat)
+		_add_cyl(root, 0.052, 0.052, 1.46, _v3(0.0, 1.04, dz + 0.88), rot_z90, t_mat)
+		_add_box(root, _v3(1.56, 0.14, 0.96), _v3(0.0, 1.22, dz + 0.44), _v3(0.24, 0, 0), th_mat)
+		_add_prop_ao(root, _v3(0.0, 0.08, dz + 0.52), Vector2(1.75, 1.35), 0.76)
 
 		var barrel := _inst_model(VDIR + "Barrel.glb", 0.36)
 		barrel.position = _v3(-rx - 0.26, -0.02, 0.45)
@@ -682,9 +682,9 @@ static func _populate_fences_and_stumps(settlement_root: Node3D) -> void:
 	var r_mat := _arch_mat("pbr_wattle_weave", Color(0.62, 0.50, 0.33), 0.48, 0.40, 0.28, 0.88)
 
 	var fence_runs: Array[Array] = [
-		[Vector2(-16.6, -12.6), Vector2(-14.4, -13.5), Vector2(-12.0, -13.4)],
-		[Vector2(-20.8, -8.4), Vector2(-20.6, -6.2), Vector2(-19.5, -4.4)],
-		[Vector2(-10.6, -15.8), Vector2(-8.2, -16.4), Vector2(-5.6, -15.6)],
+		[Vector2(-16.8, -13.2), Vector2(-14.4, -14.0), Vector2(-12.2, -13.8)],
+		[Vector2(-21.8, -8.8), Vector2(-21.6, -6.4), Vector2(-20.4, -4.6)],
+		[Vector2(-10.8, -16.4), Vector2(-8.2, -17.0), Vector2(-5.4, -16.2)],
 	]
 	for run_pts: Array in fence_runs:
 		_add_terrain_fitted_wattle_run(settlement_root, run_pts, 0.86, t_mat, r_mat)
@@ -713,33 +713,36 @@ static func _add_terrain_fitted_wattle_run(
 	for seg_i in range(control_pts.size() - 1):
 		var p0: Vector2 = control_pts[seg_i]
 		var p1: Vector2 = control_pts[seg_i + 1]
-		var seg_len := p0.distance_to(p1)
-		var steps := maxi(int(round(seg_len / 0.46)), 3)
-		var start_s := 0 if seg_i == 0 else 1
-		for s in range(start_s, steps + 1):
-			var t := float(s) / float(steps)
-			var xz := p0.lerp(p1, t)
-			var wy := SevaraTerrainGen3D.get_height_at(xz.x, xz.y)
-			stake_pts.append(_v3(xz.x, wy, xz.y))
+		var steps := maxi(int(round(p0.distance_to(p1) / 0.46)), 3)
+		for s in range(0 if seg_i == 0 else 1, steps + 1):
+			var xz := p0.lerp(p1, float(s) / float(steps))
+			stake_pts.append(_v3(xz.x, SevaraTerrainGen3D.get_height_at(xz.x, xz.y), xz.y))
 
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for i in range(stake_pts.size()):
 		var sp := stake_pts[i]
 		var s_pos := _v3(sp.x, sp.y + height_m * 0.5 - 0.04, sp.z)
-		var s_rot := _v3(0.0, float(i) * 0.7, sin(float(i) * 2.1) * 0.03)
-		_add_cyl(grp, 0.036, 0.052, height_m + 0.24, s_pos, s_rot, t_mat)
+		_add_cyl(grp, 0.038, 0.054, height_m + 0.24, s_pos, _v3(0, float(i) * 0.7, 0.02), t_mat)
+		_add_prop_ao(grp, _v3(sp.x, sp.y + 0.05, sp.z), Vector2(0.62, 0.52), 0.72)
 		if i == 0:
 			continue
-		var prev := stake_pts[i - 1]
-		var mid := (prev + sp) * 0.5
-		var dxz := Vector2(sp.x - prev.x, sp.z - prev.z)
-		var span := dxz.length()
-		var yaw := -atan2(dxz.y, dxz.x)
-		var slope_pitch := atan2(sp.y - prev.y, maxf(span, 0.05))
-		var b_pos := _v3(mid.x, mid.y + height_m * 0.46, mid.z)
-		_add_box(
-			grp, _v3(span + 0.04, height_m * 0.80, 0.085), b_pos, _v3(0, yaw, slope_pitch), w_mat
-		)
-		_add_prop_ao(grp, _v3(mid.x, mid.y + 0.05, mid.z), Vector2(span + 0.35, 0.48), 0.72)
+		var p_a := stake_pts[i - 1]
+		var n2 := Vector2(-(sp.z - p_a.z), sp.x - p_a.x).normalized() * 0.046
+		for side: float in [-1.0, 1.0]:
+			var off := _v3(n2.x * side, 0.0, n2.y * side)
+			var v00 := p_a + off + _v3(0.0, 0.03, 0.0)
+			var v10 := sp + off + _v3(0.0, 0.03, 0.0)
+			var v01 := p_a + off + _v3(0.0, height_m * 0.86, 0.0)
+			var v11 := sp + off + _v3(0.0, height_m * 0.86, 0.0)
+			var nrm := _v3(n2.x * side, 0.15, n2.y * side).normalized()
+			var verts: Array[Vector3] = (
+				[v00, v10, v11, v00, v11, v01] if side > 0.0 else [v00, v11, v10, v00, v01, v11]
+			)
+			for v_pt: Vector3 in verts:
+				st.set_normal(nrm)
+				st.add_vertex(v_pt)
+	_add_mesh(grp, st.commit(), V0, V0, w_mat)
 
 
 static func _populate_east_bank_wild_landmarks(settlement_root: Node3D) -> void:

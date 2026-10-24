@@ -344,13 +344,12 @@ static func create_bridge_3d(
 	var foam_mat := ShaderMaterial.new()
 	foam_mat.shader = vfx_shader
 	foam_mat.set_shader_parameter("vfx_mode", 3)
-	foam_mat.set_shader_parameter("tint_color", Color(0.92, 0.97, 1.0, 0.76))
-	foam_mat.set_shader_parameter("intensity", 1.25)
+	foam_mat.set_shader_parameter("tint_color", Color(0.92, 0.97, 1.0, 0.82))
+	foam_mat.set_shader_parameter("intensity", 1.35)
 	var foam_quad := QuadMesh.new()
-	foam_quad.size = Vector2(1.45, 1.15)
-	var spray_sphere := SphereMesh.new()
-	spray_sphere.radial_segments = 8
-	spray_sphere.rings = 5
+	foam_quad.size = Vector2(1.55, 1.25)
+	var wake_quad := QuadMesh.new()
+	wake_quad.size = Vector2(1.15, 1.85)
 
 	var pier_xs: Array[float] = [9.85, 14.15]
 	for pier_x: float in pier_xs:
@@ -392,6 +391,14 @@ static func create_bridge_3d(
 			foam_ring.material_override = foam_mat
 			pier_grp.add_child(foam_ring)
 
+			var foam_wake := MeshInstance3D.new()
+			foam_wake.mesh = wake_quad
+			foam_wake.rotation.x = -PI * 0.5
+			foam_wake.position = Vector3(0.0, water_rel_y + 0.006, z_off + 0.48)
+			foam_wake.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			foam_wake.material_override = foam_mat
+			pier_grp.add_child(foam_wake)
+
 			var st_mi := MeshInstance3D.new()
 			st_mi.mesh = pier_stone_mesh
 			st_mi.scale = Vector3(0.28, 0.20, 0.28)
@@ -399,26 +406,6 @@ static func create_bridge_3d(
 			st_mi.rotation.y = float(k * 2) * 1.1
 			st_mi.material_override = stone_mat
 			pier_grp.add_child(st_mi)
-
-		var spray := CPUParticles3D.new()
-		spray.position = Vector3(0.0, water_rel_y + 0.04, 0.0)
-		spray.local_coords = true
-		spray.amount = 14
-		spray.lifetime = 0.95
-		spray.preprocess = 1.0
-		spray.mesh = spray_sphere
-		spray.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
-		spray.emission_box_extents = Vector3(0.35, 0.06, 0.85)
-		spray.direction = Vector3(0.15, 0.85, 0.55).normalized()
-		spray.spread = 28.0
-		spray.gravity = Vector3(0.0, -2.2, 0.65)
-		spray.initial_velocity_min = 0.45
-		spray.initial_velocity_max = 0.95
-		spray.scale_amount_min = 0.14
-		spray.scale_amount_max = 0.32
-		spray.material_override = foam_mat
-		spray.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		pier_grp.add_child(spray)
 
 	# 2. Tier 1 Rough Round-Log Corduroy Deck with Uneven Log Ends & Rope Lashings
 	var span_start := x_min
