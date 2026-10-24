@@ -473,11 +473,11 @@ func _rebuild_ecology_and_npcs(
 
 	var tree_coords: Array[Vector2] = [
 		# Scenic left & right framing groves (keeps central river bend, TDL title & cameras open)
-		Vector2(-19.5, -11.5),
-		Vector2(-22.0, -3.5),
+		Vector2(-24.5, -14.5),
+		Vector2(-25.5, -3.5),
 		Vector2(-19.5, 4.8),
-		Vector2(21.8, -10.4),
-		Vector2(26.4, -0.4),
+		Vector2(22.5, -12.8),
+		Vector2(28.8, 0.8),
 		# Toramek north-west & eastern hillside groves (clear of camera 02 at (28, 21, 25))
 		Vector2(-34.0, -28.0),
 		Vector2(-27.5, -31.0),
@@ -527,7 +527,7 @@ func _rebuild_ecology_and_npcs(
 	# Riverbank Talina willows along upper & lower river bends (clear of bridge & cameras)
 	var willow_z_side: Array[Vector2] = [
 		Vector2(-12.5, -1.0),
-		Vector2(-18.5, -1.0),
+		Vector2(-23.5, -1.0),
 		Vector2(-15.2, 1.0),
 		Vector2(15.8, -1.0),
 	]
@@ -578,10 +578,10 @@ func _rebuild_ecology_and_npcs(
 		Vector2(17.2, -4.6),
 		Vector2(7.6, 8.6),
 		Vector2(12.2, -15.5),
-		Vector2(-16.2, -12.8),
-		Vector2(-17.8, -8.5),
-		Vector2(-19.5, -1.2),
-		Vector2(20.2, -7.8),
+		Vector2(-19.8, -16.8),
+		Vector2(-25.8, -10.8),
+		Vector2(-21.5, -0.4),
+		Vector2(20.8, -11.6),
 		Vector2(20.4, 11.2),
 	]
 	for ki in range(kevar_coords.size()):
@@ -837,9 +837,9 @@ func _apply_camera_transform(immediate: bool = false) -> void:
 			look_target = Vector3(6.8, 0.85, -2.2)
 			fov = 37.0
 		"settlement_hearth":
-			cam_pos = Vector3(-0.6, 6.6, 8.4)
-			look_target = Vector3(-8.2, 1.3, -7.2)
-			fov = 38.0
+			cam_pos = Vector3(2.8, 8.6, 11.2)
+			look_target = Vector3(-8.8, 1.4, -8.8)
+			fov = 39.0
 		_:
 			var offset := Vector3(0.0, 12.2, 13.8)
 			fov = 38.0

@@ -833,7 +833,7 @@ static func _create_styled_surface_material(
 	if not apply_structural_textures:
 		return _make_creature_shader_material(raw_col, raw_col, raw_col, 0.78)
 	if ml.contains("roof") or (ml == "red" and not is_tent):
-		var r_pri := Color(0.48, 0.30, 0.22) if ml.contains("red") else Color(0.30, 0.35, 0.38)
+		var r_pri := Color(0.46, 0.30, 0.21) if ml.contains("red") else Color(0.32, 0.30, 0.25)
 		return _make_arch_shader_material("pbr_roof_slate", r_pri, r_pri, 0.48, 0.46, 0.85, 0.70)
 	if ml.contains("plaster") or ml.contains("beige") or ml == "white":
 		var w_col := Color(0.56, 0.49, 0.39)

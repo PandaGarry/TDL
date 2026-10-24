@@ -145,12 +145,16 @@ static func get_road_core_at(wx: float, wz: float) -> float:
 
 static func get_settlement_footprint_at(wx: float, wz: float) -> float:
 	# Organic compacted earth & gravel courtyard pads beneath Step 4 settlement structures
-	var pad_w := exp(-pow((wx - (-12.8)) / 4.0, 2.0) - pow((wz - (-7.8)) / 3.4, 2.0))
-	var pad_well := exp(-pow((wx - (-11.4)) / 2.1, 2.0) - pow((wz - (-6.4)) / 2.0, 2.0))
-	var pad_hearth := exp(-pow((wx - (-0.4)) / 2.5, 2.0) - pow((wz - (-7.4)) / 2.5, 2.0))
-	var pad_pav := exp(-pow((wx - (-4.4)) / 2.4, 2.0) - pow((wz - (-10.2)) / 2.4, 2.0))
-	var pad_east := exp(-pow((wx - 23.2) / 3.4, 2.0) - pow((wz - (-4.8)) / 3.2, 2.0))
-	return clampf(maxf(maxf(pad_w, pad_well), maxf(maxf(pad_hearth, pad_pav), pad_east)), 0.0, 1.0)
+	var pad_lh := exp(-pow((wx - (-13.8)) / 4.8, 2.0) - pow((wz - (-10.8)) / 4.2, 2.0))
+	var pad_bs := exp(-pow((wx - (-18.8)) / 3.8, 2.0) - pow((wz - (-7.2)) / 3.4, 2.0))
+	var pad_well := exp(-pow((wx - (-11.2)) / 2.4, 2.0) - pow((wz - (-6.2)) / 2.4, 2.0))
+	var pad_hearth := exp(-pow((wx - (-0.2)) / 2.8, 2.0) - pow((wz - (-6.8)) / 2.8, 2.0))
+	var pad_pav := exp(-pow((wx - (-4.2)) / 2.9, 2.0) - pow((wz - (-10.8)) / 2.9, 2.0))
+	var pad_mill := exp(-pow((wx - 2.4) / 3.6, 2.0) - pow((wz - (-15.4)) / 3.4, 2.0))
+	var pad_east := exp(-pow((wx - 23.4) / 4.2, 2.0) - pow((wz - (-5.0)) / 3.8, 2.0))
+	var west_any := maxf(maxf(pad_lh, pad_bs), pad_well)
+	var east_any := maxf(maxf(pad_hearth, pad_pav), maxf(pad_mill, pad_east))
+	return clampf(maxf(west_any, east_any), 0.0, 1.0)
 
 
 static func get_path_weight_at(wx: float, wz: float) -> float:

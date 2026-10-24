@@ -119,8 +119,8 @@ static func get_step2_boulder_specs() -> Array[Dictionary]:
 		{"pos": Vector2(16.2, 7.6), "sc": Vector3(1.28, 0.86, 1.18), "moss": true},
 		{"pos": Vector2(10.8, 12.8), "sc": Vector3(1.16, 0.76, 1.08), "moss": false},
 		# Distant meadow & hillside boulders (outside all roadbeds & settlement courtyards)
-		{"pos": Vector2(-18.2, -14.8), "sc": Vector3(1.55, 1.12, 1.42), "moss": true},
-		{"pos": Vector2(-17.4, -7.2), "sc": Vector3(1.18, 0.84, 1.10), "moss": true},
+		{"pos": Vector2(-22.2, -16.8), "sc": Vector3(1.55, 1.12, 1.42), "moss": true},
+		{"pos": Vector2(-25.4, -7.2), "sc": Vector3(1.18, 0.84, 1.10), "moss": true},
 		{"pos": Vector2(-15.5, -19.5), "sc": Vector3(1.75, 1.26, 1.60), "moss": true},
 	]
 
@@ -277,74 +277,11 @@ static func create_reed_clump_3d(variant: int = 0) -> Node3D:
 
 
 static func create_chronicle_pavilion_3d() -> Node3D:
-	var root := Node3D.new()
-	root.name = "ChroniclePavilion3D"
-	root.add_child(
-		SevaraAssetLibrary3D.instantiate_model(
-			SevaraAssetLibrary3D.VILLAGE_DIR + "Gazebo.glb", 3.25, {}, true
-		)
-	)
-	var bench := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.VILLAGE_DIR + "Bench_1.glb", 0.54, {}, true
-	)
-	bench.position = Vector3(0.0, 0.03, -0.42)
-	root.add_child(bench)
-	var wood_mat := SevaraAssetLibrary3D._make_arch_shader_material(
-		"pbr_village_timber", Color(0.46, 0.35, 0.24), Color.BLACK, 0.48, 0.48, 0.75, 0.78
-	)
-	var desk_top := MeshInstance3D.new()
-	var top_mesh := BoxMesh.new()
-	top_mesh.size = Vector3(1.24, 0.08, 0.62)
-	desk_top.mesh = top_mesh
-	desk_top.position = Vector3(0.0, 0.72, 0.10)
-	desk_top.material_override = wood_mat
-	root.add_child(desk_top)
-	var leg_xs: Array[float] = [-0.46, 0.46]
-	for lx: float in leg_xs:
-		var leg := MeshInstance3D.new()
-		var lmesh := BoxMesh.new()
-		lmesh.size = Vector3(0.12, 0.68, 0.48)
-		leg.mesh = lmesh
-		leg.position = Vector3(lx, 0.36, 0.10)
-		leg.material_override = wood_mat
-		root.add_child(leg)
-	var book := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.ITEMS_DIR + "Book1_Open.glb", 0.085, {}, false
-	)
-	book.position = Vector3(0.0, 0.77, 0.10)
-	root.add_child(book)
-	return root
+	return SevaraSettlementArchitect3D.create_selima_chronicle_hall_3d()
 
 
 static func create_hearth_3d() -> Node3D:
-	var root := Node3D.new()
-	root.name = "CommunalHearth3D"
-	root.add_child(
-		SevaraAssetLibrary3D.instantiate_model(
-			SevaraAssetLibrary3D.VILLAGE_DIR + "Bonfire_Lit.glb", 0.90, {}, true
-		)
-	)
-	var cauldron := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.VILLAGE_DIR + "Cauldron.glb", 0.56, {}, true
-	)
-	cauldron.position = Vector3(0.64, 0.0, -0.18)
-	root.add_child(cauldron)
-	var bench_angs: Array[float] = [-1.15, 0.85]
-	for ang: float in bench_angs:
-		var bench := SevaraAssetLibrary3D.instantiate_model(
-			SevaraAssetLibrary3D.VILLAGE_DIR + "Bench_1.glb", 0.54, {}, true
-		)
-		bench.position = Vector3(cos(ang) * 1.48, 0.0, sin(ang) * 1.48)
-		bench.rotation.y = -ang + PI * 0.5
-		root.add_child(bench)
-	var fire_light := OmniLight3D.new()
-	fire_light.name = "HearthLight"
-	fire_light.position = Vector3(0.0, 1.15, 0.0)
-	fire_light.light_color = Color(1.0, 0.64, 0.28)
-	fire_light.light_energy = 2.4
-	fire_light.omni_range = 11.5
-	root.add_child(fire_light)
-	return root
+	return SevaraSettlementArchitect3D.create_sevara_hearth_sanctuary_3d()
 
 
 static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> Node3D:
@@ -919,73 +856,4 @@ static func _align_up_with_yaw(normal: Vector3, yaw: float, uniform_scale: float
 
 
 static func populate_static_settlement(settlement_root: Node3D) -> void:
-	# Harmonized Step 4 Sevara Refuge Settlement:
-	# Compact, natural mountain-valley homestead & communal square integrated with roads & river
-	var houses: Array[Dictionary] = [
-		{"file": "House_1.glb", "pos": Vector2(-13.6, -8.6), "h": 3.80, "rot": 0.54},
-		{"file": "House_2.glb", "pos": Vector2(23.6, -4.8), "h": 3.68, "rot": -1.12},
-		{"file": "Well.glb", "pos": Vector2(-11.4, -6.4), "h": 2.05, "rot": 0.35},
-	]
-	for hspec: Dictionary in houses:
-		var p2: Vector2 = hspec["pos"]
-		var node := SevaraAssetLibrary3D.instantiate_model(
-			SevaraAssetLibrary3D.VILLAGE_DIR + String(hspec["file"]), float(hspec["h"]), {}, true
-		)
-		node.position = Vector3(p2.x, SevaraTerrainGen3D.get_height_at(p2.x, p2.y) - 0.05, p2.y)
-		node.rotation.y = float(hspec["rot"])
-		settlement_root.add_child(node)
-
-	var pav_pos := Vector2(-4.4, -10.2)
-	var pavilion := create_chronicle_pavilion_3d()
-	pavilion.position = Vector3(
-		pav_pos.x, SevaraTerrainGen3D.get_height_at(pav_pos.x, pav_pos.y) - 0.04, pav_pos.y
-	)
-	pavilion.rotation.y = -0.36
-	settlement_root.add_child(pavilion)
-
-	var hearth_pos := Vector2(-0.6, -7.4)
-	var hearth := create_hearth_3d()
-	hearth.position = Vector3(
-		hearth_pos.x,
-		SevaraTerrainGen3D.get_height_at(hearth_pos.x, hearth_pos.y) - 0.02,
-		hearth_pos.y
-	)
-	settlement_root.add_child(hearth)
-
-	var village_props: Array[Dictionary] = [
-		{"file": "Cart.glb", "pos": Vector2(-15.6, -6.2), "h": 1.25, "rot": 0.42},
-		{"file": "Barrel.glb", "pos": Vector2(-11.8, -9.8), "h": 0.85, "rot": 0.25},
-		{"file": "Barrel.glb", "pos": Vector2(22.2, -5.6), "h": 0.82, "rot": -0.45},
-	]
-	for p: Dictionary in village_props:
-		var v2: Vector2 = p["pos"]
-		var prop_node := SevaraAssetLibrary3D.instantiate_model(
-			SevaraAssetLibrary3D.VILLAGE_DIR + String(p["file"]), float(p["h"]), {}, true
-		)
-		prop_node.position = Vector3(
-			v2.x, SevaraTerrainGen3D.get_height_at(v2.x, v2.y) - 0.02, v2.y
-		)
-		prop_node.rotation.y = float(p["rot"])
-		settlement_root.add_child(prop_node)
-
-	# Mossy foundation kerb stones anchoring houses, well & hearth into the meadow soil
-	var kerb_coords: Array[Vector2] = [
-		Vector2(-11.8, -7.4),
-		Vector2(-14.8, -10.2),
-		Vector2(1.2, -10.2),
-		Vector2(21.8, -5.8),
-	]
-	for k_idx in range(kerb_coords.size()):
-		var kp: Vector2 = kerb_coords[k_idx]
-		var k_rock := create_boulder_3d(Vector3(0.68, 0.44, 0.62), true)
-		k_rock.position = Vector3(kp.x, SevaraTerrainGen3D.get_height_at(kp.x, kp.y) - 0.08, kp.y)
-		k_rock.rotation.y = float(k_idx) * 1.45
-		settlement_root.add_child(k_rock)
-
-	var weir_z := 13.8
-	var weir := create_weir_barrier_3d(5.4)
-	weir.position = Vector3(
-		SevaraTerrainGen3D.river_center_x(weir_z), SevaraTerrainGen3D.WATER_SURFACE_Y - 0.05, weir_z
-	)
-	weir.rotation.y = -0.18
-	settlement_root.add_child(weir)
+	SevaraSettlementArchitect3D.populate_settlement(settlement_root)

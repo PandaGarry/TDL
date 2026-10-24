@@ -175,12 +175,14 @@ vec4 eval_road_network(vec2 xz) {
 	float m_main = (1.0 - smoothstep(0.64, 1.05, u_main)) * fade_main;
 	float m_north = (1.0 - smoothstep(0.62, 1.04, u_north)) * fade_north;
 	float m_south = (1.0 - smoothstep(0.62, 1.04, u_south)) * fade_south;
-	float pad_w = exp(-pow((wx - (-12.8)) / 4.0, 2.0) - pow((wz - (-7.8)) / 3.4, 2.0));
-	float pad_well = exp(-pow((wx - (-11.4)) / 2.1, 2.0) - pow((wz - (-6.4)) / 2.0, 2.0));
-	float pad_hearth = exp(-pow((wx - (-0.4)) / 2.5, 2.0) - pow((wz - (-7.4)) / 2.5, 2.0));
-	float pad_pav = exp(-pow((wx - (-4.4)) / 2.4, 2.0) - pow((wz - (-10.2)) / 2.4, 2.0));
-	float pad_east = exp(-pow((wx - 23.2) / 3.4, 2.0) - pow((wz - (-4.8)) / 3.2, 2.0));
-	float pad_any = max(max(pad_w, pad_well), max(max(pad_hearth, pad_pav), pad_east));
+	float pad_lh = exp(-pow((wx - (-13.8)) / 4.8, 2.0) - pow((wz - (-10.8)) / 4.2, 2.0));
+	float pad_bs = exp(-pow((wx - (-18.8)) / 3.8, 2.0) - pow((wz - (-7.2)) / 3.4, 2.0));
+	float pad_well = exp(-pow((wx - (-11.2)) / 2.4, 2.0) - pow((wz - (-6.2)) / 2.4, 2.0));
+	float pad_hearth = exp(-pow((wx - (-0.2)) / 2.8, 2.0) - pow((wz - (-6.8)) / 2.8, 2.0));
+	float pad_pav = exp(-pow((wx - (-4.2)) / 2.9, 2.0) - pow((wz - (-10.8)) / 2.9, 2.0));
+	float pad_mill = exp(-pow((wx - 2.4) / 3.6, 2.0) - pow((wz - (-15.4)) / 3.4, 2.0));
+	float pad_east = exp(-pow((wx - 23.4) / 4.2, 2.0) - pow((wz - (-5.0)) / 3.8, 2.0));
+	float pad_any = max(max(max(pad_lh, pad_bs), pad_well), max(max(pad_hearth, pad_pav), max(pad_mill, pad_east)));
 	float m_pads = smoothstep(0.22, 0.68, pad_any - warp_a * 0.22);
 	float road_core = clamp(max(max(m_main, m_pads), max(m_north, m_south)), 0.0, 1.0);
 

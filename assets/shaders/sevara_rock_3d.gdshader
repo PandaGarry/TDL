@@ -213,26 +213,26 @@ void fragment() {
 			vec2 tile_cell = floor(tile_grid);
 			vec2 tile_f = fract(tile_grid);
 			float tile_id = grad_noise(tile_cell * 1.73 + vec2(2.1, -1.4));
-			float overlap_lip = smoothstep(0.0, 0.18, tile_f.y) * (1.0 - smoothstep(0.84, 1.0, tile_f.y));
-			float side_seam = smoothstep(0.0, 0.10, tile_f.x) * (1.0 - smoothstep(0.90, 1.0, tile_f.x));
-			float tile_ao = mix(0.62, 1.0, overlap_lip * side_seam);
+			float overlap_lip = smoothstep(0.0, 0.20, tile_f.y) * (1.0 - smoothstep(0.82, 1.0, tile_f.y));
+			float side_seam = smoothstep(0.0, 0.12, tile_f.x) * (1.0 - smoothstep(0.88, 1.0, tile_f.x));
+			float tile_ao = mix(0.54, 1.0, overlap_lip * side_seam);
 
 			float slate_n = triplanar_soft_fbm(v_world, base_n, 2.8);
-			vec3 rn = normalize(base_n + vec3(0.0, (overlap_lip - 0.5) * 0.24, 0.0) + (slate_n - 0.5) * 0.16);
+			vec3 rn = normalize(base_n + vec3(0.0, (overlap_lip - 0.5) * 0.28, 0.0) + (slate_n - 0.5) * 0.18);
 			NORMAL = normalize((VIEW_MATRIX * vec4(rn, 0.0)).xyz);
 
-			vec3 r_col = tint * mix(0.76, 1.12, tile_id) * mix(0.84, 1.08, slate_n) * tile_ao;
-			float moss_patch = soft_fbm(v_world.xz * 1.55 + vec2(3.4, -2.1));
-			float roof_moss = smoothstep(0.46, 0.74, moss_patch) * smoothstep(0.22, 0.82, up);
-			vec3 moss_tint = mix(vec3(0.16, 0.28, 0.10), vec3(0.28, 0.40, 0.15), tile_id);
-			r_col = mix(r_col, moss_tint, roof_moss * 0.68);
+			vec3 r_col = tint * mix(0.74, 1.14, tile_id) * mix(0.82, 1.08, slate_n) * tile_ao;
+			float moss_patch = soft_fbm(v_world.xz * 1.45 + vec2(3.4, -2.1));
+			float roof_moss = smoothstep(0.38, 0.70, moss_patch) * smoothstep(0.18, 0.78, up);
+			vec3 moss_tint = mix(vec3(0.15, 0.27, 0.09), vec3(0.29, 0.42, 0.14), tile_id);
+			r_col = mix(r_col, moss_tint, roof_moss * 0.76);
 			r_col *= 0.76 + 0.28 * smoothstep(-0.35, 0.88, rn.y);
 
 			ALBEDO = r_col;
-			ROUGHNESS = mix(0.66, 0.92, roof_moss);
+			ROUGHNESS = mix(0.68, 0.94, roof_moss);
 			METALLIC = 0.0;
-			SPECULAR = mix(0.30, 0.08, roof_moss);
-			BACKLIGHT = vec3(0.08, 0.12, 0.03) * roof_moss;
+			SPECULAR = mix(0.26, 0.07, roof_moss);
+			BACKLIGHT = vec3(0.09, 0.14, 0.03) * roof_moss;
 		} else {
 			// Mode 4: Cobble Foundation Masonry & Warm Lime-Clay Plaster
 			float m_macro = triplanar_soft_fbm(v_world, base_n, 1.45);
