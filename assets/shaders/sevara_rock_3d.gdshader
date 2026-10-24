@@ -178,8 +178,9 @@ void fragment() {
 		// 3 = Weathered Alpine Slate & Terracotta Roof Shingles with Golden-Olive Moss
 		// 4 = Cobble Foundation Masonry & Warm Lime-Clay Plaster Walls
 		vec3 base_n = normalize(v_wnormal);
-		float h_above = max(v_local.z * 100.0, 0.0);
-		float foundation_ao = mix(0.50, 1.0, smoothstep(0.0, 0.44, h_above));
+		float is_cm_glb = step(length(v_local), 0.14);
+		float h_above = mix(max(v_local.y + 0.25, 0.0), max(v_local.z * 100.0, 0.0), is_cm_glb);
+		float foundation_ao = mix(0.46, 1.0, smoothstep(0.0, 0.44, h_above));
 		float foundation_damp = 1.0 - smoothstep(0.0, 0.36, h_above);
 		float up = base_n.y;
 
@@ -234,13 +235,25 @@ void fragment() {
 			SPECULAR = mix(0.26, 0.07, roof_moss);
 			BACKLIGHT = vec3(0.09, 0.14, 0.03) * roof_moss;
 		} else {
-			// Mode 4: Cobble Foundation Masonry & Warm Lime-Clay Plaster
+			// Mode 4: Cobble Foundation Masonry & Warm Lime-Clay Plaster with Ashlar Mortar Seams
 			float m_macro = triplanar_soft_fbm(v_world, base_n, 1.45);
 			float m_fine = triplanar_soft_fbm(v_world + vec3(2.9, -1.4, 3.7), base_n, 3.6);
-			vec3 mn = normalize(base_n + vec3(m_fine - 0.5, (m_macro - 0.5) * 0.8, m_fine - 0.5) * 0.22);
+			float row_idx = floor(v_world.y * 4.4);
+			vec2 ashlar_uv = vec2((v_world.x + v_world.z) * 2.6 + mod(row_idx, 2.0) * 0.5, v_world.y * 4.4);
+			vec2 ashlar_f = fract(ashlar_uv + (m_fine - 0.5) * 0.14);
+			float stone_id = grad_noise(floor(ashlar_uv) * 1.9 + vec2(row_idx, 1.3));
+			float mortar_x = smoothstep(0.0, 0.11, ashlar_f.x) * (1.0 - smoothstep(0.89, 1.0, ashlar_f.x));
+			float mortar_y = smoothstep(0.0, 0.13, ashlar_f.y) * (1.0 - smoothstep(0.87, 1.0, ashlar_f.y));
+			float mortar_mask = mix(1.0, mortar_x * mortar_y, 0.65);
+
+			vec3 mn = normalize(
+				base_n
+				+ vec3(m_fine - 0.5, (m_macro - 0.5) * 0.8 + (mortar_y - 0.5) * 0.35, m_fine - 0.5) * 0.24
+			);
 			NORMAL = normalize((VIEW_MATRIX * vec4(mn, 0.0)).xyz);
 
-			vec3 wall_col = tint * mix(0.80, 1.06, m_macro * 0.65 + m_fine * 0.35) * foundation_ao;
+			vec3 wall_col = tint * mix(0.76, 1.10, m_macro * 0.52 + stone_id * 0.48) * foundation_ao;
+			wall_col *= mix(0.62, 1.0, mortar_mask);
 			float ledge_moss = smoothstep(0.38, 0.78, up) * smoothstep(0.38, 0.72, m_macro) * moss_amount;
 			float base_moss = foundation_damp * smoothstep(0.25, 0.75, m_macro);
 			float total_moss = clamp(max(ledge_moss, base_moss * 0.75), 0.0, 0.82);

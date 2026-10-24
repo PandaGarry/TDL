@@ -526,8 +526,8 @@ func _rebuild_ecology_and_npcs(
 
 	# Riverbank Talina willows along upper & lower river bends (clear of bridge & cameras)
 	var willow_z_side: Array[Vector2] = [
-		Vector2(-12.5, -1.0),
-		Vector2(-23.5, -1.0),
+		Vector2(-18.5, -1.0),
+		Vector2(-24.5, -1.0),
 		Vector2(-15.2, 1.0),
 		Vector2(15.8, -1.0),
 	]
@@ -837,8 +837,8 @@ func _apply_camera_transform(immediate: bool = false) -> void:
 			look_target = Vector3(6.8, 0.85, -2.2)
 			fov = 37.0
 		"settlement_hearth":
-			cam_pos = Vector3(2.8, 8.6, 11.2)
-			look_target = Vector3(-8.8, 1.4, -8.8)
+			cam_pos = Vector3(3.6, 8.8, 11.4)
+			look_target = Vector3(-8.4, 1.4, -8.8)
 			fov = 39.0
 		_:
 			var offset := Vector3(0.0, 12.2, 13.8)
