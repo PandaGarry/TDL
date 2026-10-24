@@ -172,6 +172,88 @@ void fragment() {
 		METALLIC = nail_head * 0.82;
 		SPECULAR = mix(0.36, 0.68, nail_head);
 		BACKLIGHT = vec3(0.06, 0.04, 0.02);
+	} else if (surface_mode >= 2) {
+		// Step 4 Sevara Village Architecture Shader:
+		// 2 = Hand-Hewn Torava Timber & Half-Timbered Beams
+		// 3 = Weathered Alpine Slate & Terracotta Roof Shingles with Golden-Olive Moss
+		// 4 = Cobble Foundation Masonry & Warm Lime-Clay Plaster Walls
+		vec3 base_n = normalize(v_wnormal);
+		float h_above = max(v_local.z * 100.0, 0.0);
+		float foundation_ao = mix(0.50, 1.0, smoothstep(0.0, 0.44, h_above));
+		float foundation_damp = 1.0 - smoothstep(0.0, 0.36, h_above);
+		float up = base_n.y;
+
+		if (surface_mode == 2) {
+			vec2 g_uv = vec2(v_world.x * 2.2 + v_world.z * 2.2, v_world.y * 5.2);
+			float g0 = soft_fbm(g_uv);
+			float gx = soft_fbm(g_uv + vec2(0.04, 0.0));
+			float gy = soft_fbm(g_uv + vec2(0.0, 0.04));
+			vec3 wn = normalize(base_n + vec3((g0 - gx) * 1.1, (g0 - gy) * 0.6, (g0 - gx) * 1.1));
+			NORMAL = normalize((VIEW_MATRIX * vec4(wn, 0.0)).xyz);
+
+			float ring_n = grad_noise(g_uv * vec2(0.55, 2.8) + vec2(1.9, -0.7));
+			float beam_var = grad_noise(floor(v_world.xz * 2.4) * 1.7 + vec2(floor(v_world.y * 3.0), 0.5));
+			vec3 w_deep = tint * vec3(0.56, 0.45, 0.34);
+			vec3 w_mid = tint * vec3(0.76, 0.64, 0.50);
+			vec3 w_light = tint * vec3(0.92, 0.80, 0.65);
+			vec3 w_col = mix(w_deep, w_mid, smoothstep(0.18, 0.78, g0));
+			w_col = mix(w_col, w_light, smoothstep(0.36, 0.84, ring_n) * 0.52);
+			w_col *= mix(0.90, 1.08, beam_var) * foundation_ao;
+			w_col = mix(w_col, vec3(0.14, 0.21, 0.09), foundation_damp * 0.48);
+			w_col *= 0.78 + 0.26 * smoothstep(-0.4, 0.85, wn.y);
+
+			ALBEDO = w_col;
+			ROUGHNESS = mix(0.68, 0.52, ring_n * 0.45);
+			METALLIC = 0.0;
+			SPECULAR = 0.32;
+			BACKLIGHT = vec3(0.04, 0.03, 0.01);
+		} else if (surface_mode == 3) {
+			// Shingle / Slate Roof Tiles with per-tile variation, crevices & velvet roof moss
+			vec2 tile_grid = vec2((v_world.x + v_world.z) * 3.8, v_world.y * 5.6);
+			vec2 tile_cell = floor(tile_grid);
+			vec2 tile_f = fract(tile_grid);
+			float tile_id = grad_noise(tile_cell * 1.73 + vec2(2.1, -1.4));
+			float overlap_lip = smoothstep(0.0, 0.18, tile_f.y) * (1.0 - smoothstep(0.84, 1.0, tile_f.y));
+			float side_seam = smoothstep(0.0, 0.10, tile_f.x) * (1.0 - smoothstep(0.90, 1.0, tile_f.x));
+			float tile_ao = mix(0.62, 1.0, overlap_lip * side_seam);
+
+			float slate_n = triplanar_soft_fbm(v_world, base_n, 2.8);
+			vec3 rn = normalize(base_n + vec3(0.0, (overlap_lip - 0.5) * 0.24, 0.0) + (slate_n - 0.5) * 0.16);
+			NORMAL = normalize((VIEW_MATRIX * vec4(rn, 0.0)).xyz);
+
+			vec3 r_col = tint * mix(0.76, 1.12, tile_id) * mix(0.84, 1.08, slate_n) * tile_ao;
+			float moss_patch = soft_fbm(v_world.xz * 1.55 + vec2(3.4, -2.1));
+			float roof_moss = smoothstep(0.46, 0.74, moss_patch) * smoothstep(0.22, 0.82, up);
+			vec3 moss_tint = mix(vec3(0.16, 0.28, 0.10), vec3(0.28, 0.40, 0.15), tile_id);
+			r_col = mix(r_col, moss_tint, roof_moss * 0.68);
+			r_col *= 0.76 + 0.28 * smoothstep(-0.35, 0.88, rn.y);
+
+			ALBEDO = r_col;
+			ROUGHNESS = mix(0.66, 0.92, roof_moss);
+			METALLIC = 0.0;
+			SPECULAR = mix(0.30, 0.08, roof_moss);
+			BACKLIGHT = vec3(0.08, 0.12, 0.03) * roof_moss;
+		} else {
+			// Mode 4: Cobble Foundation Masonry & Warm Lime-Clay Plaster
+			float m_macro = triplanar_soft_fbm(v_world, base_n, 1.45);
+			float m_fine = triplanar_soft_fbm(v_world + vec3(2.9, -1.4, 3.7), base_n, 3.6);
+			vec3 mn = normalize(base_n + vec3(m_fine - 0.5, (m_macro - 0.5) * 0.8, m_fine - 0.5) * 0.22);
+			NORMAL = normalize((VIEW_MATRIX * vec4(mn, 0.0)).xyz);
+
+			vec3 wall_col = tint * mix(0.80, 1.06, m_macro * 0.65 + m_fine * 0.35) * foundation_ao;
+			float ledge_moss = smoothstep(0.38, 0.78, up) * smoothstep(0.38, 0.72, m_macro) * moss_amount;
+			float base_moss = foundation_damp * smoothstep(0.25, 0.75, m_macro);
+			float total_moss = clamp(max(ledge_moss, base_moss * 0.75), 0.0, 0.82);
+			vec3 m_col = mix(vec3(0.13, 0.22, 0.08), vec3(0.23, 0.36, 0.14), m_fine);
+			wall_col = mix(wall_col, m_col, total_moss);
+			wall_col *= 0.76 + 0.26 * smoothstep(-0.4, 0.85, mn.y);
+
+			ALBEDO = wall_col;
+			ROUGHNESS = mix(0.86, 0.94, total_moss);
+			METALLIC = 0.0;
+			SPECULAR = 0.16;
+			BACKLIGHT = vec3(0.0);
+		}
 	} else {
 		// Bevel-Smoothed Sculpted Stone & Organic Velvet Moss Mode
 		vec3 base_n = normalize(mix(v_wnormal, v_dome_dir, 0.12));
@@ -270,6 +352,7 @@ void fragment() {
 		ALBEDO = c;
 		float dry_rough = clamp(roughness_base + (soft_crevice - 0.5) * 0.10, 0.78, 0.94);
 		ROUGHNESS = clamp(mix(mix(dry_rough, 0.95, moss_mask), 0.20, wet_factor), 0.18, 0.96);
+		METALLIC = 0.0;
 		SPECULAR = mix(mix(0.18, 0.05, moss_mask), 0.48, wet_factor);
 		BACKLIGHT = vec3(0.15, 0.23, 0.07) * moss_mask * 0.55;
 	}

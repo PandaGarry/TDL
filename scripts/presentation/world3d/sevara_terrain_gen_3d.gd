@@ -143,9 +143,19 @@ static func get_road_core_at(wx: float, wz: float) -> float:
 	return clampf(maxf(m_main, maxf(m_north, m_south)), 0.0, 1.0)
 
 
+static func get_settlement_footprint_at(wx: float, wz: float) -> float:
+	# Organic compacted earth & gravel courtyard pads beneath Step 4 settlement structures
+	var pad_w := exp(-pow((wx - (-12.4)) / 4.2, 2.0) - pow((wz - (-7.8)) / 3.4, 2.0))
+	var pad_well := exp(-pow((wx - (-9.4)) / 2.2, 2.0) - pow((wz - (-6.2)) / 2.0, 2.0))
+	var pad_hearth := exp(-pow((wx - (-1.8)) / 2.9, 2.0) - pow((wz - (-5.4)) / 2.9, 2.0))
+	var pad_pav := exp(-pow((wx - (-4.6)) / 2.7, 2.0) - pow((wz - (-9.8)) / 2.7, 2.0))
+	var pad_east := exp(-pow((wx - 23.4) / 3.6, 2.0) - pow((wz - (-3.2)) / 3.4, 2.0))
+	return clampf(maxf(maxf(pad_w, pad_well), maxf(maxf(pad_hearth, pad_pav), pad_east)), 0.0, 1.0)
+
+
 static func get_path_weight_at(wx: float, wz: float) -> float:
 	if STEP1_CLEAN_MEADOW:
-		return get_road_core_at(wx, wz)
+		return maxf(get_road_core_at(wx, wz), get_settlement_footprint_at(wx, wz))
 
 	# Main stone-paved settlement courtyard & trails connecting the hearth, well, bridge, and meadow
 	var courtyard := exp(-pow(wx - (-14.5), 2.0) / 54.0 - pow(wz - (-7.5), 2.0) / 38.0)

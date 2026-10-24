@@ -725,12 +725,20 @@ static func _make_arch_shader_material(
 	moss_str: float = 0.45,
 	_bevel_str: float = 0.24
 ) -> Material:
-	if stem == "pbr_cliff_rock" or stem == "pbr_cobble_masonry" or stem == "pbr_aged_timber":
+	var mode_map := {
+		"pbr_cliff_rock": 0,
+		"pbr_aged_timber": 1,
+		"pbr_village_timber": 2,
+		"pbr_roof_slate": 3,
+		"pbr_lime_plaster": 4,
+		"pbr_cobble_masonry": 4,
+	}
+	if mode_map.has(stem):
 		var rmat := ShaderMaterial.new()
 		rmat.shader = load_shader("sevara_rock_3d.gdshader")
-		rmat.set_shader_parameter("surface_mode", 1 if stem == "pbr_aged_timber" else 0)
+		rmat.set_shader_parameter("surface_mode", int(mode_map[stem]))
 		rmat.set_shader_parameter("tint", primary_col)
-		rmat.set_shader_parameter("moss_amount", 0.0 if stem == "pbr_aged_timber" else moss_str)
+		rmat.set_shader_parameter("moss_amount", moss_str)
 		rmat.set_shader_parameter("triplanar_scale", clampf(scale_val, 0.28, 1.25))
 		return rmat
 	var sm := StandardMaterial3D.new()
@@ -775,18 +783,18 @@ static func _create_styled_surface_material(
 	)
 	var is_character := model_hint.contains("viking")
 	var is_tent := model_hint.contains("tent")
-
-	# 1. Emissive fire / torch / bonfire cores
-	if ml.contains("fire") or ml.contains("yellow") or ml.contains("orange"):
-		if model_hint.contains("torch") or model_hint.contains("bonfire") or ml.contains("fire"):
-			var fmat := StandardMaterial3D.new()
-			fmat.albedo_color = Color(1.0, 0.76, 0.34)
-			fmat.emission_enabled = true
-			fmat.emission = Color(1.0, 0.56, 0.16)
-			fmat.emission_energy_multiplier = 2.2
-			return fmat
-
-	# 2. Warm glowing medieval windows (Tiny Glade lantern-lit cottage interior feel)
+	var is_fire_model := (
+		model_hint.contains("torch")
+		or model_hint.contains("bonfire")
+		or model_hint.contains("fire")
+	)
+	if is_fire_model and (ml.contains("fire") or ml.contains("yellow") or ml.contains("orange")):
+		var fmat := StandardMaterial3D.new()
+		fmat.albedo_color = Color(1.0, 0.76, 0.34)
+		fmat.emission_enabled = true
+		fmat.emission = Color(1.0, 0.56, 0.16)
+		fmat.emission_energy_multiplier = 2.2
+		return fmat
 	if ml.contains("window"):
 		var wmat := StandardMaterial3D.new()
 		wmat.albedo_color = Color(0.96, 0.72, 0.36)
@@ -795,20 +803,14 @@ static func _create_styled_surface_material(
 		wmat.emission = Color(0.98, 0.66, 0.26)
 		wmat.emission_energy_multiplier = 1.35
 		return wmat
-
-	# 3. Eyes, noses, hooves, horns & antlers
 	if ml.contains("eye") or ml.contains("nose") or ml.contains("face"):
 		var emat := StandardMaterial3D.new()
 		emat.albedo_color = Color(0.11, 0.09, 0.08)
 		emat.roughness = 0.22 if (ml.contains("eye") or ml.contains("face")) else 0.55
 		return emat
 	if ml.contains("hoov") or ml.contains("horn"):
-		var hmat := StandardMaterial3D.new()
-		hmat.albedo_color = raw_col.lerp(Color(0.32, 0.26, 0.20), 0.35)
-		hmat.roughness = 0.52
-		return hmat
-
-	# 4. Characters & Wildlife
+		var h_col := raw_col.lerp(Color(0.32, 0.26, 0.20), 0.35)
+		return _make_creature_shader_material(h_col, raw_col, raw_col, 0.52)
 	if is_character or is_animal:
 		var c_col := raw_col
 		if is_character and ml.contains("skin"):
@@ -824,45 +826,35 @@ static func _create_styled_surface_material(
 		return _make_creature_shader_material(c_col, c_col, c_col, 0.74)
 	if not apply_structural_textures:
 		return _make_creature_shader_material(raw_col, raw_col, raw_col, 0.78)
-
-	# 5. Medieval Village Architecture & Props
 	if ml.contains("roof") or (ml == "red" and not is_tent):
-		var r_pri := Color(0.68, 0.34, 0.24) if ml.contains("red") else Color(0.28, 0.35, 0.40)
+		var r_pri := Color(0.52, 0.31, 0.22) if ml.contains("red") else Color(0.30, 0.35, 0.38)
 		return _make_arch_shader_material("pbr_roof_slate", r_pri, r_pri, 0.48, 0.46, 0.85, 0.70)
 	if ml.contains("plaster") or ml.contains("beige") or ml == "white":
-		var w_col := Color(0.68, 0.61, 0.50)
-		return _make_arch_shader_material("pbr_lime_plaster", w_col, w_col, 0.42, 0.45, 0.65, 0.86)
-	if ml.contains("stone") or ml.contains("grey") or ml.contains("gray"):
-		var s_pri := Color(0.68, 0.67, 0.64) if ml.contains("light") else Color(0.50, 0.51, 0.50)
-		return _make_arch_shader_material("pbr_cliff_rock", s_pri, s_pri, 0.46, 0.42, 0.78, 0.80)
-	if ml.contains("metal") or ml.contains("steel") or ml.contains("gold"):
-		var m_pri := Color(0.88, 0.70, 0.34) if ml.contains("gold") else Color(0.42, 0.45, 0.49)
+		var w_col := Color(0.56, 0.49, 0.39)
 		return _make_arch_shader_material(
-			"pbr_cliff_rock", m_pri, m_pri, 0.85, 0.25, 0.40, 0.34, 0.82, 0.0
+			"pbr_lime_plaster", w_col, w_col, 0.42, 0.45, 0.65, 0.86, 0.0, 0.15
+		)
+	if ml.contains("stone") or ml.contains("grey") or ml.contains("gray"):
+		var s_pri := Color(0.50, 0.48, 0.44) if ml.contains("light") else Color(0.36, 0.35, 0.33)
+		return _make_arch_shader_material(
+			"pbr_cobble_masonry", s_pri, s_pri, 0.46, 0.42, 0.78, 0.80, 0.0, 0.62
+		)
+	if ml.contains("metal") or ml.contains("steel") or ml.contains("gold"):
+		var m_pri := Color(0.76, 0.62, 0.30) if ml.contains("gold") else Color(0.24, 0.26, 0.29)
+		return _make_arch_shader_material(
+			"pbr_cobble_masonry", m_pri, m_pri, 0.85, 0.25, 0.40, 0.34, 0.82, 0.0
 		)
 	if ml.contains("green") or ml.contains("pink") or is_tent:
-		if is_tent:
-			var tc := Color(0.78, 0.74, 0.58) if ml.contains("light") else Color(0.54, 0.62, 0.44)
-			return _make_arch_shader_material("pbr_woven_fabric", tc, tc, 0.75, 0.4, 0.65, 0.86)
-		var lc := Color(0.84, 0.48, 0.58) if ml.contains("pink") else Color(0.32, 0.52, 0.24)
-		return _make_arch_shader_material("pbr_foliage_canopy", lc, lc, 0.65, 0.55, 0.75, 0.74)
-	if ml.contains("wood") or ml.contains("brown") or ml.contains("bag"):
-		var wp := Color(0.56, 0.40, 0.26)
-		if ml.contains("side") or ml.contains("light"):
-			wp = Color(0.72, 0.55, 0.37)
-		elif ml.contains("dark"):
-			wp = Color(0.38, 0.26, 0.17)
-		return _make_arch_shader_material("pbr_aged_timber", wp, wp, 0.48, 0.48, 0.75, 0.78)
-	var fc := (
-		raw_col
-		if has_override
-		else Color(
-			clampf(pow(maxf(raw_col.r, 0.02), 0.65), 0.14, 0.88),
-			clampf(pow(maxf(raw_col.g, 0.02), 0.65), 0.14, 0.88),
-			clampf(pow(maxf(raw_col.b, 0.02), 0.65), 0.14, 0.88)
-		)
-	)
-	return _make_arch_shader_material("pbr_aged_timber", fc, fc, 0.52, 0.38, 0.60, 0.80)
+		var tc := Color(0.58, 0.52, 0.40) if is_tent else Color(0.28, 0.44, 0.20)
+		return _make_arch_shader_material("pbr_lime_plaster", tc, tc, 0.70, 0.4, 0.65, 0.84, 0.0, 0.18)
+	var wp := Color(0.50, 0.38, 0.26)
+	if ml.contains("hay"):
+		wp = Color(0.62, 0.52, 0.28)
+	elif ml.contains("side") or ml.contains("light"):
+		wp = Color(0.60, 0.47, 0.33)
+	elif ml.contains("dark"):
+		wp = Color(0.38, 0.28, 0.19)
+	return _make_arch_shader_material("pbr_village_timber", wp, wp, 0.48, 0.48, 0.75, 0.78)
 
 
 static func _fit_instance_to_height(inst: Node3D, target_height: float) -> void:

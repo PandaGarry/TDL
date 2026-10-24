@@ -118,9 +118,9 @@ static func get_step2_boulder_specs() -> Array[Dictionary]:
 		{"pos": Vector2(9.2, 6.8), "sc": Vector3(1.14, 0.74, 1.06), "moss": false},
 		{"pos": Vector2(16.2, 7.6), "sc": Vector3(1.28, 0.86, 1.18), "moss": true},
 		{"pos": Vector2(10.8, 12.8), "sc": Vector3(1.16, 0.76, 1.08), "moss": false},
-		# Distant meadow & hillside boulders (outside all roadbeds)
-		{"pos": Vector2(-12.8, -12.8), "sc": Vector3(1.55, 1.12, 1.42), "moss": true},
-		{"pos": Vector2(-8.8, -6.4), "sc": Vector3(1.18, 0.84, 1.10), "moss": true},
+		# Distant meadow & hillside boulders (outside all roadbeds & settlement courtyards)
+		{"pos": Vector2(-18.2, -14.8), "sc": Vector3(1.55, 1.12, 1.42), "moss": true},
+		{"pos": Vector2(-17.4, -7.2), "sc": Vector3(1.18, 0.84, 1.10), "moss": true},
 		{"pos": Vector2(-15.5, -19.5), "sc": Vector3(1.75, 1.26, 1.60), "moss": true},
 	]
 
@@ -575,7 +575,8 @@ static func create_weir_barrier_3d(width_m: float = 4.6) -> Node3D:
 		wattle.material_override = wood_mat
 		root.add_child(wattle)
 	# Add mossy logs & river boulders anchored against the weir
-	for side_i in [-1, 1]:
+	var side_is: Array[int] = [-1, 1]
+	for side_i: int in side_is:
 		var log_node := SevaraAssetLibrary3D.instantiate_model(
 			SevaraAssetLibrary3D.NATURE_DIR + "WoodLog_Moss.glb", 0.42, {}, true
 		)
@@ -904,49 +905,42 @@ static func _align_up_with_yaw(normal: Vector3, yaw: float, uniform_scale: float
 
 
 static func populate_static_settlement(settlement_root: Node3D) -> void:
+	# Harmonized Step 4 Sevara Refuge Settlement:
+	# Compact, natural mountain-valley homestead & communal square integrated with roads & river
 	var houses: Array[Dictionary] = [
-		{"file": "House_1.glb", "pos": Vector2(-19.5, -12.2), "h": 4.8, "rot": 0.28},
-		{"file": "House_2.glb", "pos": Vector2(-11.4, -14.6), "h": 4.5, "rot": -0.18},
-		{"file": "House_3.glb", "pos": Vector2(-22.2, -3.4), "h": 4.6, "rot": 0.65},
-		{"file": "House_4.glb", "pos": Vector2(-14.5, 1.8), "h": 4.4, "rot": 2.45},
-		{"file": "Blacksmith.glb", "pos": Vector2(-24.0, -8.2), "h": 4.3, "rot": 1.15},
-		{"file": "Stable.glb", "pos": Vector2(-18.8, 5.2), "h": 3.9, "rot": 0.42},
-		{"file": "Sawmill.glb", "pos": Vector2(-4.8, -12.6), "h": 4.4, "rot": -0.35},
-		{"file": "Mill.glb", "pos": Vector2(6.8, -15.2), "h": 5.4, "rot": -0.55},
-		{"file": "Well.glb", "pos": Vector2(-16.2, -4.8), "h": 2.35, "rot": 0.0},
+		{"file": "House_1.glb", "pos": Vector2(-13.6, -8.6), "h": 3.80, "rot": 0.54},
+		{"file": "House_2.glb", "pos": Vector2(23.6, -4.8), "h": 3.68, "rot": -1.12},
+		{"file": "Well.glb", "pos": Vector2(-10.2, -6.2), "h": 2.05, "rot": 0.35},
 	]
 	for hspec: Dictionary in houses:
 		var p2: Vector2 = hspec["pos"]
 		var node := SevaraAssetLibrary3D.instantiate_model(
 			SevaraAssetLibrary3D.VILLAGE_DIR + String(hspec["file"]), float(hspec["h"]), {}, true
 		)
-		node.position = Vector3(p2.x, SevaraTerrainGen3D.get_height_at(p2.x, p2.y) - 0.06, p2.y)
+		node.position = Vector3(p2.x, SevaraTerrainGen3D.get_height_at(p2.x, p2.y) - 0.05, p2.y)
 		node.rotation.y = float(hspec["rot"])
 		settlement_root.add_child(node)
 
-	var pav_pos := Vector2(-9.2, -8.8)
+	var pav_pos := Vector2(-4.6, -9.8)
 	var pavilion := create_chronicle_pavilion_3d()
 	pavilion.position = Vector3(
-		pav_pos.x, SevaraTerrainGen3D.get_height_at(pav_pos.x, pav_pos.y) - 0.03, pav_pos.y
+		pav_pos.x, SevaraTerrainGen3D.get_height_at(pav_pos.x, pav_pos.y) - 0.04, pav_pos.y
 	)
-	pavilion.rotation.y = 0.22
+	pavilion.rotation.y = -0.38
 	settlement_root.add_child(pavilion)
 
-	var hearth_pos := Vector2(-14.2, -7.6)
+	var hearth_pos := Vector2(-1.8, -5.4)
 	var hearth := create_hearth_3d()
 	hearth.position = Vector3(
-		hearth_pos.x, SevaraTerrainGen3D.get_height_at(hearth_pos.x, hearth_pos.y), hearth_pos.y
+		hearth_pos.x, SevaraTerrainGen3D.get_height_at(hearth_pos.x, hearth_pos.y) - 0.02, hearth_pos.y
 	)
 	settlement_root.add_child(hearth)
 
 	var village_props: Array[Dictionary] = [
-		{"file": "MarketStand_1.glb", "pos": Vector2(-8.8, 4.8), "h": 2.4, "rot": 0.45},
-		{"file": "MarketStand_2.glb", "pos": Vector2(-11.2, 6.2), "h": 2.3, "rot": 0.85},
-		{"file": "Cart.glb", "pos": Vector2(-17.5, -1.2), "h": 1.35, "rot": -0.55},
-		{"file": "Barrel.glb", "pos": Vector2(-12.6, -11.5), "h": 0.95, "rot": 0.0},
-		{"file": "Hay.glb", "pos": Vector2(-16.4, 5.8), "h": 1.45, "rot": 0.3},
-		{"file": "Fence.glb", "pos": Vector2(-7.2, 1.5), "h": 1.15, "rot": 1.35},
-		{"file": "Fence.glb", "pos": Vector2(-7.8, -1.2), "h": 1.15, "rot": 1.42},
+		{"file": "Cart.glb", "pos": Vector2(-15.6, -6.2), "h": 1.25, "rot": 0.42},
+		{"file": "Barrel.glb", "pos": Vector2(-11.8, -10.2), "h": 0.88, "rot": 0.25},
+		{"file": "Fence.glb", "pos": Vector2(21.4, -2.6), "h": 1.05, "rot": 0.38},
+		{"file": "Hay.glb", "pos": Vector2(25.8, -3.2), "h": 1.32, "rot": 0.30},
 	]
 	for p: Dictionary in village_props:
 		var v2: Vector2 = p["pos"]
@@ -959,34 +953,28 @@ static func populate_static_settlement(settlement_root: Node3D) -> void:
 		prop_node.rotation.y = float(p["rot"])
 		settlement_root.add_child(prop_node)
 
-	var scout_tent_pos := Vector2(9.4, -9.2)
-	var scout_tent := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.ITEMS_DIR + "Tent.glb", 2.05, {}, true
-	)
-	scout_tent.position = Vector3(
-		scout_tent_pos.x,
-		SevaraTerrainGen3D.get_height_at(scout_tent_pos.x, scout_tent_pos.y) - 0.03,
-		scout_tent_pos.y
-	)
-	scout_tent.rotation.y = -0.55
-	settlement_root.add_child(scout_tent)
+	# Mossy foundation kerb stones anchoring houses, well & hearth into the meadow soil
+	var kerb_coords: Array[Vector2] = [
+		Vector2(-11.6, -7.2),
+		Vector2(-14.8, -9.8),
+		Vector2(-0.4, -6.4),
+		Vector2(21.8, -5.8),
+	]
+	for k_idx in range(kerb_coords.size()):
+		var kp: Vector2 = kerb_coords[k_idx]
+		var k_rock := create_boulder_3d(Vector3(0.68, 0.44, 0.62), true)
+		k_rock.position = Vector3(
+			kp.x, SevaraTerrainGen3D.get_height_at(kp.x, kp.y) - 0.08, kp.y
+		)
+		k_rock.rotation.y = float(k_idx) * 1.45
+		settlement_root.add_child(k_rock)
 
-	var weir1_z := -10.2
-	var weir1 := create_weir_barrier_3d(5.2)
-	weir1.position = Vector3(
-		SevaraTerrainGen3D.river_center_x(weir1_z),
+	var weir_z := 13.8
+	var weir := create_weir_barrier_3d(5.4)
+	weir.position = Vector3(
+		SevaraTerrainGen3D.river_center_x(weir_z),
 		SevaraTerrainGen3D.WATER_SURFACE_Y - 0.05,
-		weir1_z
+		weir_z
 	)
-	weir1.rotation.y = 0.22
-	settlement_root.add_child(weir1)
-
-	var weir2_z := 5.8
-	var weir2 := create_weir_barrier_3d(5.8)
-	weir2.position = Vector3(
-		SevaraTerrainGen3D.river_center_x(weir2_z),
-		SevaraTerrainGen3D.WATER_SURFACE_Y - 0.05,
-		weir2_z
-	)
-	weir2.rotation.y = -0.18
-	settlement_root.add_child(weir2)
+	weir.rotation.y = -0.18
+	settlement_root.add_child(weir)

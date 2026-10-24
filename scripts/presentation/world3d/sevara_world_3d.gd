@@ -8,7 +8,8 @@ extends Node3D
 ## LOOKDEV_STEP = 1 -> Step 1: Terrain relief, calm velvety 3D grass, path & lighting.
 ## LOOKDEV_STEP = 2 -> Step 2: Deep Nivarel river, oak bridge, road cobbles & mossy boulders.
 ## LOOKDEV_STEP = 3 -> Step 3: Fluffy Trees (Torava pines, Talina willows, alders) & bushes.
-const LOOKDEV_STEP := 3
+## LOOKDEV_STEP = 4 -> Step 4: Harmonized Sevara Settlement (Houses, Hearth, Well & Pavilion).
+const LOOKDEV_STEP := 4
 
 const CAMERA_LOOKPOINTS: Array[String] = [
 	"follow",
@@ -472,11 +473,11 @@ func _rebuild_ecology_and_npcs(
 
 	var tree_coords: Array[Vector2] = [
 		# Scenic left & right framing groves (keeps central river bend, TDL title & cameras open)
-		Vector2(-18.5, -10.5),
+		Vector2(-19.5, -11.5),
 		Vector2(-22.0, -3.5),
 		Vector2(-19.5, 4.8),
-		Vector2(22.5, -8.2),
-		Vector2(25.2, -1.2),
+		Vector2(21.8, -10.4),
+		Vector2(26.4, -0.4),
 		# Toramek north-west & eastern hillside groves (clear of camera 02 at (28, 21, 25))
 		Vector2(-34.0, -28.0),
 		Vector2(-27.5, -31.0),
@@ -577,10 +578,10 @@ func _rebuild_ecology_and_npcs(
 		Vector2(17.2, -4.6),
 		Vector2(7.6, 8.6),
 		Vector2(12.2, -15.5),
-		Vector2(-13.4, -13.2),
-		Vector2(-16.8, -8.5),
+		Vector2(-16.2, -12.8),
+		Vector2(-17.8, -8.5),
 		Vector2(-19.5, -1.2),
-		Vector2(21.2, -4.8),
+		Vector2(20.2, -7.8),
 		Vector2(20.4, 11.2),
 	]
 	for ki in range(kevar_coords.size()):
@@ -836,9 +837,9 @@ func _apply_camera_transform(immediate: bool = false) -> void:
 			look_target = Vector3(6.8, 0.85, -2.2)
 			fov = 37.0
 		"settlement_hearth":
-			cam_pos = Vector3(3.4, 5.8, 9.6)
-			look_target = Vector3(11.8, 0.85, 2.3)
-			fov = 36.0
+			cam_pos = Vector3(-1.2, 6.6, 8.2)
+			look_target = Vector3(-8.4, 1.3, -7.0)
+			fov = 38.0
 		_:
 			var offset := Vector3(0.0, 12.2, 13.8)
 			fov = 38.0

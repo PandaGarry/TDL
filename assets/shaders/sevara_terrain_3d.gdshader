@@ -175,12 +175,20 @@ vec4 eval_road_network(vec2 xz) {
 	float m_main = (1.0 - smoothstep(0.64, 1.05, u_main)) * fade_main;
 	float m_north = (1.0 - smoothstep(0.62, 1.04, u_north)) * fade_north;
 	float m_south = (1.0 - smoothstep(0.62, 1.04, u_south)) * fade_south;
-	float road_core = clamp(max(m_main, max(m_north, m_south)), 0.0, 1.0);
+	float pad_w = exp(-pow((wx - (-12.4)) / 4.2, 2.0) - pow((wz - (-7.8)) / 3.4, 2.0));
+	float pad_well = exp(-pow((wx - (-9.4)) / 2.2, 2.0) - pow((wz - (-6.2)) / 2.0, 2.0));
+	float pad_hearth = exp(-pow((wx - (-1.8)) / 2.9, 2.0) - pow((wz - (-5.4)) / 2.9, 2.0));
+	float pad_pav = exp(-pow((wx - (-4.6)) / 2.7, 2.0) - pow((wz - (-9.8)) / 2.7, 2.0));
+	float pad_east = exp(-pow((wx - 23.4) / 3.6, 2.0) - pow((wz - (-3.2)) / 3.4, 2.0));
+	float pad_any = max(max(pad_w, pad_well), max(max(pad_hearth, pad_pav), pad_east));
+	float m_pads = smoothstep(0.22, 0.68, pad_any - warp_a * 0.22);
+	float road_core = clamp(max(max(m_main, m_pads), max(m_north, m_south)), 0.0, 1.0);
 
 	float h_main = (1.0 - smoothstep(0.75, 1.65, u_main)) * fade_main;
 	float h_north = (1.0 - smoothstep(0.72, 1.68, u_north)) * fade_north;
 	float h_south = (1.0 - smoothstep(0.72, 1.68, u_south)) * fade_south;
-	float verge_halo = clamp(max(h_main, max(h_north, h_south)), 0.0, 1.0);
+	float h_pads = smoothstep(0.08, 0.52, pad_any);
+	float verge_halo = clamp(max(max(h_main, h_pads), max(h_north, h_south)), 0.0, 1.0);
 
 	float rut_n_track = exp(-pow((signed_main + 0.50 + warp_a * 0.28) / 0.27, 2.0)) * (1.0 - m_north * 0.55);
 	float rut_s_track = exp(-pow((signed_main - 0.50 - warp_a * 0.28) / 0.27, 2.0)) * (1.0 - m_south * 0.55);
