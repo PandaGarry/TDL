@@ -173,98 +173,138 @@ void fragment() {
 		SPECULAR = mix(0.36, 0.68, nail_head);
 		BACKLIGHT = vec3(0.06, 0.04, 0.02);
 	} else if (surface_mode >= 2) {
-		// Step 4 Sevara Village Architecture Shader:
-		// 2 = Hand-Hewn Torava Timber & Half-Timbered Beams
-		// 3 = Weathered Alpine Slate & Terracotta Roof Shingles with Golden-Olive Moss
-		// 4 = Cobble Foundation Masonry & Warm Lime-Clay Plaster Walls
+		// Step 4 Sevara Village Architecture PBR Shader:
+		// 2 = Matte Hand-Hewn Timber with Wood-Grain Normal & Roughness Map
+		// 3 = High-Relief Roof Tiles / Shingles with Deep Seam AO & Per-Building Palette
+		// 4 = Monolithic Cobble Foundation Masonry with Mortar Seams & Ground Grime
+		// 5 = Matte Lime-Clay Plaster with Trowel Micro-Bump & Lower-Wall Mud/Grime
 		vec3 base_n = normalize(v_wnormal);
 		float is_cm_glb = step(length(v_local), 0.14);
 		float h_above = mix(max(v_local.y + 0.25, 0.0), max(v_local.z * 100.0, 0.0), is_cm_glb);
-		float foundation_ao = mix(0.46, 1.0, smoothstep(0.0, 0.44, h_above));
-		float foundation_damp = 1.0 - smoothstep(0.0, 0.36, h_above);
+		float foundation_ao = mix(0.42, 1.0, smoothstep(0.0, 0.58, h_above));
+		float foundation_damp = 1.0 - smoothstep(0.0, 0.52, h_above);
 		float up = base_n.y;
 
 		if (surface_mode == 2) {
-			vec2 g_uv = vec2(v_world.x * 2.2 + v_world.z * 2.2, v_world.y * 5.2);
+			vec2 g_uv = vec2(v_world.x * 2.6 + v_world.z * 2.6, v_world.y * 6.4);
 			float g0 = soft_fbm(g_uv);
-			float gx = soft_fbm(g_uv + vec2(0.04, 0.0));
-			float gy = soft_fbm(g_uv + vec2(0.0, 0.04));
-			vec3 wn = normalize(base_n + vec3((g0 - gx) * 1.1, (g0 - gy) * 0.6, (g0 - gx) * 1.1));
+			float gx = soft_fbm(g_uv + vec2(0.035, 0.0));
+			float gy = soft_fbm(g_uv + vec2(0.0, 0.035));
+			vec3 wn = normalize(base_n + vec3((g0 - gx) * 1.45, (g0 - gy) * 0.85, (g0 - gx) * 1.45));
 			NORMAL = normalize((VIEW_MATRIX * vec4(wn, 0.0)).xyz);
 
-			float ring_n = grad_noise(g_uv * vec2(0.55, 2.8) + vec2(1.9, -0.7));
+			float ring_n = grad_noise(g_uv * vec2(0.65, 3.4) + vec2(1.9, -0.7));
 			float beam_var = grad_noise(floor(v_world.xz * 2.4) * 1.7 + vec2(floor(v_world.y * 3.0), 0.5));
-			vec3 w_deep = tint * vec3(0.56, 0.45, 0.34);
-			vec3 w_mid = tint * vec3(0.76, 0.64, 0.50);
-			vec3 w_light = tint * vec3(0.92, 0.80, 0.65);
-			vec3 w_col = mix(w_deep, w_mid, smoothstep(0.18, 0.78, g0));
-			w_col = mix(w_col, w_light, smoothstep(0.36, 0.84, ring_n) * 0.52);
-			w_col *= mix(0.90, 1.08, beam_var) * foundation_ao;
-			w_col = mix(w_col, vec3(0.14, 0.21, 0.09), foundation_damp * 0.48);
-			w_col *= 0.78 + 0.26 * smoothstep(-0.4, 0.85, wn.y);
+			vec3 w_deep = tint * vec3(0.52, 0.41, 0.30);
+			vec3 w_mid = tint * vec3(0.74, 0.61, 0.46);
+			vec3 w_light = tint * vec3(0.88, 0.75, 0.58);
+			vec3 w_col = mix(w_deep, w_mid, smoothstep(0.16, 0.78, g0));
+			w_col = mix(w_col, w_light, smoothstep(0.36, 0.84, ring_n) * 0.45);
+			w_col *= mix(0.88, 1.06, beam_var) * foundation_ao;
+			vec3 mud_grime = vec3(0.16, 0.14, 0.10);
+			w_col = mix(w_col, mud_grime, foundation_damp * 0.56);
+			w_col *= 0.76 + 0.26 * smoothstep(-0.4, 0.85, wn.y);
 
 			ALBEDO = w_col;
-			ROUGHNESS = mix(0.68, 0.52, ring_n * 0.45);
+			ROUGHNESS = clamp(0.84 + (1.0 - g0) * 0.11, 0.80, 0.95);
 			METALLIC = 0.0;
-			SPECULAR = 0.32;
-			BACKLIGHT = vec3(0.04, 0.03, 0.01);
+			SPECULAR = 0.10;
+			BACKLIGHT = vec3(0.0);
 		} else if (surface_mode == 3) {
-			// Shingle / Slate Roof Tiles with per-tile variation, crevices & velvet roof moss
-			vec2 tile_grid = vec2((v_world.x + v_world.z) * 3.8, v_world.y * 5.6);
+			// High-Relief Shingle / Slate / Terracotta Roof Tiles with 3D Normal Map & Seam Shadows
+			float row_y = v_world.y * 6.4;
+			float row_id = floor(row_y);
+			vec2 tile_grid = vec2((v_world.x + v_world.z) * 4.4 + mod(row_id, 2.0) * 0.5, row_y);
 			vec2 tile_cell = floor(tile_grid);
 			vec2 tile_f = fract(tile_grid);
 			float tile_id = grad_noise(tile_cell * 1.73 + vec2(2.1, -1.4));
-			float overlap_lip = smoothstep(0.0, 0.20, tile_f.y) * (1.0 - smoothstep(0.82, 1.0, tile_f.y));
-			float side_seam = smoothstep(0.0, 0.12, tile_f.x) * (1.0 - smoothstep(0.88, 1.0, tile_f.x));
-			float tile_ao = mix(0.54, 1.0, overlap_lip * side_seam);
+			float overlap_lip = smoothstep(0.0, 0.24, tile_f.y) * (1.0 - smoothstep(0.80, 1.0, tile_f.y));
+			float side_seam = smoothstep(0.0, 0.15, tile_f.x) * (1.0 - smoothstep(0.85, 1.0, tile_f.x));
+			float tile_ao = mix(0.24, 1.0, overlap_lip * side_seam);
 
-			float slate_n = triplanar_soft_fbm(v_world, base_n, 2.8);
-			vec3 rn = normalize(base_n + vec3(0.0, (overlap_lip - 0.5) * 0.28, 0.0) + (slate_n - 0.5) * 0.18);
+			float arch_nx = cos(tile_f.x * 3.14159) * 0.42;
+			float step_ny = (0.28 - tile_f.y) * 0.65;
+			float slate_n = triplanar_soft_fbm(v_world, base_n, 3.2);
+			vec3 rn = normalize(
+				base_n
+				+ vec3(arch_nx, step_ny + (overlap_lip - 0.5) * 0.42, -arch_nx)
+				+ (slate_n - 0.5) * 0.22
+			);
 			NORMAL = normalize((VIEW_MATRIX * vec4(rn, 0.0)).xyz);
 
-			vec3 r_col = tint * mix(0.74, 1.14, tile_id) * mix(0.82, 1.08, slate_n) * tile_ao;
-			float moss_patch = soft_fbm(v_world.xz * 1.45 + vec2(3.4, -2.1));
-			float roof_moss = smoothstep(0.38, 0.70, moss_patch) * smoothstep(0.18, 0.78, up);
-			vec3 moss_tint = mix(vec3(0.15, 0.27, 0.09), vec3(0.29, 0.42, 0.14), tile_id);
-			r_col = mix(r_col, moss_tint, roof_moss * 0.76);
-			r_col *= 0.76 + 0.28 * smoothstep(-0.35, 0.88, rn.y);
+			vec3 r_col = tint * mix(0.68, 1.16, tile_id) * mix(0.80, 1.08, slate_n) * tile_ao;
+			float moss_patch = soft_fbm(v_world.xz * 1.55 + vec2(3.4, -2.1));
+			float pitched_slope = smoothstep(0.18, 0.62, up) * (1.0 - smoothstep(0.82, 0.96, up));
+			float roof_moss = smoothstep(0.44, 0.76, moss_patch) * pitched_slope;
+			vec3 moss_tint = mix(vec3(0.15, 0.26, 0.09), vec3(0.27, 0.39, 0.14), tile_id);
+			r_col = mix(r_col, moss_tint, roof_moss * 0.68);
+			r_col *= 0.74 + 0.30 * smoothstep(-0.35, 0.88, rn.y);
 
 			ALBEDO = r_col;
-			ROUGHNESS = mix(0.68, 0.94, roof_moss);
+			ROUGHNESS = clamp(mix(0.80 + (1.0 - overlap_lip) * 0.12, 0.95, roof_moss), 0.78, 0.96);
 			METALLIC = 0.0;
-			SPECULAR = mix(0.26, 0.07, roof_moss);
-			BACKLIGHT = vec3(0.09, 0.14, 0.03) * roof_moss;
-		} else {
-			// Mode 4: Cobble Foundation Masonry & Warm Lime-Clay Plaster with Ashlar Mortar Seams
+			SPECULAR = mix(0.16, 0.05, roof_moss);
+			BACKLIGHT = vec3(0.0);
+		} else if (surface_mode == 4) {
+			// Mode 4: Monolithic Cobble Foundation Masonry with Deep Mortar Seams & Mud Grime
 			float m_macro = triplanar_soft_fbm(v_world, base_n, 1.45);
-			float m_fine = triplanar_soft_fbm(v_world + vec3(2.9, -1.4, 3.7), base_n, 3.6);
-			float row_idx = floor(v_world.y * 4.4);
-			vec2 ashlar_uv = vec2((v_world.x + v_world.z) * 2.6 + mod(row_idx, 2.0) * 0.5, v_world.y * 4.4);
-			vec2 ashlar_f = fract(ashlar_uv + (m_fine - 0.5) * 0.14);
+			float m_fine = triplanar_soft_fbm(v_world + vec3(2.9, -1.4, 3.7), base_n, 3.8);
+			float row_idx = floor(v_world.y * 4.6);
+			vec2 ashlar_uv = vec2((v_world.x + v_world.z) * 2.8 + mod(row_idx, 2.0) * 0.5, v_world.y * 4.6);
+			vec2 ashlar_f = fract(ashlar_uv + (m_fine - 0.5) * 0.16);
 			float stone_id = grad_noise(floor(ashlar_uv) * 1.9 + vec2(row_idx, 1.3));
-			float mortar_x = smoothstep(0.0, 0.11, ashlar_f.x) * (1.0 - smoothstep(0.89, 1.0, ashlar_f.x));
-			float mortar_y = smoothstep(0.0, 0.13, ashlar_f.y) * (1.0 - smoothstep(0.87, 1.0, ashlar_f.y));
-			float mortar_mask = mix(1.0, mortar_x * mortar_y, 0.65);
+			float mortar_x = smoothstep(0.0, 0.13, ashlar_f.x) * (1.0 - smoothstep(0.87, 1.0, ashlar_f.x));
+			float mortar_y = smoothstep(0.0, 0.15, ashlar_f.y) * (1.0 - smoothstep(0.85, 1.0, ashlar_f.y));
+			float mortar_mask = mix(1.0, mortar_x * mortar_y, 0.76);
 
 			vec3 mn = normalize(
 				base_n
-				+ vec3(m_fine - 0.5, (m_macro - 0.5) * 0.8 + (mortar_y - 0.5) * 0.35, m_fine - 0.5) * 0.24
+				+ vec3(
+					(m_fine - 0.5) + (0.5 - ashlar_f.x) * 0.45,
+					(m_macro - 0.5) * 0.8 + (0.5 - ashlar_f.y) * 0.52,
+					(m_fine - 0.5)
+				) * 0.30
 			);
 			NORMAL = normalize((VIEW_MATRIX * vec4(mn, 0.0)).xyz);
 
-			vec3 wall_col = tint * mix(0.76, 1.10, m_macro * 0.52 + stone_id * 0.48) * foundation_ao;
-			wall_col *= mix(0.62, 1.0, mortar_mask);
+			vec3 wall_col = tint * mix(0.72, 1.12, m_macro * 0.50 + stone_id * 0.50) * foundation_ao;
+			wall_col *= mix(0.48, 1.0, mortar_mask);
+			float splash_grime = (1.0 - smoothstep(0.0, 0.55, h_above)) * (0.55 + 0.45 * m_macro);
+			wall_col = mix(wall_col, vec3(0.15, 0.14, 0.11), splash_grime * 0.65);
 			float ledge_moss = smoothstep(0.38, 0.78, up) * smoothstep(0.38, 0.72, m_macro) * moss_amount;
-			float base_moss = foundation_damp * smoothstep(0.25, 0.75, m_macro);
-			float total_moss = clamp(max(ledge_moss, base_moss * 0.75), 0.0, 0.82);
-			vec3 m_col = mix(vec3(0.13, 0.22, 0.08), vec3(0.23, 0.36, 0.14), m_fine);
+			float base_moss = foundation_damp * smoothstep(0.30, 0.76, m_macro);
+			float total_moss = clamp(max(ledge_moss, base_moss * 0.68), 0.0, 0.78);
+			vec3 m_col = mix(vec3(0.13, 0.22, 0.08), vec3(0.22, 0.34, 0.13), m_fine);
 			wall_col = mix(wall_col, m_col, total_moss);
 			wall_col *= 0.76 + 0.26 * smoothstep(-0.4, 0.85, mn.y);
 
 			ALBEDO = wall_col;
-			ROUGHNESS = mix(0.86, 0.94, total_moss);
+			ROUGHNESS = clamp(mix(0.88, 0.96, total_moss), 0.86, 0.96);
 			METALLIC = 0.0;
-			SPECULAR = 0.16;
+			SPECULAR = 0.10;
+			BACKLIGHT = vec3(0.0);
+		} else {
+			// Mode 5: Matte Lime-Clay Daub Plaster with Trowel Micro-Relief & Lower-Wall Grime
+			float p_macro = triplanar_soft_fbm(v_world, base_n, 1.65);
+			float p_micro = triplanar_soft_fbm(v_world + vec3(4.1, -2.3, 1.8), base_n, 5.4);
+			vec3 pn = normalize(
+				base_n + vec3(p_micro - 0.5, (p_macro - 0.5) * 0.65, -p_micro + 0.5) * 0.26
+			);
+			NORMAL = normalize((VIEW_MATRIX * vec4(pn, 0.0)).xyz);
+
+			vec3 plaster_base = tint * mix(0.84, 1.04, p_macro * 0.60 + p_micro * 0.40);
+			// Weathering & lower-wall mud/rain-splash grime so plaster is never sterile white
+			float grime_band = 1.0 - smoothstep(0.0, 1.35, h_above + (p_macro - 0.5) * 0.42);
+			float rain_streak = soft_fbm(vec2((v_world.x + v_world.z) * 3.8, v_world.y * 1.2));
+			float grime_mask = clamp(grime_band * 0.78 + (1.0 - rain_streak) * 0.24, 0.0, 0.88);
+			vec3 earth_grime = mix(vec3(0.24, 0.20, 0.15), vec3(0.18, 0.22, 0.12), foundation_damp);
+			vec3 wall_col = mix(plaster_base, earth_grime, grime_mask * 0.68) * foundation_ao;
+			wall_col *= 0.78 + 0.24 * smoothstep(-0.4, 0.85, pn.y);
+
+			ALBEDO = wall_col;
+			ROUGHNESS = clamp(0.92 + (1.0 - p_micro) * 0.05, 0.90, 0.97);
+			METALLIC = 0.0;
+			SPECULAR = 0.06;
 			BACKLIGHT = vec3(0.0);
 		}
 	} else {

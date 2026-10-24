@@ -138,6 +138,12 @@ vec2 eval_river_bank(vec2 xz) {
 	return vec2(bed_mask, wet_mask);
 }
 
+float seg_dist(vec2 p, vec2 a, vec2 b) {
+	vec2 ab = b - a;
+	float t = clamp(dot(p - a, ab) / max(dot(ab, ab), 0.0001), 0.0, 1.0);
+	return length(p - (a + ab * t));
+}
+
 // Per-pixel road network evaluation with natural fork/junction blending:
 // Returns vec4(road_core_mask, wheel_rut_intensity, median_strip_mask, verge_soil_halo)
 vec4 eval_road_network(vec2 xz) {
@@ -175,21 +181,39 @@ vec4 eval_road_network(vec2 xz) {
 	float m_main = (1.0 - smoothstep(0.64, 1.05, u_main)) * fade_main;
 	float m_north = (1.0 - smoothstep(0.62, 1.04, u_north)) * fade_north;
 	float m_south = (1.0 - smoothstep(0.62, 1.04, u_south)) * fade_south;
-	float pad_lh = exp(-pow((wx - (-13.8)) / 4.8, 2.0) - pow((wz - (-10.8)) / 4.2, 2.0));
-	float pad_bs = exp(-pow((wx - (-18.8)) / 3.8, 2.0) - pow((wz - (-7.2)) / 3.4, 2.0));
-	float pad_well = exp(-pow((wx - (-11.2)) / 2.4, 2.0) - pow((wz - (-6.0)) / 2.4, 2.0));
-	float pad_hearth = exp(-pow((wx - (-0.6)) / 2.8, 2.0) - pow((wz - (-5.8)) / 2.8, 2.0));
-	float pad_pav = exp(-pow((wx - (-5.8)) / 2.9, 2.0) - pow((wz - (-11.2)) / 2.9, 2.0));
-	float pad_mill = exp(-pow((wx - 1.2) / 3.4, 2.0) - pow((wz - (-12.4)) / 3.2, 2.0));
-	float pad_east = exp(-pow((wx - 23.4) / 4.2, 2.0) - pow((wz - (-5.0)) / 3.8, 2.0));
-	float pad_any = max(max(max(pad_lh, pad_bs), pad_well), max(max(pad_hearth, pad_pav), max(pad_mill, pad_east)));
-	float m_pads = smoothstep(0.22, 0.68, pad_any - warp_a * 0.22);
+	float pad_lh = exp(-pow((wx - (-13.5)) / 3.4, 2.0) - pow((wz - (-10.5)) / 3.2, 2.0));
+	float pad_bs = exp(-pow((wx - (-18.5)) / 3.4, 2.0) - pow((wz - (-7.5)) / 3.0, 2.0));
+	float pad_well = exp(-pow((wx - (-12.0)) / 2.3, 2.0) - pow((wz - (-6.0)) / 2.3, 2.0));
+	float pad_barn = exp(-pow((wx - (-6.2)) / 3.4, 2.0) - pow((wz - (-14.8)) / 2.8, 2.0));
+	float pad_hearth = exp(-pow((wx - (-0.5)) / 2.8, 2.0) - pow((wz - (-5.8)) / 2.8, 2.0));
+	float pad_pav = exp(-pow((wx - (-5.8)) / 2.4, 2.0) - pow((wz - (-8.8)) / 2.4, 2.0));
+	float pad_mill = exp(-pow((wx - (-0.8)) / 2.8, 2.0) - pow((wz - (-11.6)) / 2.8, 2.0));
+	float pad_east = exp(-pow((wx - 23.0) / 3.6, 2.0) - pow((wz - (-4.2)) / 3.6, 2.0));
+	float pad_any = max(
+		max(max(pad_lh, pad_bs), max(pad_well, pad_barn)),
+		max(max(pad_hearth, pad_pav), max(pad_mill, pad_east))
+	);
+
+	// Footpaths connecting every house doorway to the road network
+	float d_fp = seg_dist(xz, vec2(-17.8, -3.9), vec2(-18.5, -7.2));
+	d_fp = min(d_fp, seg_dist(xz, vec2(-18.5, -7.2), vec2(-12.0, -6.0)));
+	d_fp = min(d_fp, seg_dist(xz, vec2(-12.0, -6.0), vec2(-6.0, -5.8)));
+	d_fp = min(d_fp, seg_dist(xz, vec2(-12.0, -6.0), vec2(-13.5, -9.8)));
+	d_fp = min(d_fp, seg_dist(xz, vec2(-11.2, -13.2), vec2(-6.2, -14.2)));
+	d_fp = min(d_fp, seg_dist(xz, vec2(-7.8, -8.4), vec2(-5.8, -8.8)));
+	d_fp = min(d_fp, seg_dist(xz, vec2(-5.8, -8.8), vec2(-1.4, -11.2)));
+	d_fp = min(d_fp, seg_dist(xz, vec2(-3.8, -3.5), vec2(-0.5, -5.8)));
+	d_fp = min(d_fp, seg_dist(xz, vec2(20.6, 0.2), vec2(23.0, -4.4)));
+	float m_fp = 1.0 - smoothstep(0.36, 0.72, d_fp + warp_a * 0.42);
+	float rut_fp = exp(-pow((d_fp + warp_a * 0.25) / 0.26, 2.0)) * 0.65;
+
+	float m_pads = max(smoothstep(0.24, 0.68, pad_any - warp_a * 0.22), m_fp * 0.94);
 	float road_core = clamp(max(max(m_main, m_pads), max(m_north, m_south)), 0.0, 1.0);
 
 	float h_main = (1.0 - smoothstep(0.75, 1.65, u_main)) * fade_main;
 	float h_north = (1.0 - smoothstep(0.72, 1.68, u_north)) * fade_north;
 	float h_south = (1.0 - smoothstep(0.72, 1.68, u_south)) * fade_south;
-	float h_pads = smoothstep(0.08, 0.52, pad_any);
+	float h_pads = max(smoothstep(0.08, 0.52, pad_any), 1.0 - smoothstep(0.55, 1.15, d_fp));
 	float verge_halo = clamp(max(max(h_main, h_pads), max(h_north, h_south)), 0.0, 1.0);
 
 	float rut_n_track = exp(-pow((signed_main + 0.50 + warp_a * 0.28) / 0.27, 2.0)) * (1.0 - m_north * 0.55);
@@ -200,7 +224,7 @@ vec4 eval_road_network(vec2 xz) {
 	float rut_north = exp(-pow((d_north - 0.28 + warp_a * 0.22) / 0.24, 2.0)) * fade_north * mix(0.45, 1.0, join_fade);
 	float rut_south = exp(-pow((d_south - 0.26 + warp_a * 0.22) / 0.23, 2.0)) * fade_south * mix(0.45, 1.0, join_fade);
 	float junction_bowl = m_main * max(m_north, m_south) * 0.52;
-	float ruts = clamp(max(rut_main, max(max(rut_north * 0.82, rut_south * 0.82), junction_bowl)), 0.0, 1.0);
+	float ruts = clamp(max(max(rut_main, rut_fp), max(max(rut_north * 0.82, rut_south * 0.82), junction_bowl)), 0.0, 1.0);
 
 	float median_noise = fbm(xz * 0.95 + vec2(2.1, -1.4));
 	float median = exp(-pow(signed_main / 0.25, 2.0)) * fade_main * smoothstep(0.24, 0.68, median_noise);
@@ -393,7 +417,28 @@ void fragment() {
 		rough = mix(rough, mix(0.80, 0.26, wet_dark), smoothstep(0.06, 0.58, river_bed));
 	}
 
-	// --- 6. Low-Lying River Valley Mist, Sunbeams (God Rays) & Distant Rim Perspective ---
+	// --- 6. Building Perimeter Contact Ambient Occlusion, Sunbeams & Distant Rim Perspective ---
+	float bld_ao = max(
+		max(
+			exp(-pow((xz.x - (-13.5)) / 1.85, 2.0) - pow((xz.y - (-10.5)) / 1.85, 2.0)),
+			exp(-pow((xz.x - (-18.5)) / 2.05, 2.0) - pow((xz.y - (-7.5)) / 1.85, 2.0))
+		),
+		max(
+			max(
+				exp(-pow((xz.x - (-12.0)) / 1.15, 2.0) - pow((xz.y - (-6.0)) / 1.15, 2.0)),
+				exp(-pow((xz.x - (-6.2)) / 2.25, 2.0) - pow((xz.y - (-14.8)) / 1.75, 2.0))
+			),
+			max(
+				exp(-pow((xz.x - (-5.8)) / 1.45, 2.0) - pow((xz.y - (-8.8)) / 1.45, 2.0)),
+				max(
+					exp(-pow((xz.x - (-0.8)) / 1.65, 2.0) - pow((xz.y - (-11.6)) / 1.65, 2.0)),
+					exp(-pow((xz.x - 23.0) / 1.85, 2.0) - pow((xz.y - (-5.0)) / 1.85, 2.0))
+				)
+			)
+		)
+	);
+	col *= mix(1.0, 0.44, clamp(bld_ao, 0.0, 0.92));
+
 	float sun_beam = smoothstep(0.56, 0.86, sin(xz.x * 0.22 - xz.y * 0.16 + 0.8) * 0.5 + 0.5)
 		* smoothstep(0.38, 0.78, moss_n);
 	col += vec3(0.035, 0.032, 0.014) * sun_beam * (1.0 - river_bed * 0.6);

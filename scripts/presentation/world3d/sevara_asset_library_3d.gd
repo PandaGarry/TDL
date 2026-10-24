@@ -730,8 +730,8 @@ static func _make_arch_shader_material(
 		"pbr_aged_timber": 1,
 		"pbr_village_timber": 2,
 		"pbr_roof_slate": 3,
-		"pbr_lime_plaster": 4,
 		"pbr_cobble_masonry": 4,
+		"pbr_lime_plaster": 5,
 	}
 	if mode_map.has(stem):
 		var rmat := ShaderMaterial.new()
@@ -803,11 +803,11 @@ static func _create_styled_surface_material(
 		return smat
 	if ml.contains("window"):
 		var wmat := StandardMaterial3D.new()
-		wmat.albedo_color = Color(0.92, 0.58, 0.22)
-		wmat.roughness = 0.22
+		wmat.albedo_color = Color(1.0, 0.80, 0.34)
+		wmat.roughness = 0.18
 		wmat.emission_enabled = true
-		wmat.emission = Color(0.86, 0.44, 0.12)
-		wmat.emission_energy_multiplier = 0.62
+		wmat.emission = Color(1.0, 0.62, 0.16)
+		wmat.emission_energy_multiplier = 1.42
 		return wmat
 	if ml.contains("eye") or ml.contains("nose") or ml.contains("face"):
 		var emat := StandardMaterial3D.new()
@@ -833,14 +833,16 @@ static func _create_styled_surface_material(
 	if not apply_structural_textures:
 		return _make_creature_shader_material(raw_col, raw_col, raw_col, 0.78)
 	if ml.contains("roof") or (ml == "red" and not is_tent):
-		var r_pri := Color(0.46, 0.30, 0.21) if ml.contains("red") else Color(0.32, 0.30, 0.25)
-		return _make_arch_shader_material("pbr_roof_slate", r_pri, r_pri, 0.48, 0.46, 0.85, 0.70)
+		var r_def := Color(0.46, 0.27, 0.19) if ml.contains("red") else Color(0.28, 0.31, 0.29)
+		var r_pri := raw_col if has_override else r_def
+		return _make_arch_shader_material("pbr_roof_slate", r_pri, r_pri, 0.48, 0.46, 0.85, 0.84)
 	if ml.contains("plaster") or ml.contains("beige") or ml == "white":
-		var w_col := Color(0.56, 0.49, 0.39)
-		return _make_arch_shader_material("pbr_lime_plaster", w_col, w_col, 0.42, 0.45, 0.65, 0.86)
+		var w_col := raw_col if has_override else Color(0.64, 0.58, 0.48)
+		return _make_arch_shader_material("pbr_lime_plaster", w_col, w_col, 0.42, 0.45, 0.65, 0.93)
 	if ml.contains("stone") or ml.contains("grey") or ml.contains("gray"):
-		var s_pri := Color(0.50, 0.48, 0.44) if ml.contains("light") else Color(0.36, 0.35, 0.33)
-		return _make_arch_shader_material("pbr_cobble_masonry", s_pri, s_pri, 0.46, 0.42, 0.78, 0.8)
+		var s_def := Color(0.48, 0.46, 0.42) if ml.contains("light") else Color(0.35, 0.34, 0.32)
+		var s_pri := raw_col if has_override else s_def
+		return _make_arch_shader_material("pbr_cobble_masonry", s_pri, s_pri, 0.46, 0.42, 0.78, 0.9)
 	if ml.contains("metal") or ml.contains("steel") or ml.contains("gold"):
 		var mmat := StandardMaterial3D.new()
 		var g_col := Color(0.76, 0.62, 0.30)

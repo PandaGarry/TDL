@@ -189,7 +189,11 @@ void fragment() {
 	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(9.85, pz1 + 0.68), 0.65, t, n_turb));
 	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(14.15, pz2 - 0.68), 0.65, t, n_turb));
 	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(14.15, pz2 + 0.68), 0.65, t, n_turb));
-	// In-stream rapids boulders & shoreline boulders touching water (including upper northern pass)
+	// Watermill Oak Waterwheel churning foam & downstream whitewater wake at `vec2(0.55, -11.6)`
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(0.55, -11.6), 1.45, t, n_turb) * 1.35);
+	float wheel_dist = length((v_world_pos.xz - vec2(0.65, -11.4)) / vec2(1.35, 1.95));
+	float wheel_churn = (1.0 - smoothstep(0.15, 1.0, wheel_dist)) * smoothstep(0.22, 0.68, n_turb);
+	wake = max(wake, wheel_churn * 0.95);
 	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(8.4, -3.2), 0.88, t, n_turb));
 	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(14.4, -3.5), 0.90, t, n_turb));
 	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(7.4, -8.8), 0.85, t, n_turb));

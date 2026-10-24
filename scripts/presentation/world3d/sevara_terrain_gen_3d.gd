@@ -143,18 +143,38 @@ static func get_road_core_at(wx: float, wz: float) -> float:
 	return clampf(maxf(m_main, maxf(m_north, m_south)), 0.0, 1.0)
 
 
+static func _seg_dist(p: Vector2, a: Vector2, b: Vector2) -> float:
+	var ab := b - a
+	var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
+	return p.distance_to(a + ab * t)
+
+
 static func get_settlement_footprint_at(wx: float, wz: float) -> float:
+	var p := Vector2(wx, wz)
 	# Organic compacted earth & gravel courtyard pads beneath Step 4 settlement structures
-	var pad_lh := exp(-pow((wx - (-13.8)) / 4.8, 2.0) - pow((wz - (-10.8)) / 4.2, 2.0))
-	var pad_bs := exp(-pow((wx - (-18.8)) / 3.8, 2.0) - pow((wz - (-7.2)) / 3.4, 2.0))
-	var pad_well := exp(-pow((wx - (-11.2)) / 2.4, 2.0) - pow((wz - (-6.0)) / 2.4, 2.0))
-	var pad_hearth := exp(-pow((wx - (-0.6)) / 2.8, 2.0) - pow((wz - (-5.8)) / 2.8, 2.0))
-	var pad_pav := exp(-pow((wx - (-5.8)) / 2.9, 2.0) - pow((wz - (-11.2)) / 2.9, 2.0))
-	var pad_mill := exp(-pow((wx - 1.2) / 3.4, 2.0) - pow((wz - (-12.4)) / 3.2, 2.0))
-	var pad_east := exp(-pow((wx - 23.4) / 4.2, 2.0) - pow((wz - (-5.0)) / 3.8, 2.0))
-	var west_any := maxf(maxf(pad_lh, pad_bs), pad_well)
+	var pad_lh := exp(-pow((wx - (-13.5)) / 3.4, 2.0) - pow((wz - (-10.5)) / 3.2, 2.0))
+	var pad_bs := exp(-pow((wx - (-18.5)) / 3.4, 2.0) - pow((wz - (-7.5)) / 3.0, 2.0))
+	var pad_well := exp(-pow((wx - (-12.0)) / 2.3, 2.0) - pow((wz - (-6.0)) / 2.3, 2.0))
+	var pad_barn := exp(-pow((wx - (-6.2)) / 3.4, 2.0) - pow((wz - (-14.8)) / 2.8, 2.0))
+	var pad_pav := exp(-pow((wx - (-5.8)) / 2.4, 2.0) - pow((wz - (-8.8)) / 2.4, 2.0))
+	var pad_mill := exp(-pow((wx - (-0.8)) / 2.8, 2.0) - pow((wz - (-11.6)) / 2.8, 2.0))
+	var pad_hearth := exp(-pow((wx - (-0.5)) / 2.8, 2.0) - pow((wz - (-5.8)) / 2.8, 2.0))
+	var pad_east := exp(-pow((wx - 23.0) / 3.6, 2.0) - pow((wz - (-4.2)) / 3.6, 2.0))
+	var west_any := maxf(maxf(pad_lh, pad_bs), maxf(pad_well, pad_barn))
 	var east_any := maxf(maxf(pad_hearth, pad_pav), maxf(pad_mill, pad_east))
-	return clampf(maxf(west_any, east_any), 0.0, 1.0)
+
+	# Footpaths linking every building doorway directly to the main/north road network
+	var d_fp := _seg_dist(p, Vector2(-17.8, -3.9), Vector2(-18.5, -7.2))
+	d_fp = minf(d_fp, _seg_dist(p, Vector2(-18.5, -7.2), Vector2(-12.0, -6.0)))
+	d_fp = minf(d_fp, _seg_dist(p, Vector2(-12.0, -6.0), Vector2(-6.0, -5.8)))
+	d_fp = minf(d_fp, _seg_dist(p, Vector2(-12.0, -6.0), Vector2(-13.5, -9.8)))
+	d_fp = minf(d_fp, _seg_dist(p, Vector2(-11.2, -13.2), Vector2(-6.2, -14.2)))
+	d_fp = minf(d_fp, _seg_dist(p, Vector2(-7.8, -8.4), Vector2(-5.8, -8.8)))
+	d_fp = minf(d_fp, _seg_dist(p, Vector2(-5.8, -8.8), Vector2(-1.4, -11.2)))
+	d_fp = minf(d_fp, _seg_dist(p, Vector2(-3.8, -3.5), Vector2(-0.5, -5.8)))
+	d_fp = minf(d_fp, _seg_dist(p, Vector2(20.6, 0.2), Vector2(23.0, -4.4)))
+	var fp_mask := 1.0 - smoothstep(0.48, 0.92, d_fp)
+	return clampf(maxf(maxf(west_any, east_any), fp_mask * 0.92), 0.0, 1.0)
 
 
 static func get_path_weight_at(wx: float, wz: float) -> float:
