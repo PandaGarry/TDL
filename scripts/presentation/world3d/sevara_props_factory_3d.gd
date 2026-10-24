@@ -922,9 +922,9 @@ static func populate_static_settlement(settlement_root: Node3D) -> void:
 	# Harmonized Step 4 Sevara Refuge Settlement:
 	# Compact, natural mountain-valley homestead & communal square integrated with roads & river
 	var houses: Array[Dictionary] = [
-		{"file": "House_1.glb", "pos": Vector2(-13.6, -8.8), "h": 3.80, "rot": 0.54},
+		{"file": "House_1.glb", "pos": Vector2(-13.6, -8.6), "h": 3.80, "rot": 0.54},
 		{"file": "House_2.glb", "pos": Vector2(23.6, -4.8), "h": 3.68, "rot": -1.12},
-		{"file": "Well.glb", "pos": Vector2(-10.8, -11.2), "h": 2.05, "rot": 0.35},
+		{"file": "Well.glb", "pos": Vector2(-11.4, -6.4), "h": 2.05, "rot": 0.35},
 	]
 	for hspec: Dictionary in houses:
 		var p2: Vector2 = hspec["pos"]
@@ -935,15 +935,15 @@ static func populate_static_settlement(settlement_root: Node3D) -> void:
 		node.rotation.y = float(hspec["rot"])
 		settlement_root.add_child(node)
 
-	var pav_pos := Vector2(-7.2, -7.8)
+	var pav_pos := Vector2(-4.4, -10.2)
 	var pavilion := create_chronicle_pavilion_3d()
 	pavilion.position = Vector3(
 		pav_pos.x, SevaraTerrainGen3D.get_height_at(pav_pos.x, pav_pos.y) - 0.04, pav_pos.y
 	)
-	pavilion.rotation.y = -0.32
+	pavilion.rotation.y = -0.36
 	settlement_root.add_child(pavilion)
 
-	var hearth_pos := Vector2(-0.2, -9.2)
+	var hearth_pos := Vector2(-0.6, -7.4)
 	var hearth := create_hearth_3d()
 	hearth.position = Vector3(
 		hearth_pos.x,
