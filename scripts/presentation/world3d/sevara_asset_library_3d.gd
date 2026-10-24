@@ -790,18 +790,24 @@ static func _create_styled_surface_material(
 	)
 	if is_fire_model and (ml.contains("fire") or ml.contains("yellow") or ml.contains("orange")):
 		var fmat := StandardMaterial3D.new()
-		fmat.albedo_color = Color(1.0, 0.76, 0.34)
+		fmat.albedo_color = Color(0.95, 0.45, 0.08)
+		fmat.roughness = 0.35
 		fmat.emission_enabled = true
-		fmat.emission = Color(1.0, 0.56, 0.16)
-		fmat.emission_energy_multiplier = 2.2
+		fmat.emission = Color(0.90, 0.34, 0.04)
+		fmat.emission_energy_multiplier = 0.65
 		return fmat
+	if ml.contains("soup") or (model_hint.contains("cauldron") and ml.contains("orange")):
+		var smat := StandardMaterial3D.new()
+		smat.albedo_color = Color(0.76, 0.42, 0.16)
+		smat.roughness = 0.24
+		return smat
 	if ml.contains("window"):
 		var wmat := StandardMaterial3D.new()
-		wmat.albedo_color = Color(0.96, 0.72, 0.36)
+		wmat.albedo_color = Color(0.92, 0.58, 0.22)
 		wmat.roughness = 0.22
 		wmat.emission_enabled = true
-		wmat.emission = Color(0.98, 0.66, 0.26)
-		wmat.emission_energy_multiplier = 1.35
+		wmat.emission = Color(0.86, 0.44, 0.12)
+		wmat.emission_energy_multiplier = 0.62
 		return wmat
 	if ml.contains("eye") or ml.contains("nose") or ml.contains("face"):
 		var emat := StandardMaterial3D.new()
@@ -827,7 +833,7 @@ static func _create_styled_surface_material(
 	if not apply_structural_textures:
 		return _make_creature_shader_material(raw_col, raw_col, raw_col, 0.78)
 	if ml.contains("roof") or (ml == "red" and not is_tent):
-		var r_pri := Color(0.52, 0.31, 0.22) if ml.contains("red") else Color(0.30, 0.35, 0.38)
+		var r_pri := Color(0.48, 0.30, 0.22) if ml.contains("red") else Color(0.30, 0.35, 0.38)
 		return _make_arch_shader_material("pbr_roof_slate", r_pri, r_pri, 0.48, 0.46, 0.85, 0.70)
 	if ml.contains("plaster") or ml.contains("beige") or ml == "white":
 		var w_col := Color(0.56, 0.49, 0.39)
@@ -840,10 +846,13 @@ static func _create_styled_surface_material(
 			"pbr_cobble_masonry", s_pri, s_pri, 0.46, 0.42, 0.78, 0.80, 0.0, 0.62
 		)
 	if ml.contains("metal") or ml.contains("steel") or ml.contains("gold"):
-		var m_pri := Color(0.76, 0.62, 0.30) if ml.contains("gold") else Color(0.24, 0.26, 0.29)
-		return _make_arch_shader_material(
-			"pbr_cobble_masonry", m_pri, m_pri, 0.85, 0.25, 0.40, 0.34, 0.82, 0.0
+		var mmat := StandardMaterial3D.new()
+		mmat.albedo_color = (
+			Color(0.76, 0.62, 0.30) if ml.contains("gold") else Color(0.18, 0.19, 0.21)
 		)
+		mmat.metallic = 0.78
+		mmat.roughness = 0.38
+		return mmat
 	if ml.contains("green") or ml.contains("pink") or is_tent:
 		var tc := Color(0.58, 0.52, 0.40) if is_tent else Color(0.28, 0.44, 0.20)
 		return _make_arch_shader_material(

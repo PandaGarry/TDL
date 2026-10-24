@@ -145,11 +145,11 @@ static func get_road_core_at(wx: float, wz: float) -> float:
 
 static func get_settlement_footprint_at(wx: float, wz: float) -> float:
 	# Organic compacted earth & gravel courtyard pads beneath Step 4 settlement structures
-	var pad_w := exp(-pow((wx - (-12.4)) / 4.2, 2.0) - pow((wz - (-7.8)) / 3.4, 2.0))
-	var pad_well := exp(-pow((wx - (-9.4)) / 2.2, 2.0) - pow((wz - (-6.2)) / 2.0, 2.0))
-	var pad_hearth := exp(-pow((wx - (-1.8)) / 2.9, 2.0) - pow((wz - (-5.4)) / 2.9, 2.0))
-	var pad_pav := exp(-pow((wx - (-4.6)) / 2.7, 2.0) - pow((wz - (-9.8)) / 2.7, 2.0))
-	var pad_east := exp(-pow((wx - 23.4) / 3.6, 2.0) - pow((wz - (-3.2)) / 3.4, 2.0))
+	var pad_w := exp(-pow((wx - (-12.8)) / 4.2, 2.0) - pow((wz - (-8.8)) / 3.6, 2.0))
+	var pad_well := exp(-pow((wx - (-10.8)) / 2.2, 2.0) - pow((wz - (-11.2)) / 2.0, 2.0))
+	var pad_hearth := exp(-pow((wx - 0.1) / 2.6, 2.0) - pow((wz - (-9.2)) / 2.6, 2.0))
+	var pad_pav := exp(-pow((wx - (-7.2)) / 2.5, 2.0) - pow((wz - (-7.8)) / 2.5, 2.0))
+	var pad_east := exp(-pow((wx - 23.2) / 3.4, 2.0) - pow((wz - (-4.8)) / 3.2, 2.0))
 	return clampf(maxf(maxf(pad_w, pad_well), maxf(maxf(pad_hearth, pad_pav), pad_east)), 0.0, 1.0)
 
 

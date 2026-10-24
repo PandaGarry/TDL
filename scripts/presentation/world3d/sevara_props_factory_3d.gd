@@ -281,23 +281,37 @@ static func create_chronicle_pavilion_3d() -> Node3D:
 	root.name = "ChroniclePavilion3D"
 	root.add_child(
 		SevaraAssetLibrary3D.instantiate_model(
-			SevaraAssetLibrary3D.VILLAGE_DIR + "Gazebo.glb", 3.85, {}, true
+			SevaraAssetLibrary3D.VILLAGE_DIR + "Gazebo.glb", 3.25, {}, true
 		)
 	)
 	var bench := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.VILLAGE_DIR + "Bench_1.glb", 0.72, {}, true
+		SevaraAssetLibrary3D.VILLAGE_DIR + "Bench_1.glb", 0.54, {}, true
 	)
-	bench.position = Vector3(0.0, 0.05, -0.45)
+	bench.position = Vector3(0.0, 0.03, -0.42)
 	root.add_child(bench)
-	var desk := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.VILLAGE_DIR + "Bench_2.glb", 0.78, {}, true
+	var wood_mat := SevaraAssetLibrary3D._make_arch_shader_material(
+		"pbr_village_timber", Color(0.46, 0.35, 0.24), Color.BLACK, 0.48, 0.48, 0.75, 0.78
 	)
-	desk.position = Vector3(0.0, 0.05, 0.12)
-	root.add_child(desk)
+	var desk_top := MeshInstance3D.new()
+	var top_mesh := BoxMesh.new()
+	top_mesh.size = Vector3(1.24, 0.08, 0.62)
+	desk_top.mesh = top_mesh
+	desk_top.position = Vector3(0.0, 0.72, 0.10)
+	desk_top.material_override = wood_mat
+	root.add_child(desk_top)
+	var leg_xs: Array[float] = [-0.46, 0.46]
+	for lx: float in leg_xs:
+		var leg := MeshInstance3D.new()
+		var lmesh := BoxMesh.new()
+		lmesh.size = Vector3(0.12, 0.68, 0.48)
+		leg.mesh = lmesh
+		leg.position = Vector3(lx, 0.36, 0.10)
+		leg.material_override = wood_mat
+		root.add_child(leg)
 	var book := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.ITEMS_DIR + "Book1_Open.glb", 0.075, {}, false
+		SevaraAssetLibrary3D.ITEMS_DIR + "Book1_Open.glb", 0.085, {}, false
 	)
-	book.position = Vector3(0.0, 0.80, 0.12)
+	book.position = Vector3(0.0, 0.77, 0.10)
 	root.add_child(book)
 	return root
 
@@ -307,20 +321,20 @@ static func create_hearth_3d() -> Node3D:
 	root.name = "CommunalHearth3D"
 	root.add_child(
 		SevaraAssetLibrary3D.instantiate_model(
-			SevaraAssetLibrary3D.VILLAGE_DIR + "Bonfire_Lit.glb", 0.95, {}, true
+			SevaraAssetLibrary3D.VILLAGE_DIR + "Bonfire_Lit.glb", 0.90, {}, true
 		)
 	)
 	var cauldron := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.VILLAGE_DIR + "Cauldron.glb", 0.82, {}, true
+		SevaraAssetLibrary3D.VILLAGE_DIR + "Cauldron.glb", 0.56, {}, true
 	)
-	cauldron.position = Vector3(0.65, 0.0, 0.25)
+	cauldron.position = Vector3(0.64, 0.0, -0.18)
 	root.add_child(cauldron)
-	for i in range(3):
-		var ang := float(i) * TAU / 3.0 + 0.35
+	var bench_angs: Array[float] = [-1.15, 0.85]
+	for ang: float in bench_angs:
 		var bench := SevaraAssetLibrary3D.instantiate_model(
-			SevaraAssetLibrary3D.VILLAGE_DIR + ("Bench_%d.glb" % ((i % 2) + 1)), 0.68, {}, true
+			SevaraAssetLibrary3D.VILLAGE_DIR + "Bench_1.glb", 0.54, {}, true
 		)
-		bench.position = Vector3(cos(ang) * 2.1, 0.0, sin(ang) * 2.1)
+		bench.position = Vector3(cos(ang) * 1.48, 0.0, sin(ang) * 1.48)
 		bench.rotation.y = -ang + PI * 0.5
 		root.add_child(bench)
 	var fire_light := OmniLight3D.new()
@@ -908,9 +922,9 @@ static func populate_static_settlement(settlement_root: Node3D) -> void:
 	# Harmonized Step 4 Sevara Refuge Settlement:
 	# Compact, natural mountain-valley homestead & communal square integrated with roads & river
 	var houses: Array[Dictionary] = [
-		{"file": "House_1.glb", "pos": Vector2(-13.6, -8.6), "h": 3.80, "rot": 0.54},
+		{"file": "House_1.glb", "pos": Vector2(-13.6, -8.8), "h": 3.80, "rot": 0.54},
 		{"file": "House_2.glb", "pos": Vector2(23.6, -4.8), "h": 3.68, "rot": -1.12},
-		{"file": "Well.glb", "pos": Vector2(-10.2, -6.2), "h": 2.05, "rot": 0.35},
+		{"file": "Well.glb", "pos": Vector2(-10.8, -11.2), "h": 2.05, "rot": 0.35},
 	]
 	for hspec: Dictionary in houses:
 		var p2: Vector2 = hspec["pos"]
@@ -921,15 +935,15 @@ static func populate_static_settlement(settlement_root: Node3D) -> void:
 		node.rotation.y = float(hspec["rot"])
 		settlement_root.add_child(node)
 
-	var pav_pos := Vector2(-4.6, -9.8)
+	var pav_pos := Vector2(-7.2, -7.8)
 	var pavilion := create_chronicle_pavilion_3d()
 	pavilion.position = Vector3(
 		pav_pos.x, SevaraTerrainGen3D.get_height_at(pav_pos.x, pav_pos.y) - 0.04, pav_pos.y
 	)
-	pavilion.rotation.y = -0.38
+	pavilion.rotation.y = -0.32
 	settlement_root.add_child(pavilion)
 
-	var hearth_pos := Vector2(-1.8, -5.4)
+	var hearth_pos := Vector2(-0.2, -9.2)
 	var hearth := create_hearth_3d()
 	hearth.position = Vector3(
 		hearth_pos.x,
@@ -940,9 +954,8 @@ static func populate_static_settlement(settlement_root: Node3D) -> void:
 
 	var village_props: Array[Dictionary] = [
 		{"file": "Cart.glb", "pos": Vector2(-15.6, -6.2), "h": 1.25, "rot": 0.42},
-		{"file": "Barrel.glb", "pos": Vector2(-11.8, -10.2), "h": 0.88, "rot": 0.25},
-		{"file": "Fence.glb", "pos": Vector2(21.4, -2.6), "h": 1.05, "rot": 0.38},
-		{"file": "Hay.glb", "pos": Vector2(25.8, -3.2), "h": 1.32, "rot": 0.30},
+		{"file": "Barrel.glb", "pos": Vector2(-11.8, -9.8), "h": 0.85, "rot": 0.25},
+		{"file": "Barrel.glb", "pos": Vector2(22.2, -5.6), "h": 0.82, "rot": -0.45},
 	]
 	for p: Dictionary in village_props:
 		var v2: Vector2 = p["pos"]
@@ -957,9 +970,9 @@ static func populate_static_settlement(settlement_root: Node3D) -> void:
 
 	# Mossy foundation kerb stones anchoring houses, well & hearth into the meadow soil
 	var kerb_coords: Array[Vector2] = [
-		Vector2(-11.6, -7.2),
-		Vector2(-14.8, -9.8),
-		Vector2(-0.4, -6.4),
+		Vector2(-11.8, -7.4),
+		Vector2(-14.8, -10.2),
+		Vector2(1.2, -10.2),
 		Vector2(21.8, -5.8),
 	]
 	for k_idx in range(kerb_coords.size()):

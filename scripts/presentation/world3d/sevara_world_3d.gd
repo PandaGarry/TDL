@@ -837,8 +837,8 @@ func _apply_camera_transform(immediate: bool = false) -> void:
 			look_target = Vector3(6.8, 0.85, -2.2)
 			fov = 37.0
 		"settlement_hearth":
-			cam_pos = Vector3(-1.2, 6.6, 8.2)
-			look_target = Vector3(-8.4, 1.3, -7.0)
+			cam_pos = Vector3(3.4, 6.8, 7.2)
+			look_target = Vector3(-7.6, 1.3, -8.4)
 			fov = 38.0
 		_:
 			var offset := Vector3(0.0, 12.2, 13.8)
