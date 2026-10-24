@@ -682,8 +682,8 @@ static func _populate_fences_and_stumps(settlement_root: Node3D) -> void:
 	var r_mat := _arch_mat("pbr_wattle_weave", Color(0.62, 0.50, 0.33), 0.48, 0.40, 0.28, 0.88)
 
 	var fence_runs: Array[Array] = [
-		[Vector2(-16.8, -13.2), Vector2(-14.4, -14.0), Vector2(-12.2, -13.8)],
-		[Vector2(-21.8, -8.8), Vector2(-21.6, -6.4), Vector2(-20.4, -4.6)],
+		[Vector2(-16.8, -13.4), Vector2(-14.4, -14.2), Vector2(-12.2, -14.0)],
+		[Vector2(-22.2, -9.2), Vector2(-22.0, -6.8), Vector2(-21.0, -5.0)],
 		[Vector2(-10.8, -16.4), Vector2(-8.2, -17.0), Vector2(-5.4, -16.2)],
 	]
 	for run_pts: Array in fence_runs:
@@ -735,12 +735,13 @@ static func _add_terrain_fitted_wattle_run(
 			var v10 := sp + off + _v3(0.0, 0.03, 0.0)
 			var v01 := p_a + off + _v3(0.0, height_m * 0.86, 0.0)
 			var v11 := sp + off + _v3(0.0, height_m * 0.86, 0.0)
-			var nrm := _v3(n2.x * side, 0.15, n2.y * side).normalized()
+			var nrm := _v3(n2.x * side, 0.06, n2.y * side).normalized()
 			var verts: Array = (
 				[v00, v10, v11, v00, v11, v01] if side > 0.0 else [v00, v11, v10, v00, v01, v11]
 			)
 			for v_pt: Vector3 in verts:
 				st.set_normal(nrm)
+				st.set_uv(Vector2(v_pt.x + v_pt.z, v_pt.y - sp.y))
 				st.add_vertex(v_pt)
 	_add_mesh(grp, st.commit(), V0, V0, w_mat)
 
