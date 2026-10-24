@@ -932,7 +932,9 @@ static func populate_static_settlement(settlement_root: Node3D) -> void:
 	var hearth_pos := Vector2(-1.8, -5.4)
 	var hearth := create_hearth_3d()
 	hearth.position = Vector3(
-		hearth_pos.x, SevaraTerrainGen3D.get_height_at(hearth_pos.x, hearth_pos.y) - 0.02, hearth_pos.y
+		hearth_pos.x,
+		SevaraTerrainGen3D.get_height_at(hearth_pos.x, hearth_pos.y) - 0.02,
+		hearth_pos.y
 	)
 	settlement_root.add_child(hearth)
 
@@ -963,18 +965,14 @@ static func populate_static_settlement(settlement_root: Node3D) -> void:
 	for k_idx in range(kerb_coords.size()):
 		var kp: Vector2 = kerb_coords[k_idx]
 		var k_rock := create_boulder_3d(Vector3(0.68, 0.44, 0.62), true)
-		k_rock.position = Vector3(
-			kp.x, SevaraTerrainGen3D.get_height_at(kp.x, kp.y) - 0.08, kp.y
-		)
+		k_rock.position = Vector3(kp.x, SevaraTerrainGen3D.get_height_at(kp.x, kp.y) - 0.08, kp.y)
 		k_rock.rotation.y = float(k_idx) * 1.45
 		settlement_root.add_child(k_rock)
 
 	var weir_z := 13.8
 	var weir := create_weir_barrier_3d(5.4)
 	weir.position = Vector3(
-		SevaraTerrainGen3D.river_center_x(weir_z),
-		SevaraTerrainGen3D.WATER_SURFACE_Y - 0.05,
-		weir_z
+		SevaraTerrainGen3D.river_center_x(weir_z), SevaraTerrainGen3D.WATER_SURFACE_Y - 0.05, weir_z
 	)
 	weir.rotation.y = -0.18
 	settlement_root.add_child(weir)

@@ -846,7 +846,9 @@ static func _create_styled_surface_material(
 		)
 	if ml.contains("green") or ml.contains("pink") or is_tent:
 		var tc := Color(0.58, 0.52, 0.40) if is_tent else Color(0.28, 0.44, 0.20)
-		return _make_arch_shader_material("pbr_lime_plaster", tc, tc, 0.70, 0.4, 0.65, 0.84, 0.0, 0.18)
+		return _make_arch_shader_material(
+			"pbr_lime_plaster", tc, tc, 0.70, 0.4, 0.65, 0.84, 0.0, 0.18
+		)
 	var wp := Color(0.50, 0.38, 0.26)
 	if ml.contains("hay"):
 		wp = Color(0.62, 0.52, 0.28)
