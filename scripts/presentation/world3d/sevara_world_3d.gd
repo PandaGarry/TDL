@@ -317,11 +317,6 @@ func _build_environment_and_lights() -> void:
 	_environment.fog_sky_affect = 0.22
 	_environment.fog_height = 1.65
 	_environment.fog_height_density = 0.16
-	_environment.ssr_enabled = true
-	_environment.ssr_max_steps = 32
-	_environment.adjustment_enabled = true
-	_environment.adjustment_contrast = 1.06
-	_environment.adjustment_saturation = 1.03
 	_environment.glow_enabled = true
 	_environment.glow_intensity = 0.28
 	_environment.glow_strength = 0.82
