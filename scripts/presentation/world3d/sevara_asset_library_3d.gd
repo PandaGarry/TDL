@@ -837,27 +837,20 @@ static func _create_styled_surface_material(
 		return _make_arch_shader_material("pbr_roof_slate", r_pri, r_pri, 0.48, 0.46, 0.85, 0.70)
 	if ml.contains("plaster") or ml.contains("beige") or ml == "white":
 		var w_col := Color(0.56, 0.49, 0.39)
-		return _make_arch_shader_material(
-			"pbr_lime_plaster", w_col, w_col, 0.42, 0.45, 0.65, 0.86, 0.0, 0.15
-		)
+		return _make_arch_shader_material("pbr_lime_plaster", w_col, w_col, 0.42, 0.45, 0.65, 0.86)
 	if ml.contains("stone") or ml.contains("grey") or ml.contains("gray"):
 		var s_pri := Color(0.50, 0.48, 0.44) if ml.contains("light") else Color(0.36, 0.35, 0.33)
-		return _make_arch_shader_material(
-			"pbr_cobble_masonry", s_pri, s_pri, 0.46, 0.42, 0.78, 0.80, 0.0, 0.62
-		)
+		return _make_arch_shader_material("pbr_cobble_masonry", s_pri, s_pri, 0.46, 0.42, 0.78, 0.8)
 	if ml.contains("metal") or ml.contains("steel") or ml.contains("gold"):
 		var mmat := StandardMaterial3D.new()
-		mmat.albedo_color = (
-			Color(0.76, 0.62, 0.30) if ml.contains("gold") else Color(0.18, 0.19, 0.21)
-		)
+		var g_col := Color(0.76, 0.62, 0.30)
+		mmat.albedo_color = g_col if ml.contains("gold") else Color(0.18, 0.19, 0.21)
 		mmat.metallic = 0.78
 		mmat.roughness = 0.38
 		return mmat
 	if ml.contains("green") or ml.contains("pink") or is_tent:
 		var tc := Color(0.58, 0.52, 0.40) if is_tent else Color(0.28, 0.44, 0.20)
-		return _make_arch_shader_material(
-			"pbr_lime_plaster", tc, tc, 0.70, 0.4, 0.65, 0.84, 0.0, 0.18
-		)
+		return _make_arch_shader_material("pbr_lime_plaster", tc, tc, 0.70, 0.4, 0.65, 0.84)
 	var wp := Color(0.50, 0.38, 0.26)
 	if ml.contains("hay"):
 		wp = Color(0.62, 0.52, 0.28)
