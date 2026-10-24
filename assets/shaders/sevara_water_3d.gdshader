@@ -140,13 +140,13 @@ void fragment() {
 		bed_pebbles += vec3(0.26, 0.28, 0.16) * caustics * (1.0 - smoothstep(0.12, 0.78, water_depth));
 	}
 
-	// 3) Beer-Lambert depth absorption: golden-emerald shallows -> deep sapphire-teal channel
-	vec3 water_tint = mix(shallow_color.rgb, mid_color.rgb, smoothstep(0.08, 0.44, water_depth));
-	water_tint = mix(water_tint, deep_color.rgb, smoothstep(0.38, 0.84, water_depth));
+	// 3) Beer-Lambert depth absorption: crystal-clear pebble shallows -> deep dark-sapphire channel
+	vec3 water_tint = mix(shallow_color.rgb, mid_color.rgb, smoothstep(0.06, 0.42, water_depth));
+	water_tint = mix(water_tint, deep_color.rgb * 0.82, smoothstep(0.36, 0.82, water_depth));
 	float silt_fac = clamp((silt_load - 0.20) * 1.35, 0.0, 0.65);
 	water_tint = mix(water_tint, vec3(0.25, 0.21, 0.13), silt_fac);
 
-	float bed_visibility = exp(-water_depth * (2.9 + silt_fac * 1.5)) * 0.82;
+	float bed_visibility = exp(-water_depth * (2.65 + silt_fac * 1.4)) * 0.88;
 	vec3 water_col = mix(water_tint, bed_pebbles, bed_visibility);
 
 	// 4) Analytic Sky, Cloud, Green-Bank & Sun Specular Reflections (works in both Forward+ and gl_compatibility)
@@ -189,13 +189,15 @@ void fragment() {
 	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(9.85, pz1 + 0.68), 0.65, t, n_turb));
 	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(14.15, pz2 - 0.68), 0.65, t, n_turb));
 	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(14.15, pz2 + 0.68), 0.65, t, n_turb));
-	// In-stream rapids boulders & shoreline boulders touching water
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(8.4, -3.2), 0.85, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(14.4, -3.5), 0.88, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(7.4, -8.8), 0.82, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(12.2, -11.5), 0.90, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(9.2, 6.8), 0.85, t, n_turb));
-	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(16.2, 7.6), 0.90, t, n_turb));
+	// In-stream rapids boulders & shoreline boulders touching water (including upper northern pass)
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(8.4, -3.2), 0.88, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(14.4, -3.5), 0.90, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(7.4, -8.8), 0.85, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(12.2, -11.5), 0.92, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(8.6, -24.5), 0.95, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(10.2, -33.5), 0.95, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(9.2, 6.8), 0.88, t, n_turb));
+	wake = max(wake, obstacle_foam_wake(v_world_pos.xz, vec2(16.2, 7.6), 0.92, t, n_turb));
 
 	// Longitudinal current streaks along the main thalweg
 	float streak_n = fbm(vec2(v_world_pos.x * 2.8 + sin(v_world_pos.z * 0.5) * 0.7, v_world_pos.z * 0.85 - t * 2.45));

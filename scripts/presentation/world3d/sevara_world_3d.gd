@@ -309,16 +309,24 @@ func _build_environment_and_lights() -> void:
 	_environment.ssil_radius = 2.8
 	_environment.ssil_intensity = 0.65
 	_environment.fog_enabled = true
-	_environment.fog_light_color = Color(0.74, 0.82, 0.90)
-	_environment.fog_light_energy = 0.56
-	_environment.fog_density = 0.0016
-	_environment.fog_aerial_perspective = 0.45
+	_environment.fog_light_color = Color(0.76, 0.84, 0.90)
+	_environment.fog_light_energy = 0.62
+	_environment.fog_sun_scatter = 0.28
+	_environment.fog_density = 0.0018
+	_environment.fog_aerial_perspective = 0.48
 	_environment.fog_sky_affect = 0.22
+	_environment.fog_height = 1.65
+	_environment.fog_height_density = 0.16
+	_environment.ssr_enabled = true
+	_environment.ssr_max_steps = 32
+	_environment.adjustment_enabled = true
+	_environment.adjustment_contrast = 1.06
+	_environment.adjustment_saturation = 1.03
 	_environment.glow_enabled = true
-	_environment.glow_intensity = 0.26
-	_environment.glow_strength = 0.80
-	_environment.glow_bloom = 0.05
-	_environment.glow_hdr_threshold = 1.15
+	_environment.glow_intensity = 0.28
+	_environment.glow_strength = 0.82
+	_environment.glow_bloom = 0.06
+	_environment.glow_hdr_threshold = 1.12
 	_environment.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
 	_env_node.environment = _environment
 	add_child(_env_node)
@@ -539,7 +547,7 @@ func _rebuild_ecology_and_npcs(
 		_ecology_root.add_child(willow)
 
 	# Shoreline Selave reed clumps & floating water lilies along quiet river shelves
-	var reed_z_list: Array[float] = [-16.5, -12.2, -8.4, -4.8, 6.8, 9.4, 12.2, 15.8]
+	var reed_z_list: Array[float] = [-28.5, -22.4, -16.5, -12.2, -8.4, -4.8, 6.8, 9.4, 12.2, 15.8]
 	for ri in range(reed_z_list.size()):
 		var rz := reed_z_list[ri]
 		var r_side := -1.0 if (ri % 2 == 0) else 1.0
@@ -551,7 +559,7 @@ func _rebuild_ecology_and_npcs(
 		reed.position = Vector3(rx, SevaraTerrainGen3D.WATER_SURFACE_Y - 0.06, rz)
 		_ecology_root.add_child(reed)
 
-	var lily_z_list: Array[float] = [-11.0, -5.6, 7.4, 11.2, 15.2]
+	var lily_z_list: Array[float] = [-24.0, -15.5, -10.2, -5.6, 7.4, 11.2, 15.2]
 	for li in range(lily_z_list.size()):
 		var lz := lily_z_list[li]
 		var l_side := 1.0 if (li % 2 == 0) else -1.0

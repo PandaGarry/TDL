@@ -115,7 +115,8 @@ float main_road_z(float wx) {
 }
 
 float river_center_x(float wz) {
-	return 7.8 + wz * 0.22 + sin(wz * 0.088 + 0.35) * 3.6 + cos(wz * 0.044 - 0.2) * 1.8;
+	float base_cx = 7.8 + wz * 0.22 + sin(wz * 0.088 + 0.35) * 3.6 + cos(wz * 0.044 - 0.2) * 1.8;
+	return base_cx + smoothstep(-12.0, -56.0, wz) * 5.2;
 }
 
 float river_half_width(float wz) {
@@ -128,16 +129,12 @@ float river_half_width(float wz) {
 // Per-pixel river channel & pebble bank mask: returns vec2(river_bed_mask, wet_shore_mask)
 vec2 eval_river_bank(vec2 xz) {
 	float wz = xz.y;
-	float stream_fade = smoothstep(-52.0, -40.0, wz) * (1.0 - smoothstep(38.0, 48.0, wz));
-	if (stream_fade <= 0.001) {
-		return vec2(0.0);
-	}
 	float r_cx = river_center_x(wz);
 	float r_hw = river_half_width(wz);
 	float warp = (fbm2(xz * 0.75) - 0.5) * 0.22;
 	float norm_r = (abs(xz.x - r_cx) + warp) / max(r_hw, 0.5);
-	float bed_mask = (1.0 - smoothstep(0.76, 1.12, norm_r)) * stream_fade;
-	float wet_mask = (1.0 - smoothstep(0.72, 1.04, norm_r)) * stream_fade;
+	float bed_mask = 1.0 - smoothstep(0.76, 1.12, norm_r);
+	float wet_mask = 1.0 - smoothstep(0.72, 1.04, norm_r);
 	return vec2(bed_mask, wet_mask);
 }
 
@@ -327,8 +324,9 @@ void fragment() {
 		road_soil = mix(road_soil, dark_humus_edge, (1.0 - smoothstep(0.12, 0.62, road_core)) * 0.72);
 		road_soil = mix(road_soil, damp_rut, smoothstep(0.18, 0.82, ruts) * (0.72 + 0.28 * crumb_n));
 
-		float turf_lip_ao = 1.0 - smoothstep(0.14, 0.38, road_core) * (1.0 - smoothstep(0.38, 0.64, road_core)) * 0.18;
-		float grain_mod = (0.82 + 0.22 * crumb_n + 0.14 * (grit_n - 0.35)) * turf_lip_ao;
+		float turf_lip_ao = 1.0 - smoothstep(0.14, 0.38, road_core) * (1.0 - smoothstep(0.38, 0.64, road_core)) * 0.22;
+		float fine_gravel = (dist_origin < 32.0) ? (value_noise(xz * 86.0) * 0.6 + value_noise(xz * 154.0) * 0.4 - 0.5) * 0.14 : 0.0;
+		float grain_mod = (0.82 + 0.22 * crumb_n + 0.14 * (grit_n - 0.35) + fine_gravel) * turf_lip_ao;
 		road_soil *= grain_mod;
 
 		vec3 median_turf = mix(vec3(0.20, 0.31, 0.13), vec3(0.27, 0.34, 0.15), moss_n) * grain_mod;
@@ -346,8 +344,9 @@ void fragment() {
 		road_soil = mix(road_soil, scol1, m_st1 * 0.68);
 		road_soil = mix(road_soil, scol2, m_st2 * 0.55);
 
-		float edge_noise = (clod_n - 0.5) * 0.18 + (crumb_n - 0.5) * 0.08;
-		float smooth_edge = smoothstep(0.06, 0.54, road_core + edge_noise);
+		// Organic ragged turf-tuft road edges so grass and dirt interlace naturally
+		float ragged_edge = (clod_n - 0.5) * 0.26 + (crumb_n - 0.5) * 0.14 + (grit_n - 0.5) * 0.08;
+		float smooth_edge = smoothstep(0.08, 0.52, road_core + ragged_edge);
 		col = mix(col, road_soil, smooth_edge);
 		float road_rough = mix(0.93, 0.78, ruts * 0.45 + m_st1 * 0.38);
 		rough = mix(rough, road_rough, smooth_edge);
@@ -384,7 +383,15 @@ void fragment() {
 		rough = mix(rough, mix(0.80, 0.26, wet_dark), smoothstep(0.06, 0.58, river_bed));
 	}
 
-	// --- 6. Distant Valley Rim Atmospheric Perspective ---
+	// --- 6. Low-Lying River Valley Mist, Sunbeams (God Rays) & Distant Rim Perspective ---
+	float sun_beam = smoothstep(0.56, 0.86, sin(xz.x * 0.22 - xz.y * 0.16 + 0.8) * 0.5 + 0.5)
+		* smoothstep(0.38, 0.78, moss_n);
+	col += vec3(0.035, 0.032, 0.014) * sun_beam * (1.0 - river_bed * 0.6);
+
+	float low_mist = (1.0 - smoothstep(0.35, 1.35, v_world_pos.y))
+		* smoothstep(14.0, 56.0, dist_origin) * 0.22;
+	col = mix(col, vec3(0.44, 0.54, 0.52), low_mist);
+
 	float rim_haze = smoothstep(66.0, 98.0, dist_origin);
 	col = mix(col, vec3(0.32, 0.42, 0.35), rim_haze * 0.42);
 

@@ -138,18 +138,28 @@ void fragment() {
 		wood_col *= mix(0.91, 1.07, plank_id);
 
 		// Deep inter-plank groove shadow (Contact AO between planks) + curb & post contact shadow
-		float plank_groove_ao = smoothstep(0.115, 0.168, abs(v_local.x)) * is_top_deck;
+		float plank_groove_ao = smoothstep(0.095, 0.155, abs(v_local.x)) * is_top_deck;
 		float curb_contact_ao = smoothstep(1.02, 1.42, abs(v_local.z));
-		float total_wood_ao = clamp(plank_groove_ao * 0.48 + curb_contact_ao * 0.42, 0.0, 0.68);
+		float total_wood_ao = clamp(plank_groove_ao * 0.56 + curb_contact_ao * 0.44, 0.0, 0.74);
 		wood_col *= (1.0 - total_wood_ao);
+
+		// Hand-forged dark iron nail heads fastening each oak plank to the two carrier beams (`|v_local.z| ~ 1.24`)
+		vec2 nail_uv = vec2(abs(v_local.x) - 0.072, abs(v_local.z) - 1.24);
+		float nail_dist = length(nail_uv * vec2(1.0, 1.25));
+		float nail_head = (1.0 - smoothstep(0.014, 0.024, nail_dist)) * is_top_deck;
+		float nail_stain = (1.0 - smoothstep(0.022, 0.052, nail_dist)) * is_top_deck;
+		wood_col *= (1.0 - nail_stain * 0.36);
+		wood_col = mix(wood_col, vec3(0.10, 0.11, 0.13), nail_head);
 
 		// Cart wheel-rut & footstep wear patina along the two traffic tracks (`abs(v_local.z) ~ 0.54`)
 		float wheel_rut = exp(-pow((abs(v_local.z) - 0.54) / 0.32, 2.0)) * is_top_deck;
 		float soil_speck = soft_fbm(v_world.xz * 2.4 + vec2(3.1, -1.8));
 		vec3 rut_patina = vec3(0.28, 0.22, 0.15);
-		wood_col = mix(wood_col, rut_patina, wheel_rut * smoothstep(0.28, 0.76, soil_speck) * 0.32);
+		wood_col = mix(wood_col, rut_patina, wheel_rut * smoothstep(0.28, 0.76, soil_speck) * 0.34);
 
-		// Subtle mossy dampness right where bridge abutments meet the grassy riverbanks
+		// Wet dark grime & mossy dampness on lower bridge beams/posts near water & bank abutments
+		float waterline_grime = 1.0 - smoothstep(0.45, 0.96, v_world.y);
+		wood_col = mix(wood_col, vec3(0.14, 0.16, 0.09), waterline_grime * 0.58);
 		float bank_end = smoothstep(5.1, 6.35, abs(v_world.x - 12.0)) * smoothstep(0.75, 1.38, abs(v_local.z));
 		wood_col = mix(wood_col, vec3(0.18, 0.30, 0.11), bank_end * 0.45);
 
@@ -157,8 +167,10 @@ void fragment() {
 		wood_col *= 0.78 + 0.26 * smoothstep(-0.4, 0.85, up);
 
 		ALBEDO = wood_col;
-		ROUGHNESS = mix(0.66, 0.44, wheel_rut * 0.65 + (1.0 - plank_groove_ao) * 0.25);
-		SPECULAR = 0.36;
+		float base_w_rough = mix(0.66, 0.42, wheel_rut * 0.65 + (1.0 - plank_groove_ao) * 0.25 + waterline_grime * 0.45);
+		ROUGHNESS = mix(base_w_rough, 0.26, nail_head);
+		METALLIC = nail_head * 0.82;
+		SPECULAR = mix(0.36, 0.68, nail_head);
 		BACKLIGHT = vec3(0.06, 0.04, 0.02);
 	} else {
 		// Bevel-Smoothed Sculpted Stone & Organic Velvet Moss Mode
@@ -208,6 +220,12 @@ void fragment() {
 		c += vec3(0.07, 0.065, 0.052) * smoothstep(0.10, 0.46, bevel_highlight) * smoothstep(-0.05, 0.75, up);
 		vec3 ground_bounce = vec3(0.22, 0.29, 0.16);
 		c = mix(c * 0.70 + ground_bounce * 0.06, c * 1.06, smoothstep(-0.45, 0.85, up));
+
+		// Sunlit Mountain Lichen Rosettes on dry upper stone faces (links bare stone to meadow ecology)
+		float lichen_n = triplanar_soft_fbm(v_world + vec3(6.4, 1.2, -3.7), base_n, 3.8);
+		float lichen_mask = smoothstep(0.62, 0.84, lichen_n) * smoothstep(0.15, 0.75, up)
+			* (1.0 - moss_mask) * smoothstep(0.55, 0.82, v_world.y);
+		c = mix(c, vec3(0.38, 0.44, 0.24), lichen_mask * 0.52);
 
 		// Deep Ground-Contact Ambient Occlusion & Base Soil/Moss Blending (prevents "floating sticker" look)
 		float base_skirt = (1.0 - smoothstep(0.05, 0.92, v_local.y)) * (1.0 - smoothstep(-0.35, 0.35, v_dome_dir.y));

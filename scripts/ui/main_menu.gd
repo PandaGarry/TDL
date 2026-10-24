@@ -38,10 +38,14 @@ func _install_backdrop_texture() -> void:
 	add_child(bg_world)
 	bg_world.ensure_built()
 	bg_world.set_camera_lookpoint("valley_panorama")
-	_title_label.add_theme_color_override("font_shadow_color", Color(0.04, 0.05, 0.03, 0.85))
+	_title_label.add_theme_color_override("font_shadow_color", Color(0.04, 0.05, 0.03, 0.88))
+	_title_label.add_theme_color_override("font_outline_color", Color(0.24, 0.16, 0.05, 0.92))
+	_title_label.add_theme_constant_override("outline_size", 4)
 	_title_label.add_theme_constant_override("shadow_offset_x", 2)
-	_title_label.add_theme_constant_override("shadow_offset_y", 3)
-	_subtitle_label.add_theme_color_override("font_shadow_color", Color(0.04, 0.05, 0.03, 0.88))
+	_title_label.add_theme_constant_override("shadow_offset_y", 4)
+	_subtitle_label.add_theme_color_override("font_shadow_color", Color(0.04, 0.05, 0.03, 0.90))
+	_subtitle_label.add_theme_color_override("font_outline_color", Color(0.06, 0.09, 0.06, 0.85))
+	_subtitle_label.add_theme_constant_override("outline_size", 2)
 	_subtitle_label.add_theme_constant_override("shadow_offset_x", 1)
 	_subtitle_label.add_theme_constant_override("shadow_offset_y", 2)
 	var menu_btns: Array[Button] = [
@@ -56,24 +60,29 @@ static func _style_menu_button(btn: Button, is_primary: bool) -> void:
 		return
 	var n_box := StyleBoxFlat.new()
 	n_box.bg_color = (
-		Color(0.11, 0.16, 0.12, 0.88) if is_primary else Color(0.08, 0.11, 0.09, 0.82)
+		Color(0.13, 0.19, 0.13, 0.90) if is_primary else Color(0.08, 0.12, 0.09, 0.84)
 	)
 	n_box.border_color = (
-		Color(0.82, 0.69, 0.42, 0.92) if is_primary else Color(0.58, 0.50, 0.34, 0.74)
+		Color(0.90, 0.76, 0.44, 0.96) if is_primary else Color(0.62, 0.54, 0.36, 0.78)
 	)
 	n_box.set_border_width_all(1)
-	n_box.border_width_bottom = 2
+	n_box.border_width_top = 2 if is_primary else 1
+	n_box.border_width_bottom = 3 if is_primary else 2
 	n_box.set_corner_radius_all(8)
-	n_box.shadow_color = Color(0.0, 0.0, 0.0, 0.42)
-	n_box.shadow_size = 7
-	n_box.shadow_offset = Vector2(0.0, 3.0)
+	n_box.shadow_color = (
+		Color(0.92, 0.74, 0.32, 0.28) if is_primary else Color(0.0, 0.0, 0.0, 0.44)
+	)
+	n_box.shadow_size = 9 if is_primary else 7
+	n_box.shadow_offset = Vector2(0.0, 2.0)
 	n_box.content_margin_left = 18.0
 	n_box.content_margin_right = 18.0
 	n_box.content_margin_top = 9.0
 	n_box.content_margin_bottom = 9.0
 	var h_box := n_box.duplicate() as StyleBoxFlat
-	h_box.bg_color = Color(0.17, 0.24, 0.17, 0.94)
-	h_box.border_color = Color(0.95, 0.82, 0.50, 0.98)
+	h_box.bg_color = Color(0.18, 0.26, 0.18, 0.94)
+	h_box.border_color = Color(0.98, 0.85, 0.52, 1.0)
+	h_box.shadow_color = Color(0.95, 0.78, 0.36, 0.34)
+	h_box.shadow_size = 10
 	var d_box := n_box.duplicate() as StyleBoxFlat
 	d_box.bg_color = Color(0.07, 0.09, 0.08, 0.52)
 	d_box.border_color = Color(0.42, 0.38, 0.30, 0.42)

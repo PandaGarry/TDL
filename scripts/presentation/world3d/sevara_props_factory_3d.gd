@@ -93,17 +93,18 @@ static func get_step2_boulder_specs() -> Array[Dictionary]:
 		# West riverbank boulder clusters (kept well clear of bridge deck, railings & road ramps)
 		{"pos": Vector2(4.2, -3.8), "sc": Vector3(1.42, 1.02, 1.32), "moss": true},
 		{"pos": Vector2(3.8, -8.2), "sc": Vector3(1.22, 0.86, 1.14), "moss": false},
-		{"pos": Vector2(2.4, -13.5), "sc": Vector3(1.58, 1.16, 1.46), "moss": true},
-		{"pos": Vector2(-0.5, -19.5), "sc": Vector3(1.48, 1.08, 1.36), "moss": false},
-		{"pos": Vector2(-2.8, -25.0), "sc": Vector3(1.68, 1.22, 1.54), "moss": true},
+		{"pos": Vector2(2.6, -13.5), "sc": Vector3(1.58, 1.16, 1.46), "moss": true},
+		{"pos": Vector2(3.2, -21.5), "sc": Vector3(1.52, 1.10, 1.40), "moss": false},
+		{"pos": Vector2(4.8, -30.5), "sc": Vector3(1.68, 1.22, 1.54), "moss": true},
 		{"pos": Vector2(7.4, 7.6), "sc": Vector3(1.40, 1.00, 1.28), "moss": true},
 		{"pos": Vector2(8.4, 11.8), "sc": Vector3(1.52, 1.12, 1.42), "moss": false},
 		{"pos": Vector2(9.6, 16.5), "sc": Vector3(1.38, 0.98, 1.26), "moss": true},
 		# East riverbank boulder clusters (kept well clear of bridge deck, railings & road ramps)
 		{"pos": Vector2(16.4, -3.8), "sc": Vector3(1.44, 1.04, 1.34), "moss": true},
 		{"pos": Vector2(14.8, -8.2), "sc": Vector3(1.28, 0.90, 1.18), "moss": false},
-		{"pos": Vector2(12.6, -14.2), "sc": Vector3(1.56, 1.14, 1.44), "moss": true},
-		{"pos": Vector2(9.8, -20.5), "sc": Vector3(1.44, 1.04, 1.32), "moss": false},
+		{"pos": Vector2(13.2, -14.2), "sc": Vector3(1.56, 1.14, 1.44), "moss": true},
+		{"pos": Vector2(14.6, -23.5), "sc": Vector3(1.48, 1.06, 1.36), "moss": false},
+		{"pos": Vector2(16.2, -32.5), "sc": Vector3(1.64, 1.18, 1.50), "moss": true},
 		{"pos": Vector2(18.8, 7.2), "sc": Vector3(1.46, 1.04, 1.34), "moss": false},
 		{"pos": Vector2(19.8, 11.5), "sc": Vector3(1.64, 1.18, 1.52), "moss": true},
 		{"pos": Vector2(20.6, 16.2), "sc": Vector3(1.40, 1.00, 1.30), "moss": false},
@@ -112,6 +113,8 @@ static func get_step2_boulder_specs() -> Array[Dictionary]:
 		{"pos": Vector2(14.4, -3.5), "sc": Vector3(1.18, 0.78, 1.08), "moss": true},
 		{"pos": Vector2(7.4, -8.8), "sc": Vector3(1.08, 0.68, 1.00), "moss": false},
 		{"pos": Vector2(12.2, -11.5), "sc": Vector3(1.24, 0.84, 1.14), "moss": true},
+		{"pos": Vector2(8.6, -24.5), "sc": Vector3(1.28, 0.86, 1.18), "moss": false},
+		{"pos": Vector2(10.2, -33.5), "sc": Vector3(1.34, 0.90, 1.24), "moss": true},
 		{"pos": Vector2(9.2, 6.8), "sc": Vector3(1.14, 0.74, 1.06), "moss": false},
 		{"pos": Vector2(16.2, 7.6), "sc": Vector3(1.28, 0.86, 1.18), "moss": true},
 		{"pos": Vector2(10.8, 12.8), "sc": Vector3(1.16, 0.76, 1.08), "moss": false},
@@ -273,41 +276,24 @@ static func create_reed_clump_3d(variant: int = 0) -> Node3D:
 	return root
 
 
-static func create_log_house_3d(
-	size: Vector3 = Vector3(2.8, 1.5, 2.1), roof_height: float = 1.1, warm_window: bool = true
-) -> Node3D:
-	var house_idx := posmod(int(round((size.x + size.z) * 3.0)), 4) + 1
-	var target_h := maxf(size.y + roof_height, 3.6)
-	var overrides := {}
-	if not warm_window:
-		overrides["Windows"] = Color(0.18, 0.22, 0.26)
-	var model := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.VILLAGE_DIR + ("House_%d.glb" % house_idx), target_h, overrides, true
-	)
-	model.name = "LogHouse3D"
-	return model
-
-
 static func create_chronicle_pavilion_3d() -> Node3D:
 	var root := Node3D.new()
 	root.name = "ChroniclePavilion3D"
-	var gazebo := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.VILLAGE_DIR + "Gazebo.glb", 3.85, {}, true
+	root.add_child(
+		SevaraAssetLibrary3D.instantiate_model(
+			SevaraAssetLibrary3D.VILLAGE_DIR + "Gazebo.glb", 3.85, {}, true
+		)
 	)
-	root.add_child(gazebo)
-
 	var bench := SevaraAssetLibrary3D.instantiate_model(
 		SevaraAssetLibrary3D.VILLAGE_DIR + "Bench_1.glb", 0.72, {}, true
 	)
 	bench.position = Vector3(0.0, 0.05, -0.45)
 	root.add_child(bench)
-
 	var desk := SevaraAssetLibrary3D.instantiate_model(
 		SevaraAssetLibrary3D.VILLAGE_DIR + "Bench_2.glb", 0.78, {}, true
 	)
 	desk.position = Vector3(0.0, 0.05, 0.12)
 	root.add_child(desk)
-
 	var book := SevaraAssetLibrary3D.instantiate_model(
 		SevaraAssetLibrary3D.ITEMS_DIR + "Book1_Open.glb", 0.075, {}, false
 	)
@@ -319,18 +305,16 @@ static func create_chronicle_pavilion_3d() -> Node3D:
 static func create_hearth_3d() -> Node3D:
 	var root := Node3D.new()
 	root.name = "CommunalHearth3D"
-
-	var bonfire := SevaraAssetLibrary3D.instantiate_model(
-		SevaraAssetLibrary3D.VILLAGE_DIR + "Bonfire_Lit.glb", 0.95, {}, true
+	root.add_child(
+		SevaraAssetLibrary3D.instantiate_model(
+			SevaraAssetLibrary3D.VILLAGE_DIR + "Bonfire_Lit.glb", 0.95, {}, true
+		)
 	)
-	root.add_child(bonfire)
-
 	var cauldron := SevaraAssetLibrary3D.instantiate_model(
 		SevaraAssetLibrary3D.VILLAGE_DIR + "Cauldron.glb", 0.82, {}, true
 	)
 	cauldron.position = Vector3(0.65, 0.0, 0.25)
 	root.add_child(cauldron)
-
 	for i in range(3):
 		var ang := float(i) * TAU / 3.0 + 0.35
 		var bench := SevaraAssetLibrary3D.instantiate_model(
@@ -339,7 +323,6 @@ static func create_hearth_3d() -> Node3D:
 		bench.position = Vector3(cos(ang) * 2.1, 0.0, sin(ang) * 2.1)
 		bench.rotation.y = -ang + PI * 0.5
 		root.add_child(bench)
-
 	var fire_light := OmniLight3D.new()
 	fire_light.name = "HearthLight"
 	fire_light.position = Vector3(0.0, 1.15, 0.0)
@@ -450,7 +433,8 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 		var plank := MeshInstance3D.new()
 		var pmesh := BoxMesh.new()
 		var jitter_w := deck_w + sin(float(i) * 1.9) * 0.025
-		pmesh.size = Vector3(span_dx * 0.96, 0.085, jitter_w)
+		# Physical see-through inter-plank gaps (`0.875 * span_dx`) so water & shadow show between planks
+		pmesh.size = Vector3(span_dx * 0.875, 0.085, jitter_w)
 		plank.mesh = pmesh
 		plank.position = Vector3(px, py - 0.032, pz)
 		plank.rotation = Vector3(0.0, yaw, pitch)
@@ -476,7 +460,16 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 			curb.material_override = dark_beam_mat
 			root.add_child(curb)
 
-	# 3. Turned Round Timber Railing Posts with Rounded Finial Caps & Smooth Cylindrical Handrails
+	# 3. Turned Round Timber Railing Posts with Forged Iron Collar Bands, Finial Caps & Handrails
+	var iron_band_mat := StandardMaterial3D.new()
+	iron_band_mat.albedo_color = Color(0.14, 0.15, 0.17)
+	iron_band_mat.metallic = 0.82
+	iron_band_mat.roughness = 0.34
+	var iron_band_cyl := CylinderMesh.new()
+	iron_band_cyl.top_radius = 0.086
+	iron_band_cyl.bottom_radius = 0.088
+	iron_band_cyl.height = 0.048
+	iron_band_cyl.radial_segments = 14
 	var post_cyl := CylinderMesh.new()
 	post_cyl.top_radius = 0.072
 	post_cyl.bottom_radius = 0.082
@@ -512,6 +505,13 @@ static func create_bridge_3d(_length_m: float = 7.2, _width_m: float = 2.4) -> N
 			post.rotation.y = yaw
 			post.material_override = dark_beam_mat
 			root.add_child(post)
+
+			for band_dy in [-0.36, 0.36]:
+				var band := MeshInstance3D.new()
+				band.mesh = iron_band_cyl
+				band.position = w_pos + Vector3(0.0, float(band_dy), 0.0)
+				band.material_override = iron_band_mat
+				root.add_child(band)
 
 			var cap := MeshInstance3D.new()
 			cap.mesh = cap_sphere

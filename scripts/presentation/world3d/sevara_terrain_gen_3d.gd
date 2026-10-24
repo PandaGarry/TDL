@@ -39,9 +39,11 @@ static func pixel_to_world_3d(
 
 
 static func river_center_x(wz: float) -> float:
-	# Full-bodied Nivarel mountain river flowing from the northern terraces (x ~ -2 at z=-40),
-	# spanned by the timber-and-stone bridge at z ~ +2.3..2.7, and widening into the southern basin.
-	return 7.8 + wz * 0.22 + sin(wz * 0.088 + 0.35) * 3.6 + cos(wz * 0.044 - 0.2) * 1.8
+	# Full-bodied Nivarel mountain river flowing from the northern mountain pass (z = -60)
+	# through the valley floor, spanned by the bridge at z ~ +2.35, to the southern basin (z = +60).
+	var base_cx := 7.8 + wz * 0.22 + sin(wz * 0.088 + 0.35) * 3.6 + cos(wz * 0.044 - 0.2) * 1.8
+	var north_valley_bend := smoothstep(-12.0, -56.0, wz) * 5.2
+	return base_cx + north_valley_bend
 
 
 static func river_half_width(wz: float) -> float:
@@ -166,15 +168,24 @@ static func get_path_weight_at(wx: float, wz: float) -> float:
 
 static func get_height_at(wx: float, wz: float) -> float:
 	if STEP1_CLEAN_MEADOW:
-		# CBT Proving Ground topography: rolling sun-lit meadows, stepped limestone terraces on the
-		# northern/western hills, and physically carved two-track roadbeds.
+		# Carve a wide natural river-valley pass through the northern hills & outer rim
+		# so the Nivarel river visibly enters from the distant mountain gap (never from underground)
+		var r_cx := river_center_x(wz)
+		var r_hw := river_half_width(wz)
+		var dist_river := absf(wx - r_cx)
+		var valley_pass_clear := 1.0 - exp(-pow(dist_river / (r_hw * 3.8), 2.0))
+
 		var hill_a := sin(wx * 0.075 + 0.3) * cos(wz * 0.085 - 0.4) * 0.88
 		var hill_b := sin(wx * 0.15 - wz * 0.13 + 1.1) * 0.36
-		var nw_plateau := smoothstep(4.0, -38.0, wx * 0.38 + wz * 0.85) * 4.2
-		var ne_knoll := exp(-pow((wx - 22.0) / 19.0, 2.0) - pow((wz - (-22.0)) / 15.0, 2.0)) * 2.85
+		var nw_plateau := smoothstep(4.0, -38.0, wx * 0.38 + wz * 0.85) * 4.2 * valley_pass_clear
+		var ne_knoll := (
+			exp(-pow((wx - 24.0) / 18.0, 2.0) - pow((wz - (-22.0)) / 15.0, 2.0))
+			* 2.65
+			* valley_pass_clear
+		)
 
 		# Crisp stepped natural terraces on the hillside slopes (rock ledges & grassy shelves)
-		var raw_slope_h := nw_plateau + ne_knoll + maxf(hill_a + hill_b, 0.0)
+		var raw_slope_h := nw_plateau + ne_knoll + maxf(hill_a + hill_b, 0.0) * valley_pass_clear
 		var terrace_phase := raw_slope_h * 1.35 + sin(wx * 0.12 + wz * 0.09) * 0.22
 		var terrace_floor := floorf(terrace_phase)
 		var terrace_fract := terrace_phase - terrace_floor
@@ -182,7 +193,7 @@ static func get_height_at(wx: float, wz: float) -> float:
 		var road_c := get_road_core_at(wx, wz)
 		var terrace_blend := smoothstep(0.55, 2.1, raw_slope_h) * (1.0 - road_c * 0.90)
 		var sculpted_hills := lerpf(
-			hill_a + hill_b + nw_plateau + ne_knoll,
+			(hill_a + hill_b) * valley_pass_clear + nw_plateau + ne_knoll,
 			terrace_shelf + hill_b * 0.28,
 			terrace_blend * 0.76
 		)
@@ -192,6 +203,7 @@ static func get_height_at(wx: float, wz: float) -> float:
 		var rim_h := (
 			clampf(rim_x + rim_z - rim_x * rim_z * 0.4, 0.0, 1.0)
 			* (2.8 + 0.9 * sin(wx * 0.08 + 0.4))
+			* valley_pass_clear
 		)
 
 		# Twin wheel-rut carving + natural wagon-wheel chatter undulations along the road
@@ -200,11 +212,7 @@ static func get_height_at(wx: float, wz: float) -> float:
 			(exp(-pow((d_main - 0.52) / 0.32, 2.0)) * 0.068 + exp(-pow(d_main / 1.35, 2.0)) * 0.045)
 			* smoothstep(-62.0, -50.0, wx)
 			* (1.0 - smoothstep(50.0, 62.0, wx))
-			* smoothstep(
-				river_half_width(wz) * 0.88,
-				river_half_width(wz) * 1.05,
-				absf(wx - river_center_x(wz))
-			)
+			* smoothstep(r_hw * 0.88, r_hw * 1.05, dist_river)
 		)
 		var branch_carve := road_c * 0.055
 		var wagon_bumps := (
@@ -220,24 +228,19 @@ static func get_height_at(wx: float, wz: float) -> float:
 			- maxf(rut_carve, branch_carve)
 		)
 
-		# Step 2 Deep, wide Nivarel mountain river channel & firm bridge abutment banks
-		var r_cx := river_center_x(wz)
-		var r_hw := river_half_width(wz)
-		var dist_river := absf(wx - r_cx)
-		var stream_fade := smoothstep(-52.0, -40.0, wz) * (1.0 - smoothstep(38.0, 48.0, wz))
+		# Step 2 Continuous, full-length Nivarel mountain river channel (-60m to +60m)
 		var bridge_approach := road_c * exp(-pow((wz - 2.35) / 3.8, 2.0))
-		# Firm dry bank terrace (~0.85m Y) so bridge approach ramps meet the road seamlessly
-		var base_bank_y := WATER_SURFACE_Y + 0.40 + sin(wz * 0.18 + wx * 0.14) * 0.032
+		var base_bank_y := WATER_SURFACE_Y + 0.38 + sin(wz * 0.18 + wx * 0.14) * 0.028
 		var bank_y := lerpf(
 			base_bank_y, WATER_SURFACE_Y + 0.44, clampf(bridge_approach * 0.90, 0.0, 0.90)
 		)
-		var trough_w := r_hw * lerpf(2.8, 1.85, smoothstep(-30.0, -6.0, wz))
-		var trough_blend := exp(-pow(dist_river / trough_w, 2.0)) * stream_fade
+		var trough_w := r_hw * lerpf(3.2, 1.95, smoothstep(-34.0, -6.0, wz))
+		var trough_blend := exp(-pow(dist_river / trough_w, 2.0))
 		var h_bank := lerpf(meadow_h, bank_y, trough_blend)
 
 		var norm_r := dist_river / maxf(r_hw, 0.5)
-		var shallow_shelf := clampf(1.0 - pow(norm_r, 1.55), 0.0, 1.0) * stream_fade
-		var deep_thalweg := clampf(1.0 - pow(norm_r / 0.82, 2.2), 0.0, 1.0) * stream_fade
+		var shallow_shelf := clampf(1.0 - pow(norm_r, 1.55), 0.0, 1.0)
+		var deep_thalweg := clampf(1.0 - pow(norm_r / 0.82, 2.2), 0.0, 1.0)
 		var pool_deepen := 1.0 + exp(-pow((wz - 12.0) / 8.5, 2.0)) * 0.28
 		var carve_depth := (shallow_shelf * 0.68 + deep_thalweg * 1.58) * pool_deepen
 		return h_bank - carve_depth
@@ -342,9 +345,9 @@ static func build_water_mesh(
 	var half_w := VALLEY_WIDTH_M * 0.5
 	var half_d := VALLEY_DEPTH_M * 0.5
 	# High-precision stream-following ribbon mesh (perfectly smooth banks, 3x fewer triangles)
-	var z_start := -48.0
-	var z_end := 44.0
-	var steps_z := 184
+	var z_start := -60.0
+	var z_end := 58.0
+	var steps_z := 224
 	var steps_u := 44
 	var dz := (z_end - z_start) / float(steps_z)
 	var u_span := 1.06

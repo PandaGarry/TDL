@@ -84,11 +84,14 @@ void vertex() {
 	float glade_n = fbm(world_v.xz * 0.14 + vec2(4.2, -1.8));
 	float inst_h = clamp(INSTANCE_CUSTOM.a, 0.14, 1.45);
 	float verge_tint = clamp(INSTANCE_CUSTOM.r, 0.0, 1.0);
-	float dist_taper = 1.0 - smoothstep(66.0, 86.0, length(world_v.xz));
+	float dist_origin = length(world_v.xz);
+	float dist_taper = 1.0 - smoothstep(66.0, 86.0, dist_origin);
+	float near_wind_boost = mix(1.22, 0.72, smoothstep(8.0, 48.0, dist_origin));
 	float h_scale = (0.72 + rnd.g * 0.46) * (0.74 + clump * 0.56) * inst_h * dist_taper;
 	float gust = wind_gust(world_v.xz, TIME);
-	float wave = sin(TIME * 1.5 - dot(world_v.xz, wind_direction) * 0.38 + rnd.a * 6.28) * 0.5 + 0.5;
-	float bend = (gust * 0.65 + wave * 0.35 + 0.08) * wind_strength;
+	float wave = sin(TIME * 1.65 - dot(world_v.xz, wind_direction) * 0.42 + rnd.a * 6.28) * 0.5 + 0.5;
+	float flutter = sin(TIME * 3.8 + world_v.x * 2.3 - world_v.z * 1.9 + rnd.g * 6.28) * 0.08 * near_wind_boost;
+	float bend = ((gust * 0.65 + wave * 0.35 + 0.08) * near_wind_boost + flutter) * wind_strength;
 
 	float curve = t * t;
 	vec2 wdir = normalize(wind_direction);
@@ -147,11 +150,11 @@ void fragment() {
 
 	float t = v_t;
 	vec3 col = mix(v_root_col, v_tip_col, smoothstep(0.06, 0.94, t));
-	// Deep root contact ambient occlusion connecting grass tufts to the dark humus soil
-	float root_ao = mix(0.64, 1.0, smoothstep(0.0, 0.46, t));
+	// Deep root contact ambient occlusion connecting grass tufts to the dark humus soil (no floating look)
+	float root_ao = mix(0.46, 1.0, smoothstep(0.0, 0.48, t));
 	col *= root_ao;
 	// Warm golden subsurface translucency on sunlit wind-wave crests
-	col += vec3(0.055, 0.068, 0.018) * (v_gust * 0.82 + 0.18) * (t * t);
+	col += vec3(0.062, 0.074, 0.020) * (v_gust * 0.85 + 0.15) * (t * t);
 
 	// Delicate wildflower & clover specks at the top 22% of blossom stems
 	if (v_blossom_id >= 0.0 && t > 0.78) {
