@@ -1,1 +1,121 @@
 # TDL
+
+Рабочее название игры на **Godot 4.7** (GDScript). Репозиторий подготовлен
+с чистого листа как аккуратный технический каркас и документальная база
+пре-продакшена. Направление H1 выбрано; Baseline Lock раунда 12 собрал
+**GDD v1.0 Core Baseline**, достаточный для строительства ядра.
+Технологический фундамент **P0 (P0-A..P0-G)**, двухконтурная система
+настроек (`WorldRules` для кооп-лобби/мира + `SettingsManager` для
+клиентской графики и текстур) и экологический срез **P1 (P1-A..P1-E)**
+полностью реализованы и приняты зелёным CI на Godot 4.7.2: примитивы Core,
+реестр 20 JSON-определений (10 базовых видов Севары, 6 материалов, 4 типа
+акторов/объектов), мировой crash-safe сейв, авторитетная `GameSession` с
+ENet-транспортом, каскад 4 эко-узлов `SevaraEcoChain`, телесное выживание и
+практика `BodyVitals`, 8 активных якорных NPC `SevaraP1Npcs`, полевой
+журнал гипотез и материальная хроника Селимы `FieldJournalAndChronicle`,
+играбельная сцена `GreyboxStage`, двухпроцессная сетевая приёмка,
+`BugBundleExporter` и сезонный soak-smoke раннер. Следующий шаг — детальный
+разбор визуала/текстур и переход к **P2** (социальный срез двух поселений).
+
+> Название **TDL** — временное (унаследовано от имени репозитория).
+> Настоящее название пока не выбрано и не блокирует пре-продакшен.
+
+## Быстрый старт
+
+1. Установить **Godot 4.7.x** (standard-версия, не .NET): https://godotengine.org/download
+2. Открыть в редакторе этот репозиторий (файл `project.godot`).
+3. Нажать **F5** — запустится заглушка главного меню. Это проверка, что
+   проект, автозагрузки и сцены на месте; самой игры ещё нет.
+4. Дальше — читать [`docs/`](docs/README.md): сначала журнал одобренных
+   решений, GDD v1.0 Core Baseline и Baseline Lock раунда 12, затем
+   специализированные документы. Аудит раунда 11 и протокол раундов —
+   исторические источники, а не текущий список задач.
+
+## Структура проекта
+
+| Папка | Что внутри |
+|---|---|
+| `scenes/` | Сцены Godot: `main/`, `levels/`, `characters/`, `ui/` |
+| `scripts/` | GDScript: `autoloads/` (оболочка), `app/`, `components/`, `core/`, `features/`, `levels/`, `net/`, `persistence/`, `presentation/`, `ui/` |
+| `assets/` | Арт, аудио (`music/`, `sfx/`, `ambience/`), шрифты, шейдеры |
+| `resources/` | Данные Godot (`.tres`): конфиги, темы UI, диалоги |
+| `addons/` | Сторонние плагины (см. [`addons/README.md`](addons/README.md)) — лежат готовыми, но **выключены** до первого использования |
+| `docs/` | Дизайн (`design/`), лор (`lore/`), арт (`art/`), техника (`tech/`), продакшен (`production/`) |
+| `tools/` | Служебные скрипты (установка/обновление плагинов) |
+| `data/` | Версионированные пакеты определений Core (`data/core`) |
+| `tests/` | Smoke, модульные (`unit/`), двухпроцессные приёмочные (`integration/`), сезонные (`soak/`) runners и `fixtures/` |
+
+## Что уже работает
+
+Автозагрузки (порядок важен, см. `docs/tech/architecture.md`):
+
+- **EventBus** — глобальные сигналы игрового цикла;
+- **AudioManager** — шины Master/Music/SFX/Ambience, кроссфейд музыки, пул SFX;
+- **SettingsManager** — клиентские настройки в `user://settings.cfg` (громкость шин Master/Music/SFX/Ambience, фулскрин, `vsync_enabled`, язык `ru`/`en`, пресеты качества текстур `greybox`/`low`/`medium`/`high`, плотность листвы `foliage_density`, шейдеры ветра и воды `wind_and_water_shaders`, `ui_scale`); правила кампании и кооперативного лобби хранятся отдельно в `WorldRules` внутри `WorldState`;
+- **SaveSystem** — legacy-заглушка меню со слотами в `user://saves/`; сейв кампании строят отдельные `WorldStateCodec` и `SaveStore`, а не эта автозагрузка;
+- **SceneLoader** — мгновенная и асинхронная смена сцен с прогрессом;
+- **GameManager** — состояние игры (меню/игра/пауза), пауза по Esc.
+
+Настроено: разрешение 1920×1080, stretch `canvas_items/expand`,
+семантические действия ввода TDL (движение/бег/осторожный шаг, осмотр,
+взаимодействие, помощь/разговор, переноска, инструменты, строительство,
+образцы, отдых, команды группе, debug и пауза оболочки), 2D-физические
+слои Terrain/Bodies/Structures/Items/Interactables/Hazards/Sensors/
+Projectiles и renderer **GL Compatibility**. В `scripts/core/` уже лежат
+StableId, JsonValue, WorldClock, RNG-потоки, FactLog, StateHash,
+DefinitionRegistry, WorldState, SimulationScheduler и константы слоёв;
+первый пакет определений — в `data/core/`. В `scripts/persistence/`
+лежат codec мирового сейва v1 с checksum/миграцией и generic atomic
+`SaveStore` с backup recovery. В `scripts/app/`, `scripts/net/` и
+`scripts/features/greybox/` реализована авторитетная `GameSession`,
+90-секундное аварийное окно отключения участников, `BugBundleExporter`,
+JSON-протокол, ENet-адаптер и первые greybox-сущности/намерения. В
+`scripts/presentation/`, `scripts/levels/` и `scenes/levels/greybox_stage.tscn`
+реализована презентация чанка (`GreyboxChunkView`, `ActorView`,
+`SupplyCrateView`), `Camera2D`, контроллер семантического ввода,
+`GreyboxDebugOverlay` и RU/EN каталог `UiLocaleCatalog`. В
+`scripts/features/ecology/`, `scripts/features/body/`,
+`scripts/features/npcs/` и `scripts/features/chronicle/` реализован
+полный срез **P1**: каскад `SevaraEcoChain` (4 эко-узла долины, карантин и
+дикое разрастание `kevalu`, предупреждения и необратимое вымирание refugium
+`navelu`), `BodyVitals` (сытость, гидратация, бодрость, тепло, сырость,
+болотная лихорадка и бесклассовая практика `0..100`), `SevaraP1Npcs` (8
+якорных NPC с расписанием, памятью и обещаниями) и
+`FieldJournalAndChronicle` (5 ступеней гипотез и материальная хроника дома).
+
+**Проверка движком:** GitHub Actions при каждом пуше скачивает официальный
+Godot **4.7.2**, проверяет сумму SHA512, импортирует проект, компилирует
+все скрипты в контексте проекта, запускает P0 foundation, persistence,
+session, presentation, двухпроцессный P0 acceptance и сезонный soak-smoke
+тесты, а также главную сцену в headless-режиме; gdtoolkit 4.5.0 проверяет формат/линт всех
+first-party GDScript в `scripts/` и `tests/`
+(`.github/workflows/godot-validate.yml`, локально —
+`tools/check_project.sh`).
+
+## Статус
+
+**Пре-продакшен, технологический фундамент P0 и экологический срез P1 завершены; следующий этап — детальный разбор визуала/текстур и P2 (социальный срез двух поселений).** Выбрано направление H1 «Родной мир на общем
+игровом ядре»: открытый живой дом, кооператив 1–4, конечная экология,
+якорные разломы между планетами, смертные персонажи и наследие мира.
+Стратегические основания и причинная рамка одобрены в раундах 4–5;
+Act I должен стабилизировать долину-убежище за целевой ориентир 20–40
+часов, после чего новая беда открывает Act II. В раунде 6 автор одобрил
+гибридный путь игрока A → C → B. В раунде 7 заданы весенний старт,
+средневековая племенная эпоха и множество поселений; рабочая первая
+долина Севары и NPC описаны в
+[`docs/design/first_valley_spring_tribes.md`](docs/design/first_valley_spring_tribes.md),
+а рекомендуемая модель боя — в
+[`docs/design/personal_combat_and_leadership.md`](docs/design/personal_combat_and_leadership.md).
+В раундах 8–10 система имён Севары создана и одобрена автором для RU/EN.
+Адаптивные поселения, выбор вождя по доверию/силе/влиянию, назначения и
+сессионная распределённая власть описаны в
+[`docs/design/adaptive_settlements_leadership_and_coop.md`](docs/design/adaptive_settlements_leadership_and_coop.md)
+и [`docs/design/leadership_succession_reputation_roles.md`](docs/design/leadership_succession_reputation_roles.md).
+После раунда 10 автор подтвердил стартовые веса выборов, окно 5–7 дней и
+защиту отсутствующего игрока по умолчанию. Раунд 11 провёл полный аудит.
+Раунд 12 одобрил поэтапный моддинг и по делегированию автора закрыл
+Baseline Lock в [`docs/production/round12_baseline_lock.md`](docs/production/round12_baseline_lock.md),
+а сводная база обновлена до [`docs/design/gdd.md`](docs/design/gdd.md)
+(GDD v1.0 Core Baseline).
+Источник истины по одобрениям — [`docs/production/decisions.md`](docs/production/decisions.md),
+план — в [`docs/production/roadmap.md`](docs/production/roadmap.md).

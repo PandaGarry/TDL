@@ -1,0 +1,267 @@
+{
+  "format": "tdl.definitions",
+  "schema_version": 1,
+  "definitions": [
+    {
+      "id": "core:species/navelu",
+      "kind": "species",
+      "name_key": "species.navelu.name",
+      "tags": [
+        "animal",
+        "semi_aquatic",
+        "ecosystem_engineer"
+      ],
+      "visual_profile": "core:visual/species_navelu",
+      "references": [
+        "core:species/selave"
+      ],
+      "properties": {
+        "diet": "herbivore",
+        "habitats": [
+          "wetland",
+          "side_pond"
+        ],
+        "ecological_roles": [
+          "slows_water",
+          "creates_side_ponds",
+          "supports_refugia"
+        ]
+      }
+    },
+    {
+      "id": "core:species/selave",
+      "kind": "species",
+      "name_key": "species.selave.name",
+      "tags": [
+        "plant",
+        "wetland",
+        "filtration_vegetation"
+      ],
+      "visual_profile": "core:visual/species_selave",
+      "references": [
+        "core:species/navelu",
+        "core:species/murela",
+        "core:species/tivane"
+      ],
+      "properties": {
+        "habitats": [
+          "wetland",
+          "shallow_water"
+        ],
+        "ecological_roles": [
+          "filters_silt",
+          "shelters_juveniles",
+          "seasonal_pollinator_signal"
+        ]
+      }
+    },
+    {
+      "id": "core:species/murela",
+      "kind": "species",
+      "name_key": "species.murela.name",
+      "tags": [
+        "animal",
+        "fish",
+        "food_species"
+      ],
+      "visual_profile": "core:visual/species_murela",
+      "references": [
+        "core:species/selave"
+      ],
+      "properties": {
+        "habitats": [
+          "lowland_water",
+          "side_pond"
+        ],
+        "ecological_roles": [
+          "feeds_people",
+          "feeds_predators"
+        ]
+      }
+    },
+    {
+      "id": "core:species/tivane",
+      "kind": "species",
+      "name_key": "species.tivane.name",
+      "tags": [
+        "animal",
+        "insect",
+        "pollinator"
+      ],
+      "visual_profile": "core:visual/species_tivane",
+      "references": [
+        "core:species/selave",
+        "core:species/talune"
+      ],
+      "properties": {
+        "habitats": [
+          "wetland_margin",
+          "meadow",
+          "orchard"
+        ],
+        "ecological_roles": [
+          "pollinates_talune",
+          "pollinates_wild_flora"
+        ]
+      }
+    },
+    {
+      "id": "core:species/talune",
+      "kind": "species",
+      "name_key": "species.talune.name",
+      "tags": [
+        "plant",
+        "legume",
+        "food_species"
+      ],
+      "visual_profile": "core:visual/species_talune",
+      "references": [
+        "core:species/tivane"
+      ],
+      "properties": {
+        "habitats": [
+          "meadow",
+          "terrace_garden"
+        ],
+        "ecological_roles": [
+          "enriches_soil",
+          "feeds_people",
+          "feeds_herbivores"
+        ]
+      }
+    },
+    {
+      "id": "core:species/heruna",
+      "kind": "species",
+      "name_key": "species.heruna.name",
+      "tags": [
+        "animal",
+        "herbivore",
+        "grazer"
+      ],
+      "visual_profile": "core:visual/species_heruna",
+      "references": [
+        "core:species/talune",
+        "core:species/orive"
+      ],
+      "properties": {
+        "diet": "herbivore",
+        "habitats": [
+          "meadow",
+          "forest_edge"
+        ],
+        "ecological_roles": [
+          "keeps_meadows_open",
+          "disperses_seeds",
+          "overgrazes_when_unchecked"
+        ]
+      }
+    },
+    {
+      "id": "core:species/karune",
+      "kind": "species",
+      "name_key": "species.karune.name",
+      "tags": [
+        "animal",
+        "predator",
+        "carnivore"
+      ],
+      "visual_profile": "core:visual/species_karune",
+      "references": [
+        "core:species/heruna",
+        "core:species/murela"
+      ],
+      "properties": {
+        "diet": "carnivore",
+        "habitats": [
+          "slope_forest",
+          "meadow_margin"
+        ],
+        "ecological_roles": [
+          "regulates_heruna",
+          "culls_weak_prey",
+          "threatens_isolated_travelers"
+        ]
+      }
+    },
+    {
+      "id": "core:species/torava",
+      "kind": "species",
+      "name_key": "species.torava.name",
+      "tags": [
+        "plant",
+        "tree",
+        "watershed_anchor"
+      ],
+      "visual_profile": "core:visual/species_torava",
+      "references": [
+        "core:material/torava_wood"
+      ],
+      "properties": {
+        "habitats": [
+          "slope_forest",
+          "headwater_bank"
+        ],
+        "ecological_roles": [
+          "retains_snowmelt",
+          "stabilizes_soil",
+          "shades_streams"
+        ]
+      }
+    },
+    {
+      "id": "core:species/orive",
+      "kind": "species",
+      "name_key": "species.orive.name",
+      "tags": [
+        "plant",
+        "pioneer_shrub",
+        "disturbance_indicator"
+      ],
+      "visual_profile": "core:visual/species_orive",
+      "references": [
+        "core:species/torava",
+        "core:species/talune"
+      ],
+      "properties": {
+        "habitats": [
+          "clearing",
+          "burned_slope"
+        ],
+        "ecological_roles": [
+          "stabilizes_bare_ground",
+          "crowds_out_talune_if_dominant"
+        ]
+      }
+    },
+    {
+      "id": "core:species/kevalu",
+      "kind": "species",
+      "name_key": "species.kevalu.name",
+      "tags": [
+        "plant",
+        "wetland",
+        "alien_expedition_species"
+      ],
+      "visual_profile": "core:visual/species_kevalu",
+      "references": [
+        "core:species/selave",
+        "core:species/tivane"
+      ],
+      "properties": {
+        "is_alien": true,
+        "habitats": [
+          "wetland",
+          "quarantine_pond",
+          "channel"
+        ],
+        "ecological_roles": [
+          "rapid_water_filtration",
+          "early_bloom_pollinator_lure",
+          "displaces_selave",
+          "clogs_channels_when_uncontained"
+        ]
+      }
+    }
+  ]
+}
